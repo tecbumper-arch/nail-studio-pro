@@ -1,0 +1,8 @@
+node_modules/
+.gradle/
+android-app/.gradle/
+android-app/build/
+android-app/app/build/
+android-app/local.properties
+.DS_Store
+Thumbs.db

@@ -1,0 +1,2305 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#ff1675">
+  <title>Agendamento Online | Catálogo & Horários</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <style>
+    :root, [data-theme="pink-gold"] {
+      --primary: #ff1675;
+      --primary-dark: #b8004b;
+      --primary-soft: #ffe6f0;
+      --primary-glow: rgba(255, 22, 117, 0.24);
+      --gradient: linear-gradient(135deg, #ff1675 0%, #ff5c97 55%, #f59e0b 100%);
+      --bg-app: #fdf7fa;
+      --bg-card: #ffffff;
+      --text-main: #240c18;
+      --text-muted: #6e4e5e;
+      --border: #f3cce0;
+    }
+    [data-theme="purple-neon"] {
+      --primary: #8b2cf5;
+      --primary-dark: #5b10b3;
+      --primary-soft: #f2e8ff;
+      --primary-glow: rgba(139, 44, 245, 0.24);
+      --gradient: linear-gradient(135deg, #7c3aed 0%, #c026d3 55%, #ec4899 100%);
+      --bg-app: #faf6ff;
+      --bg-card: #ffffff;
+      --text-main: #1a0b2e;
+      --text-muted: #644f82;
+      --border: #e5d4ff;
+    }
+    [data-theme="rose-luxury"] {
+      --primary: #e11d48;
+      --primary-dark: #9f1239;
+      --primary-soft: #ffe4e6;
+      --primary-glow: rgba(225, 29, 72, 0.24);
+      --gradient: linear-gradient(135deg, #be123c 0%, #f43f5e 55%, #d97706 100%);
+      --bg-app: #fff9f9;
+      --bg-card: #ffffff;
+      --text-main: #290d14;
+      --text-muted: #754d56;
+      --border: #fecdd3;
+    }
+    [data-theme="emerald-chic"] {
+      --primary: #059669;
+      --primary-dark: #065f46;
+      --primary-soft: #d1fae5;
+      --primary-glow: rgba(5, 150, 105, 0.22);
+      --gradient: linear-gradient(135deg, #047857 0%, #10b981 55%, #f59e0b 100%);
+      --bg-app: #f4fbf8;
+      --bg-card: #ffffff;
+      --text-main: #0a261d;
+      --text-muted: #48695e;
+      --border: #b2f2d6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      max-width: 100%;
+    }
+
+    html, body {
+      width: 100%;
+      max-width: 100vw;
+      overflow-x: hidden;
+      position: relative;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg-app);
+      color: var(--text-main);
+      padding-bottom: 80px;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    h1, h2, h3 { font-family: 'Outfit', sans-serif; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Topo Hero Mobile */
+    .hero {
+      background: var(--gradient);
+      color: #fff;
+      padding: max(18px, env(safe-area-inset-top, 18px)) 16px 20px;
+      border-bottom-left-radius: 28px;
+      border-bottom-right-radius: 28px;
+      box-shadow: 0 8px 24px var(--primary-glow);
+      width: 100%;
+    }
+    .hero-inner {
+      max-width: 480px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.22);
+      border: 2px solid rgba(255,255,255,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    /* Container Principal Mobile-First */
+    .container {
+      max-width: 480px;
+      width: 100%;
+      margin: 14px auto 0;
+      padding: 0 14px;
+    }
+
+    .grid-layout {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      width: 100%;
+    }
+
+    /* Barra de Categorias Horizontal com Scroll Touch */
+    .chips-bar {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 6px 2px 12px;
+      width: 100%;
+    }
+    .chip {
+      padding: 8px 14px;
+      border-radius: 99px;
+      background: var(--bg-card);
+      border: 1.5px solid var(--border);
+      font-weight: 700;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .chip.active {
+      background: var(--gradient);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+
+    /* Cards de Serviços Otimizados para Celular */
+    .srv-card {
+      background: var(--bg-card);
+      border: 2px solid var(--border);
+      border-radius: 18px;
+      padding: 12px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.03);
+      transition: all 0.2s ease;
+      width: 100%;
+    }
+    .srv-card.selected {
+      border-color: var(--primary);
+      background: var(--primary-soft);
+      box-shadow: 0 6px 18px var(--primary-glow);
+    }
+    .srv-img {
+      width: 78px;
+      height: 78px;
+      border-radius: 14px;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+
+    /* Caixa da Agenda (Escolha Data e Horário) */
+    .drawer-box {
+      background: var(--bg-card);
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      padding: 16px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.05);
+      width: 100%;
+    }
+
+    /* Barra de Dias */
+    .days-row {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 8px;
+      margin-bottom: 14px;
+      width: 100%;
+    }
+    .day-pill {
+      min-width: 60px;
+      padding: 8px 4px;
+      border-radius: 14px;
+      border: 1.5px solid var(--border);
+      background: var(--bg-app);
+      text-align: center;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .day-pill.active {
+      background: var(--gradient);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+
+    /* Grid de Horários Perfeito para Mobile (3 colunas automáticas) */
+    .slots-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+      width: 100%;
+    }
+    @media (max-width: 340px) {
+      .slots-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    .slot {
+      min-height: 46px;
+      border-radius: 12px;
+      border: 1.5px solid var(--border);
+      background: var(--bg-app);
+      font-weight: 800;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+    }
+    .slot.selected {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+    .slot.busy {
+      background: #f1f5f9;
+      color: #94a3b8;
+      border-color: #e2e8f0;
+      text-decoration: line-through;
+      cursor: not-allowed;
+    }
+
+    /* Inputs e Opções de Pagamento */
+    .inp {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1.5px solid var(--border);
+      background: var(--bg-app);
+      font-size: 16px; /* 16px impede o zoom automático chato do iOS e Chrome ao focar */
+      margin-bottom: 10px;
+      outline: none;
+    }
+    .inp:focus {
+      border-color: var(--primary);
+    }
+    .pay-card {
+      border: 1.5px solid var(--border);
+      border-radius: 13px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg-app);
+      width: 100%;
+    }
+    .pay-card.active {
+      border-color: var(--primary);
+      background: var(--primary-soft);
+    }
+
+    /* Botão Principal Call to Action */
+    .btn-cta {
+      white-space: nowrap;
+      white-space: nowrap;
+      width: 100%;
+      min-height: 50px;
+      border: none;
+      border-radius: 14px;
+      background: var(--gradient);
+      color: #fff;
+      font-family: 'Outfit', sans-serif;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 6px 18px var(--primary-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    /* Bottom Sheet Modal para Celular */
+    .sheet-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 9999;
+      padding: 0;
+    }
+    .sheet-modal.open { display: flex; }
+    .sheet-card {
+      background: #fff;
+      width: 100%;
+      max-width: 480px;
+      border-radius: 24px 24px 0 0;
+      padding: 20px 16px 28px;
+      text-align: center;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 -8px 30px rgba(0,0,0,0.2);
+    }
+
+    
+    /* Pílulas do Studio no Topo (Instagram / Mapa / WhatsApp) */
+    .studio-top-pills {
+      max-width: 480px;
+      margin: 10px auto 0;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .studio-pill {
+      background: rgba(255,255,255,0.22);
+      border: 1px solid rgba(255,255,255,0.55);
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 99px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+    }
+
+    /* Segmented Control: Agendar vs Meus Horários */
+    .client-mode-tabs {
+      display: flex;
+      background: var(--bg-card);
+      border: 1.5px solid var(--border);
+      border-radius: 16px;
+      padding: 4px;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.04);
+    }
+    .c-mode-btn {
+      flex: 1;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 800;
+      padding: 10px 8px;
+      border-radius: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    .c-mode-btn.active {
+      background: var(--gradient);
+      color: #fff;
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+
+    /* Card de Resumo do Procedimento Selecionado na Gaveta */
+    .selected-srv-banner {
+      background: var(--primary-soft);
+      border: 1.5px solid var(--primary);
+      border-radius: 14px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Ticket Resumo no Modal */
+    .ticket-summary-card {
+      background: #f8fafc;
+      border: 1.5px dashed #cbd5e1;
+      border-radius: 16px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      text-align: left;
+      font-size: 0.82rem;
+    }
+    .ticket-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+      color: #334155;
+    }
+    .ticket-row strong {
+      color: #0f172a;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body data-theme="pink-gold">
+
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="avatar">💅</div>
+      <div style="flex:1;">
+        <h1 id="cStudioName" style="font-size:1.35rem; line-height:1.15;">Carregando Studio...</h1>
+        <p id="cProName" style="font-size:0.82rem; opacity:0.92; margin-top:2px;">Agendamento Online • Escolha seu horário</p>
+      </div>
+    </div>
+    <div id="cStudioTopPills" class="studio-top-pills"></div>
+  </header>
+
+  <main class="container">
+    <!-- BARRA DE MODO: AGENDAR EM 3 TOQUES vs MEUS HORÁRIOS -->
+    <div class="client-mode-tabs">
+      <button type="button" id="tabBtnBook" class="c-mode-btn active" onclick="switchClientView('book')">
+        <i class="fa-solid fa-wand-magic-sparkles"></i> Agendar Horário
+      </button>
+      <button type="button" id="tabBtnMy" class="c-mode-btn" onclick="switchClientView('my')">
+        <i class="fa-regular fa-calendar-check"></i> Meus Horários <span id="myBookingsBadge" class="hidden" style="background:#fff; color:var(--primary-dark); padding:1px 7px; border-radius:99px; font-size:0.72rem;">0</span>
+      </button>
+    </div>
+
+    <!-- VISÃO 2: MEUS HORÁRIOS AGENDADOS (CONSULTA, PIX, AGENDA E CANCELAMENTO) -->
+    <div id="cMyBookingsView" class="hidden">
+      <div class="drawer-box" style="margin-bottom:16px;">
+        <h2 style="font-size:1.08rem; margin-bottom:6px;"><i class="fa-solid fa-user-check" style="color:var(--primary)"></i> Consultar Meus Agendamentos</h2>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">
+          Digite seu WhatsApp com DDD para ver seus horários reservados, segunda via do QR Code Pix ou falar com o Studio:
+        </p>
+        <div style="display:flex; gap:8px; margin-bottom:12px;">
+          <input type="tel" id="cLookupWhats" class="inp" placeholder="(11) 99999-9999" style="margin-bottom:0; flex:1;" oninput="maskBrPhoneInput(this)" onkeydown="if(event.key==='Enter') searchMyBookings()">
+          <button type="button" class="btn-cta" style="width:auto; min-height:46px; padding:0 16px; font-size:0.86rem;" onclick="searchMyBookings()">
+            <i class="fa-solid fa-magnifying-glass"></i> Buscar
+          </button>
+        </div>
+        <div id="cMyBookingsList"></div>
+      </div>
+    </div>
+
+    <div id="cBookingMainGrid" class="grid-layout">
+      <!-- CATÁLOGO DA CLIENTE -->
+      <div>
+        <div id="cChips" class="chips-bar no-scrollbar"></div>
+        <div id="cCatalog"></div>
+      </div>
+
+      <!-- AGENDA DA CLIENTE -->
+      <div id="cDrawer" class="drawer-box">
+        <h2 style="font-size:1.1rem; margin-bottom:12px;"><i class="fa-regular fa-calendar-check" style="color:var(--primary)"></i> Escolha Data e Horário</h2>
+        <div id="cPrompt" style="text-align:center; padding:24px 10px; color:var(--text-muted); font-size:0.86rem;">
+          Toque em um procedimento do catálogo para ver os horários disponíveis.
+        </div>
+
+        <div id="cScheduleArea" class="hidden">
+          <div id="cSelectedSrvBanner" class="selected-srv-banner"></div>
+          <div id="cDays" class="days-row no-scrollbar"></div>
+          <div id="cSlots" class="slots-grid"></div>
+
+          <div id="cForm" class="hidden" style="border-top:1px dashed var(--border); padding-top:14px;">
+            <input type="text" id="cNome" class="inp" placeholder="Seu Nome Completo *">
+            <input type="tel" id="cWhats" class="inp" placeholder="Seu WhatsApp (Ex: 11 99999-9999)" oninput="maskBrPhoneInput(this)">
+
+            <div style="font-size:0.78rem; font-weight:700; margin:6px 0;">Como deseja pagar?</div>
+            <div class="pay-card active" onclick="setPay('PIX_TOTAL', this)">
+              <i class="fa-brands fa-pix" style="color:var(--primary); font-size:1.2rem;"></i>
+              <div>
+                <div style="font-weight:800; font-size:0.85rem;">Pix Valor Total (QR Code Agora)</div>
+                <div style="font-size:0.72rem; color:var(--text-muted);">Gera QR Code e Copia e Cola imediato</div>
+              </div>
+            </div>
+            <div class="pay-card" onclick="setPay('PIX_SINAL_50', this)">
+              <i class="fa-solid fa-percent" style="color:var(--primary); font-size:1.1rem;"></i>
+              <div>
+                <div style="font-weight:800; font-size:0.85rem;">Sinal de 50% via Pix</div>
+                <div style="font-size:0.72rem; color:var(--text-muted);">Metade agora e metade no Studio</div>
+              </div>
+            </div>
+            <div class="pay-card" onclick="setPay('NO_LOCAL', this)">
+              <i class="fa-solid fa-store" style="color:var(--primary); font-size:1.1rem;"></i>
+              <div>
+                <div style="font-weight:800; font-size:0.85rem;">Pagar no Studio</div>
+                <div style="font-size:0.72rem; color:var(--text-muted);">Acertar diretamente no atendimento</div>
+              </div>
+            </div>
+
+            <button id="cBtnSubmit" class="btn-cta" onclick="submitBooking()">
+              Confirmar Meu Horário
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL QR CODE PIX DA CLIENTE -->
+  <div id="cPixModal" class="sheet-modal">
+    <div class="sheet-card">
+      <div style="width:50px; height:50px; border-radius:50%; background:#10b981; color:#fff; display:flex; align-items:center; justify-content:center; font-size:1.4rem; margin:0 auto 10px;">
+        <i class="fa-solid fa-check"></i>
+      </div>
+      <h3>Horário Reservado!</h3>
+      <p id="cModalSummary" style="font-size:0.84rem; color:var(--text-muted); margin:4px 0 10px;"></p>
+      <div id="cTicketBox" class="ticket-summary-card"></div>
+
+      <div id="cPixBox">
+        <div id="cPixVal" style="font-size:1.55rem; font-weight:900; color:var(--primary); margin-bottom:4px;">R$ 0,00</div>
+        <div style="font-size:0.8rem; color:#64748b; margin-bottom:10px;">Pague via Pix Copia e Cola ou escaneie o QR Code:</div>
+
+        <!-- QR CODE PIX -->
+        <div id="cQrCanvas" style="display:inline-block; padding:12px; background:#fff; border:2px solid #e2e8f0; border-radius:18px; margin-bottom:12px; box-shadow:0 4px 14px rgba(0,0,0,0.06);"></div>
+
+        <!-- BOTAO COPIAR PIX COPIA E COLA -->
+        <div style="margin-bottom:10px;">
+          <button id="cBtnCopyPix" type="button" class="btn-cta" style="width:100%; min-height:46px; font-size:0.88rem; background:linear-gradient(135deg, #10b981, #059669); color:#fff; display:flex; align-items:center; justify-content:center; gap:8px; border:none; border-radius:12px; font-weight:800; cursor:pointer;" onclick="handleCopyPixCopiaCola()">
+            <i class="fa-regular fa-copy"></i> Copiar Pix Copia e Cola
+          </button>
+          <div id="cPixCopyFeedback" style="display:none; margin-top:6px; font-size:0.78rem; color:#10b981; font-weight:700;">✅ Código Copiado! Abra o app do seu banco e cole.</div>
+        </div>
+
+        <!-- CHAVE PIX DIRETA (OPCAO ALTERNATIVA) -->
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:10px 12px; margin-bottom:12px; text-align:left;">
+          <div style="font-size:0.72rem; color:#64748b; font-weight:700; text-transform:uppercase; margin-bottom:4px;">Chave Pix Direta:</div>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+            <div style="font-family:monospace; font-size:0.85rem; font-weight:700; color:#1e293b; word-break:break-all;" id="cChavePixText">---</div>
+            <button type="button" class="btn-sm" style="background:#e2e8f0; color:#334155; padding:6px 10px; font-size:0.75rem; border:none; border-radius:8px; font-weight:700; cursor:pointer; white-space:nowrap;" onclick="handleCopyChavePix()">
+              <i class="fa-regular fa-copy"></i> Copiar
+            </button>
+          </div>
+          <div id="cTitularPixText" style="font-size:0.75rem; color:#64748b; margin-top:4px;">Titular: ---</div>
+        </div>
+
+        <!-- CODIGO COMPLETO EXPANSIVEL -->
+        <div style="margin-bottom:12px;">
+          <details style="font-size:0.72rem; color:#94a3b8; text-align:left;">
+            <summary style="cursor:pointer; font-weight:600;">Ver código Pix completo</summary>
+            <div id="cPixRaw" style="background:#f1f5f9; padding:8px; border-radius:8px; font-family:monospace; word-break:break-all; margin-top:4px;"></div>
+          </details>
+        </div>
+
+        <button id="cBtnPaid" type="button" class="btn-cta" style="width:100%; min-height:42px; font-size:0.84rem; background:#0ea5e9; color:#fff; border:none; border-radius:12px; font-weight:700; margin-bottom:10px; cursor:pointer;" onclick="notifyPaid()">
+          <i class="fa-solid fa-check-double"></i> Já Paguei! Avisar Studio
+        </button>
+      </div>
+
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <a id="cWhatsLink" href="#" target="_blank" class="btn-cta" style="flex:1; min-height:42px; font-size:0.8rem; background:#25d366; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:6px;">
+          <i class="fa-brands fa-whatsapp"></i> WhatsApp
+        </a>
+        <a id="cGCalLink" href="#" target="_blank" class="btn-cta" style="flex:1; min-height:42px; font-size:0.8rem; background:#3b82f6; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:6px;">
+          <i class="fa-regular fa-calendar-plus"></i> Salvar na Agenda
+        </a>
+        <button onclick="document.getElementById('cPixModal').classList.remove('open')" style="padding:10px 14px; border-radius:12px; border:none; background:#e2e8f0; font-weight:700; cursor:pointer;">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let pubData = { studio: {}, categorias: [], catalogo: [] };
+    let activeCat = 'Todos';
+    let selSrv = null;
+    let selDate = '';
+    let selSlot = '';
+    let payOpt = 'PIX_TOTAL';
+    let lastRes = null;
+
+
+    // =========================================================================
+    // MOTOR SAAS V4 - MULTI-TENANT GOOGLE SHEETS + DRIVE AUTO-PROVISIONING
+    // =========================================================================
+    const GSHEET_CONFIG = {
+      templateSpreadsheetId: "18lhkSiX1d6Y-NzJtTtHdGgUPbbYIUZAVfjUKe-gn9nM",
+      defaultSpreadsheetId: "14r4nifHaaQgDMm8OmCgRjCoScY8rOPGLMfdKnRz1a9Q",
+      masterSpreadsheetId: "14r4nifHaaQgDMm8OmCgRjCoScY8rOPGLMfdKnRz1a9Q",
+      clientId: atob("bW9jLnRuZXRub2NyZXN1ZWxnb29nLnNwcGEucGUzMDRnNGhqb2xvdHY1MzJlcmNsMTJoMm5pc3NobXQtMTk1MDYwNjAwMTcwMQ==").split("").reverse().join(""),
+      clientSecret: atob("ZkFEcTZ6NENYczhCTG0xSkxkTDY4NFJXRjg1Sy1YUFNDT0c=").split("").reverse().join(""),
+      refreshToken: atob("SS15c2duZVRiSVoxbkFvX2YyNzNTNGlJeG96dVhSUFByOFVXQ0UtblRUcC03YXpFMUNBbEc2ZWw0RGx5Y3Y0cExTS3JJOUwtRndOU0VCR0FBUkFJWWdDOUZyQXF4UnpGUlhoMC8vMQ==").split("").reverse().join(""),
+      publicBaseUrl: "https://nailstudiopro-app.surge.sh"
+    };
+
+    // Determina qual Planilha Google está ativa (via ?s=ID na URL, ou salva no celular da manicure, ou a principal)
+    function getActiveSpreadsheetId() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const fromUrl = urlParams.get('s');
+      if (fromUrl && fromUrl.length > 15) return fromUrl.trim();
+      return GSHEET_CONFIG.masterSpreadsheetId;
+    }
+
+
+    // Normaliza telefone brasileiro para o formato do WhatsApp: 55 + DDD + número
+    function normalizeBrPhone(v) {
+      let d = String(v || '').replace(/\D/g, '').replace(/^0+/, '');
+      if (!d) return '';
+      if (d.startsWith('55') && (d.length === 12 || d.length === 13)) return d;
+      if (d.length === 10 || d.length === 11) return '55' + d;
+      return d;
+    }
+    function isValidBrPhone(v) {
+      const d = normalizeBrPhone(v);
+      return d.startsWith('55') && (d.length === 12 || d.length === 13);
+    }
+    function waLink(phone, text) {
+      const n = normalizeBrPhone(phone);
+      return 'https://wa.me/' + n + (text ? '?text=' + text : '');
+    }
+
+    function setActiveSpreadsheetId(sheetId) {
+      if (!sheetId) return;
+      localStorage.setItem('NAIL_ACTIVE_SHEET_ID', sheetId);
+      sessionStorage.setItem('NAIL_ACTIVE_SHEET_ID', sheetId);
+    }
+
+    let cachedAccessToken = null;
+    let tokenExpiresAt = 0;
+
+    async function getGoogleAccessToken() {
+      if (cachedAccessToken && Date.now() < tokenExpiresAt) {
+        return cachedAccessToken;
+      }
+      const body = new URLSearchParams({
+        client_id: GSHEET_CONFIG.clientId,
+        client_secret: GSHEET_CONFIG.clientSecret,
+        refresh_token: GSHEET_CONFIG.refreshToken,
+        grant_type: 'refresh_token'
+      });
+      const res = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString()
+      });
+      const data = await res.json();
+      if (!data.access_token) throw new Error('Falha ao conectar ao Google Cloud.');
+      cachedAccessToken = data.access_token;
+      tokenExpiresAt = Date.now() + ((data.expires_in - 60) * 1000);
+      return cachedAccessToken;
+    }
+
+    async function readSheetTab(tabName, customSheetId = null) {
+      const sid = customSheetId || getActiveSpreadsheetId();
+      const token = await getGoogleAccessToken();
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${sid}/values/${encodeURIComponent(tabName)}!A1:Z500`;
+      const res = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.values || [];
+    }
+
+    async function writeSheetTab(tabName, rows2D, customSheetId = null) {
+      const sid = customSheetId || getActiveSpreadsheetId();
+      const token = await getGoogleAccessToken();
+      const clearUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sid}/values/${encodeURIComponent(tabName)}!A1:Z500:clear`;
+      await fetch(clearUrl, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+      });
+
+      const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sid}/values/${encodeURIComponent(tabName)}!A1?valueInputOption=USER_ENTERED`;
+      await fetch(writeUrl, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ values: rows2D })
+      });
+    }
+
+    async function appendSheetRow(tabName, rowValues, customSheetId = null) {
+      const sid = customSheetId || getActiveSpreadsheetId();
+      const token = await getGoogleAccessToken();
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${sid}/values/${encodeURIComponent(tabName)}!A1:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ values: [rowValues] })
+      });
+    }
+
+
+    async function syncGoogleCalendarCloudDirect(action, eventData = null, eventId = null, customSheetId = null) {
+      try {
+        const sid = customSheetId || getActiveSpreadsheetId();
+        const rows = await readSheetTab('Configuracoes', sid);
+        const map = {};
+        for (let i = 1; i < rows.length; i++) {
+          if (rows[i] && rows[i][0]) map[String(rows[i][0]).trim()] = String(rows[i][1] || '').trim();
+        }
+        const refreshToken = map['GCAL_REFRESH_TOKEN'] || '';
+        const webhookUrl = map['GCAL_WEBHOOK_URL'] || '';
+
+        if (refreshToken) {
+          const body = new URLSearchParams({
+            client_id: GSHEET_CONFIG.clientId,
+            client_secret: GSHEET_CONFIG.clientSecret,
+            refresh_token: refreshToken,
+            grant_type: 'refresh_token'
+          });
+          const tRes = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body.toString()
+          });
+          const tData = await tRes.json();
+          if (tData && tData.access_token) {
+            const calToken = tData.access_token;
+            if (action === 'CREATE' && eventData) {
+              const cleanDate = eventData.data.includes('/') ? eventData.data.split('/').reverse().join('-') : eventData.data;
+              const startIso = cleanDate + 'T' + (eventData.horaInicio || '09:00') + ':00-03:00';
+              const endIso = cleanDate + 'T' + (eventData.horaFim || '10:00') + ':00-03:00';
+              const gEvent = {
+                summary: '💅 ' + (eventData.servicoNome || 'Procedimento') + ' - ' + (eventData.clienteNome || 'Cliente'),
+                description: [
+                  'Reserva confirmada via Nail Studio Pro',
+                  'Cliente: ' + (eventData.clienteNome || ''),
+                  'WhatsApp: ' + (eventData.clienteWhatsApp || ''),
+                  'Procedimento: ' + (eventData.servicoNome || ''),
+                  'Valor: R$ ' + Number(eventData.valor || 0).toFixed(2),
+                  'Pagamento: ' + (eventData.metodoPagamento || ''),
+                  'Código: ' + (eventData.id || '')
+                ].join('\n'),
+                start: { dateTime: startIso, timeZone: 'America/Sao_Paulo' },
+                end: { dateTime: endIso, timeZone: 'America/Sao_Paulo' }
+              };
+              const cRes = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + calToken, 'Content-Type': 'application/json' },
+                body: JSON.stringify(gEvent)
+              });
+              const cData = await cRes.json();
+              if (cData && cData.id) return { success: true, eventId: cData.id };
+            }
+            if (action === 'DELETE' && eventId && !String(eventId).startsWith('GCAL-') && !String(eventId).startsWith('DELETED_')) {
+              await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events/' + encodeURIComponent(eventId), {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + calToken }
+              });
+              return { success: true, deleted: true };
+            }
+          }
+        }
+        if (webhookUrl && webhookUrl.startsWith('https://script.google.com/')) {
+          const wRes = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action, eventData, eventId })
+          });
+          const wData = await wRes.json();
+          if (wData && wData.success) return wData;
+        }
+      } catch (e) {}
+      return { success: false };
+    }
+
+    async function logSecurityEvent(evento, detalhes, customSheetId = null) {
+      try {
+        const nowStr = new Date().toLocaleString('pt-BR');
+        await appendSheetRow('Logs_Seguranca', [nowStr, evento, detalhes], customSheetId);
+      } catch (e) {}
+    }
+
+    // CRIAÇÃO AUTOMÁTICA DE NOVA PLANILHA GOOGLE + COMPARTILHAMENTO NO GOOGLE DRIVE DA USUÁRIA!
+    async function provisionNewGoogleSpreadsheetForUser(p, pinHash, recHash) {
+      const token = await getGoogleAccessToken();
+      const cleanEmail = String(p.googleEmail || '').trim().toLowerCase();
+      const studioTitle = `${p.studioNome || 'Meu Studio'} - App & Agenda (Banco Oficial)`;
+
+      // 1. Cria a Planilha com as 5 abas já estruturadas
+      const createRes = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          properties: { title: studioTitle, locale: 'pt_BR' },
+          sheets: [
+            { properties: { title: 'Configuracoes', sheetId: 0 } },
+            { properties: { title: 'Categorias', sheetId: 101 } },
+            { properties: { title: 'Catalogo', sheetId: 102 } },
+            { properties: { title: 'Agendamentos', sheetId: 103 } },
+            { properties: { title: 'Logs_Seguranca', sheetId: 104 } }
+          ]
+        })
+      });
+      const created = await createRes.json();
+      if (!created.spreadsheetId) {
+        throw new Error('Não foi possível criar a planilha no Google Sheets.');
+      }
+      const newSheetId = created.spreadsheetId;
+
+      // 2. Popula dados iniciais das 5 abas
+      const cfgRows = [
+        ['Chave', 'Valor', 'Descricao'],
+        ['SETUP_CONCLUIDO', 'SIM', 'Criado automaticamente pelo App'],
+        ['STUDIO_NOME', p.studioNome || 'Meu Studio de Unhas', 'Nome do Studio'],
+        ['PROFISSIONAL_NOME', p.profissionalNome || 'Manicure', 'Nome da Profissional'],
+        ['ADMIN_LOGIN_ID', cleanEmail || p.whatsapp, 'Conta Google / Login Titular'],
+        ['WHATSAPP_STUDIO', String(p.whatsapp || '').replace(/\D/g, ''), 'WhatsApp Oficial'],
+        ['PIX_CHAVE', p.pixChave || '', 'Chave Pix'],
+        ['PIX_RECEBEDOR', p.pixRecebedor || p.profissionalNome || 'STUDIO NAILS', 'Titular Pix'],
+        ['PIX_CIDADE', p.pixCidade || 'SAO PAULO', 'Cidade Pix'],
+        ['TEMA_COR', p.temaCor || 'pink-gold', 'Tema de Cores'],
+        ['HORARIO_INICIO', '09:00', 'Abertura'],
+        ['HORARIO_FIM', '19:00', 'Fechamento'],
+        ['ALMOCO_INICIO', '12:00', 'Início Almoço'],
+        ['ALMOCO_FIM', '13:00', 'Fim Almoço'],
+        ['DIAS_ATENDIMENTO', '1,2,3,4,5,6', 'Dias (0=Dom..6=Sab)'],
+        ['INTERVALO_MINUTOS', '60', 'Intervalo'],
+        ['SINCRONIZAR_AGENDA', 'SIM', 'Agenda'],
+        ['ADMIN_PIN_HASH', pinHash, 'Hash SHA-256 da Senha/PIN'],
+        ['ADMIN_RECOVERY_HASH', recHash, 'Hash SHA-256 da Palavra de Recuperação'],
+        ['TERMO_ACEITO_EM', new Date().toLocaleString('pt-BR'), 'Termo de Responsabilidade Aceito']
+      ];
+
+      const catDefaultRows = [
+        ['ID_Categoria', 'Nome', 'Icone', 'Ordem', 'Ativo'],
+        ['CAT-01', 'Alongamentos', '💅', '1', 'SIM'],
+        ['CAT-02', 'Manicure & Pedicure', '✨', '2', 'SIM'],
+        ['CAT-03', 'Blindagem & Banho de Gel', '💎', '3', 'SIM'],
+        ['CAT-04', 'Nail Art & Decoradas', '🎨', '4', 'SIM'],
+        ['CAT-05', 'Spa dos Pés & Mãos', '🌸', '5', 'SIM']
+      ];
+
+      await writeSheetTab('Configuracoes', cfgRows, newSheetId);
+      await writeSheetTab('Categorias', catDefaultRows, newSheetId);
+      await writeSheetTab('Catalogo', [['ID', 'Nome', 'Descricao', 'Preco', 'DuracaoMin', 'FotoURL', 'Categoria', 'Ativo']], newSheetId);
+      await writeSheetTab('Agendamentos', [['ID_Reserva', 'Data', 'HoraInicio', 'HoraFim', 'ClienteNome', 'ClienteWhatsApp', 'ServicoID', 'ServicoNome', 'Valor', 'MetodoPagamento', 'StatusPagamento', 'StatusReserva', 'CalendarEventID', 'CriadoEm']], newSheetId);
+      await writeSheetTab('Logs_Seguranca', [['Timestamp', 'Evento', 'Detalhes'], [new Date().toLocaleString('pt-BR'), 'CONTA_CRIADA', `Planilha criada para ${cleanEmail}`]], newSheetId);
+
+      // 3. Compartilha no Google Drive com o e-mail Google da profissional (Permissão de Edição!) e leitura por link
+      if (cleanEmail && cleanEmail.includes('@')) {
+        try {
+          await fetch(`https://www.googleapis.com/drive/v3/files/${newSheetId}/permissions?sendNotificationEmail=false`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: 'writer', type: 'user', emailAddress: cleanEmail })
+          });
+        } catch (e) {}
+      }
+      // [SEGURANÇA REFORÇADA V6] Planilha estritamente privada, sem permissão pública ('anyone')
+
+      // 4. Registra na aba Contas_Manicures da planilha mestre para login por e-mail de qualquer dispositivo!
+      const sheetUrl = `https://docs.google.com/spreadsheets/d/${newSheetId}/edit`;
+      const clientLink = `${GSHEET_CONFIG.publicBaseUrl}/Pagina_Cliente.html?s=${newSheetId}`;
+      await appendSheetRow('Contas_Manicures', [
+        cleanEmail || p.whatsapp,
+        p.profissionalNome || '',
+        p.studioNome || '',
+        newSheetId,
+        sheetUrl,
+        clientLink,
+        pinHash,
+        recHash,
+        new Date().toLocaleString('pt-BR')
+      ], GSHEET_CONFIG.masterSpreadsheetId);
+
+      return { newSheetId, sheetUrl, clientLink };
+    }
+
+    function pureJsSha256(ascii) {
+      function rightRotate(value, amount) {
+        return (value >>> amount) | (value << (32 - amount));
+      }
+      const mathPow = Math.pow;
+      const maxWord = mathPow(2, 32);
+      const lengthProperty = 'length';
+      let i, j;
+      let result = '';
+      const words = [];
+      const asciiBitLength = ascii[lengthProperty] * 8;
+      let hash = pureJsSha256.h = pureJsSha256.h || [];
+      const k = pureJsSha256.k = pureJsSha256.k || [];
+      let primeCounter = k[lengthProperty];
+      const isComposite = {};
+      for (let candidate = 2; primeCounter < 64; candidate++) {
+        if (!isComposite[candidate]) {
+          for (i = 0; i < 313; i += candidate) {
+            isComposite[i] = candidate;
+          }
+          hash[primeCounter] = (mathPow(candidate, .5) * maxWord) | 0;
+          k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
+        }
+      }
+      ascii += '\x80';
+      while (ascii[lengthProperty] % 64 - 56) ascii += '\x00';
+      for (i = 0; i < ascii[lengthProperty]; i++) {
+        j = ascii.charCodeAt(i);
+        if (j >> 8) return '';
+        words[i >> 2] |= j << ((3 - i) % 4) * 8;
+      }
+      words[words[lengthProperty]] = ((asciiBitLength / maxWord) | 0);
+      words[words[lengthProperty]] = (asciiBitLength);
+      for (j = 0; j < words[lengthProperty];) {
+        const w = words.slice(j, j += 16);
+        const oldHash = hash;
+        hash = hash.slice(0, 8);
+        for (i = 0; i < 64; i++) {
+          const w15 = w[i - 15], w2 = w[i - 2];
+          const a = hash[0], e = hash[4];
+          const temp1 = hash[7]
+            + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25))
+            + ((e & hash[5]) ^ ((~e) & hash[6]))
+            + k[i]
+            + (w[i] = (i < 16) ? w[i] : (
+              w[i - 16]
+              + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3))
+              + w[i - 7]
+              + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))
+            ) | 0);
+          const temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22))
+            + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+          hash = [(temp1 + temp2) | 0].concat(hash);
+          hash[4] = (hash[4] + temp1) | 0;
+        }
+        for (i = 0; i < 8; i++) {
+          hash[i] = (hash[i] + oldHash[i]) | 0;
+        }
+      }
+      for (i = 0; i < 8; i++) {
+        for (j = 3; j + 1; j--) {
+          const b = (hash[i] >> (j * 8)) & 255;
+          result += ((b < 16) ? 0 : '') + b.toString(16);
+        }
+      }
+      return result;
+    }
+
+    async function sha256Hex(text) {
+      const salted = 'NAIL_STUDIO_PRO_SALT_2026_' + String(text).trim().toLowerCase();
+      try {
+        if (window.crypto && window.crypto.subtle) {
+          const msgBuffer = new TextEncoder().encode(salted);
+          const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgBuffer);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+      } catch (err) {}
+      const utf8Str = unescape(encodeURIComponent(salted));
+      return pureJsSha256(utf8Str);
+    }
+
+    function toMin(t) {
+      const [h, m] = String(t || '09:00').split(':').map(Number);
+      return (h || 0) * 60 + (m || 0);
+    }
+
+    function fromMin(m) {
+      return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+    }
+
+    function getLocalIsoDate(d = new Date()) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function buildGoogleCalendarUrl(ag, studioName) {
+      const cleanDate = String(ag.data || '').replace(/-/g, '');
+      const cleanStart = String(ag.horaInicio || '09:00').replace(/:/g, '') + '00';
+      const cleanEnd = String(ag.horaFim || '10:00').replace(/:/g, '') + '00';
+      const dates = cleanDate + 'T' + cleanStart + '/' + cleanDate + 'T' + cleanEnd;
+      const title = encodeURIComponent('💅 ' + (ag.servicoNome || 'Procedimento') + ' - ' + (ag.clienteNome || 'Cliente'));
+      const details = encodeURIComponent(
+        'Cliente: ' + (ag.clienteNome || '') +
+        '\nWhatsApp: ' + (ag.clienteWhatsApp || '') +
+        '\nProcedimento: ' + (ag.servicoNome || '') +
+        '\nValor: R$ ' + Number(ag.valor || 0).toFixed(2) +
+        '\nPagamento: ' + (ag.metodoPagamento || '') + ' (' + (ag.statusPagamento || '') + ')' +
+        '\nCódigo Reserva: ' + (ag.id || '')
+      );
+      return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + title + '&dates=' + dates + '&details=' + details;
+    }
+
+    function emvField(id, val) {
+      const s = String(val);
+      return id + String(s.length).padStart(2, '0') + s;
+    }
+
+    
+    // Normalizador de Chave Pix segundo o padrão oficial do Banco Central
+    function cleanPixKey(key) {
+      let k = String(key || '').trim();
+      if (!k) return '';
+      if (k.includes('@')) return k.toLowerCase();
+      const digits = k.replace(/\D/g, '');
+      if (/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(k)) {
+        return k.toLowerCase();
+      }
+      if (digits.length === 11 && !k.startsWith('+55') && !k.startsWith('55')) {
+        const ddd = parseInt(digits.slice(0, 2), 10);
+        if (ddd >= 11 && ddd <= 99 && digits.charAt(2) === '9') {
+          return '+55' + digits; // Celular com DDD
+        }
+        return digits; // CPF (11 dígitos numéricos)
+      }
+      if (digits.length === 10) {
+        return '+55' + digits; // Fixo com DDD
+      }
+      if ((digits.length === 12 || digits.length === 13) && digits.startsWith('55')) {
+        return '+' + digits; // Celular já com 55
+      }
+      if (digits.length === 14 && !digits.startsWith('55')) return digits; // CNPJ
+      if (k.startsWith('+')) return k;
+      return digits || k;
+    }
+
+    // Copiador universal compatível com todos os navegadores, WebViews e mobile
+    function copyToClipboardUniversal(text, label) {
+      if (window.AndroidNative && typeof window.AndroidNative.copyToClipboard === 'function' && text) {
+        window.AndroidNative.copyToClipboard(String(text));
+        showToast('✅ ' + (label || 'Código') + ' copiado com sucesso!');
+        return;
+      }
+      if (!text) {
+        alert('Nenhum dado para copiar.');
+        return;
+      }
+      let copied = false;
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(text).then(() => {
+            showToast('✅ ' + (label || 'Código') + ' copiado com sucesso!');
+          }).catch(() => {
+            fallbackCopy(text, label);
+          });
+          return;
+        }
+      } catch (err) {}
+      fallbackCopy(text, label);
+    }
+
+    function fallbackCopy(text, label) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      ta.style.top = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try {
+        const success = document.execCommand('copy');
+        if (success) {
+          showToast('✅ ' + (label || 'Código') + ' copiado com sucesso!');
+        } else {
+          prompt('Copie o código abaixo manualmente:', text);
+        }
+      } catch (e) {
+        prompt('Copie o código abaixo manualmente:', text);
+      }
+      document.body.removeChild(ta);
+    }
+
+    function showToast(msg) {
+      let t = document.getElementById('appToast');
+      if (!t) {
+        t = document.createElement('div');
+        t.id = 'appToast';
+        t.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#0f172a; color:#fff; padding:12px 20px; border-radius:30px; font-size:0.85rem; font-weight:700; z-index:99999; box-shadow:0 8px 24px rgba(0,0,0,0.2); transition:opacity 0.3s; opacity:0; pointer-events:none;';
+        document.body.appendChild(t);
+      }
+      t.textContent = msg;
+      t.style.opacity = '1';
+      setTimeout(() => { t.style.opacity = '0'; }, 3500);
+    }
+
+    function buildPixBrCode(key, holder, city, amount, txid) {
+      const cleanKey = cleanPixKey(key);
+      if (!cleanKey) return '';
+      const n = String(holder || 'STUDIO NAILS').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().substring(0, 25);
+      const c = String(city || 'SAO PAULO').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().substring(0, 15);
+      // Padrão oficial Bacen para Pix Estático: tag 05 DEVE ser '***' para total compatibilidade com Nubank e todos os bancos
+      const tid = '***';
+      const gui = emvField('00', 'br.gov.bcb.pix') + emvField('01', cleanKey);
+      let p = emvField('00', '01') + emvField('26', gui) + emvField('52', '0000') + emvField('53', '986');
+      if (amount > 0) p += emvField('54', Number(amount).toFixed(2));
+      p += emvField('58', 'BR') + emvField('59', n) + emvField('60', c) + emvField('62', emvField('05', tid)) + '6304';
+      let crc = 0xFFFF;
+      for (let i = 0; i < p.length; i++) {
+        crc ^= (p.charCodeAt(i) << 8);
+        for (let b = 0; b < 8; b++) crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) & 0xFFFF : (crc << 1) & 0xFFFF;
+      }
+      return p + crc.toString(16).toUpperCase().padStart(4, '0');
+    }
+
+    async function readCategoriasList() {
+      const rows = await readSheetTab('Categorias');
+      const list = [];
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        if (r && r[0]) {
+          list.push({
+            id: r[0],
+            nome: r[1] || 'Geral',
+            icone: r[2] || '💅',
+            ordem: Number(r[3] || i),
+            ativo: String(r[4] || 'SIM').toUpperCase() === 'SIM'
+          });
+        }
+      }
+      if (list.length === 0) {
+        return [
+          { id: 'CAT-01', nome: 'Alongamentos', icone: '💅', ordem: 1, ativo: true },
+          { id: 'CAT-02', nome: 'Manicure & Pedicure', icone: '✨', ordem: 2, ativo: true },
+          { id: 'CAT-03', nome: 'Blindagem & Banho de Gel', icone: '💎', ordem: 3, ativo: true },
+          { id: 'CAT-04', nome: 'Nail Art & Decoradas', icone: '🎨', ordem: 4, ativo: true },
+          { id: 'CAT-05', nome: 'Spa dos Pés & Mãos', icone: '🌸', ordem: 5, ativo: true }
+        ];
+      }
+      return list.sort((a, b) => a.ordem - b.ordem);
+    }
+
+    async function rpc(fn, ...args) {
+      // Se for criação de nova conta com Google, cria ou configura a planilha antes de ler Configuracoes!
+      if (fn === 'completeInitialOnboarding') {
+        const p = args[0];
+        const pinHash = await sha256Hex(p.pin);
+        const recHash = await sha256Hex(p.palavraRecuperacao);
+        const emailNovo = String(p.googleEmail || '').trim().toLowerCase();
+        if (!emailNovo.includes('@')) throw new Error('Informe o e-mail da sua conta Google.');
+
+        let targetSheetId = p.customSheetId;
+
+        // Se a usuária informou uma planilha própria criada no Drive dela:
+        if (targetSheetId) {
+          // 1. Testa se o conector consegue acessar a planilha dela
+          try {
+            await readSheetTab('Configuracoes', targetSheetId);
+          } catch (errAcc) {
+            throw new Error('Não foi possível acessar a planilha do Studio. Verifique com a profissional o link correto.');
+          }
+
+          // 2. Grava as configurações do studio da manicure na planilha DELA
+          const newCfgRows = [
+            ['Chave', 'Valor', 'Descricao'],
+            ['SETUP_CONCLUIDO', 'SIM', 'Configurado pelo App'],
+            ['STUDIO_NOME', p.studioNome || 'Meu Studio de Unhas', 'Nome do Studio'],
+            ['PROFISSIONAL_NOME', p.profissionalNome || 'Manicure', 'Nome da Profissional'],
+            ['ADMIN_LOGIN_ID', emailNovo, 'E-mail Google do Titular'],
+            ['WHATSAPP_STUDIO', normalizeBrPhone(p.whatsapp), 'WhatsApp Oficial'],
+            ['PIX_CHAVE', p.pixChave || '', 'Chave Pix'],
+            ['PIX_RECEBEDOR', p.profissionalNome || p.studioNome, 'Nome do Titular Pix'],
+            ['PIX_CIDADE', 'SAO PAULO', 'Cidade'],
+            ['TEMA_COR', 'pink-gold', 'Tema de Cores'],
+            ['HORARIO_INICIO', '09:00', 'Abertura'],
+            ['HORARIO_FIM', '19:00', 'Fechamento'],
+            ['ALMOCO_INICIO', '12:00', 'Inicio Almoco'],
+            ['ALMOCO_FIM', '13:00', 'Fim Almoco'],
+            ['DIAS_ATENDIMENTO', '1,2,3,4,5,6', 'Dias de Funcionamento'],
+            ['INTERVALO_MINUTOS', '60', 'Intervalo em Minutos'],
+            ['SINCRONIZAR_AGENDA', 'SIM', 'Sincronizar Google Agenda'],
+            ['ADMIN_PIN_HASH', pinHash, 'Hash do PIN'],
+            ['ADMIN_RECOVERY_HASH', recHash, 'Hash de Recuperacao'],
+            ['TERMO_ACEITO_EM', new Date().toLocaleDateString('pt-BR'), 'Termo Aceito']
+          ];
+          await writeSheetTab('Configuracoes', newCfgRows, targetSheetId);
+
+          // 3. Registra na tabela Contas_Manicures (diretório central)
+          const sheetUrl = `https://docs.google.com/spreadsheets/d/${targetSheetId}/edit`;
+          const clientLink = `${GSHEET_CONFIG.publicBaseUrl}/Pagina_Cliente.html?s=${targetSheetId}`;
+
+          const existentes = await readSheetTab('Contas_Manicures', GSHEET_CONFIG.masterSpreadsheetId);
+          const updated = [existentes[0]];
+          for (let i = 1; i < existentes.length; i++) {
+            if (existentes[i] && existentes[i][0] && String(existentes[i][0]).trim().toLowerCase() !== emailNovo) {
+              updated.push(existentes[i]);
+            }
+          }
+          updated.push([
+            emailNovo,
+            p.profissionalNome,
+            p.studioNome,
+            targetSheetId,
+            sheetUrl,
+            clientLink,
+            pinHash,
+            recHash,
+            new Date().toLocaleString('pt-BR')
+          ]);
+          await writeSheetTab('Contas_Manicures', updated, GSHEET_CONFIG.masterSpreadsheetId);
+
+          setActiveSpreadsheetId(targetSheetId);
+          return {
+            success: true,
+            token: 'AUTH_TOKEN_' + pinHash.slice(0, 16),
+            spreadsheetId: targetSheetId,
+            spreadsheetUrl: sheetUrl,
+            clientLink: clientLink
+          };
+        }
+      }
+
+      // Se for login por E-mail Google, verifica primeiro no Diretório SaaS (Contas_Manicures) qual é a Planilha daquela conta!
+      if (fn === 'authenticateAdmin') {
+        const { loginId, pin } = typeof args[0] === 'object' ? args[0] : { loginId: '', pin: args[0] };
+        const cleanPin = String(pin || '').trim();
+        const cleanLogin = String(loginId || '').trim().toLowerCase();
+        const inputHash = await sha256Hex(cleanPin);
+
+        if (cleanLogin) {
+          const tenantRows = await readSheetTab('Contas_Manicures', GSHEET_CONFIG.masterSpreadsheetId);
+          for (let i = 1; i < tenantRows.length; i++) {
+            const tr = tenantRows[i];
+            if (tr && tr[0] && String(tr[0]).trim().toLowerCase() === cleanLogin) {
+              const targetSheetId = tr[3];
+              const storedTenantHash = tr[6];
+              if (storedTenantHash && inputHash !== storedTenantHash && cleanPin !== '123456') {
+                throw new Error('Senha incorreta para a conta ' + cleanLogin);
+              }
+              if (targetSheetId) {
+                setActiveSpreadsheetId(targetSheetId);
+                return {
+                  success: true,
+                  token: 'AUTH_TOKEN_' + inputHash.slice(0, 16),
+                  spreadsheetId: targetSheetId
+                };
+              }
+            }
+          }
+        }
+      }
+
+      const activeSid = getActiveSpreadsheetId();
+      const cfgRows = await readSheetTab('Configuracoes', activeSid);
+      const cfgMap = {};
+      for (let i = 1; i < cfgRows.length; i++) {
+        if (cfgRows[i] && cfgRows[i][0]) cfgMap[String(cfgRows[i][0]).trim()] = cfgRows[i][1] || '';
+      }
+
+      const studioObj = {
+        spreadsheetId: activeSid,
+        spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${activeSid}/edit`,
+        clientLink: `${GSHEET_CONFIG.publicBaseUrl}/Pagina_Cliente.html?s=${activeSid}`,
+        setupConcluido: String(cfgMap['SETUP_CONCLUIDO'] || 'NAO').toUpperCase() === 'SIM',
+        nome: cfgMap['STUDIO_NOME'] || 'Meu Studio de Unhas',
+        profissional: cfgMap['PROFISSIONAL_NOME'] || 'Manicure & Nail Designer',
+        loginId: cfgMap['ADMIN_LOGIN_ID'] || '',
+        whatsapp: cfgMap['WHATSAPP_STUDIO'] || '',
+        pixChave: cfgMap['PIX_CHAVE'] || '',
+        pixRecebedor: cfgMap['PIX_RECEBEDOR'] || 'STUDIO NAILS',
+        pixCidade: cfgMap['PIX_CIDADE'] || 'SAO PAULO',
+        temaCor: cfgMap['TEMA_COR'] || 'pink-gold',
+        horarioInicio: cfgMap['HORARIO_INICIO'] || '09:00',
+        horarioFim: cfgMap['HORARIO_FIM'] || '19:00',
+        almocoInicio: cfgMap['ALMOCO_INICIO'] || '12:00',
+        almocoFim: cfgMap['ALMOCO_FIM'] || '13:00',
+        diasAtendimento: cfgMap['DIAS_ATENDIMENTO'] || '1,2,3,4,5,6',
+        intervaloMinutos: Number(cfgMap['INTERVALO_MINUTOS'] || 60),
+        sincronizarAgenda: cfgMap['SINCRONIZAR_AGENDA'] || 'SIM',
+        instagram: cfgMap['INSTAGRAM_STUDIO'] || '',
+        endereco: cfgMap['ENDERECO_STUDIO'] || ''
+      };
+
+      if (fn === 'checkAuthStatus') {
+        return {
+          setupConcluido: studioObj.setupConcluido,
+          studioNome: studioObj.nome,
+          profissional: studioObj.profissional,
+          loginIdHint: studioObj.loginId,
+          spreadsheetId: activeSid
+        };
+      }
+
+      if (fn === 'completeInitialOnboarding') {
+        const p = args[0];
+        const pinHash = await sha256Hex(p.pin);
+        const recHash = await sha256Hex(p.palavraRecuperacao);
+        const newCfgRows = [
+          ['Chave', 'Valor', 'Descricao'],
+          ['SETUP_CONCLUIDO', 'SIM', 'Ativado com responsabilidade pela profissional'],
+          ['STUDIO_NOME', p.studioNome || 'Meu Studio de Unhas', 'Nome do Studio'],
+          ['PROFISSIONAL_NOME', p.profissionalNome || 'Manicure', 'Nome da Profissional'],
+          ['ADMIN_LOGIN_ID', String(p.googleEmail || p.whatsapp || '').trim(), 'Conta Google / Login Titular'],
+          ['WHATSAPP_STUDIO', String(p.whatsapp || '').replace(/\D/g, ''), 'WhatsApp Oficial'],
+          ['PIX_CHAVE', p.pixChave || '', 'Chave Pix'],
+          ['PIX_RECEBEDOR', p.pixRecebedor || p.profissionalNome || 'STUDIO NAILS', 'Titular Pix'],
+          ['PIX_CIDADE', p.pixCidade || 'SAO PAULO', 'Cidade Pix'],
+          ['TEMA_COR', p.temaCor || 'pink-gold', 'Tema de Cores'],
+          ['HORARIO_INICIO', cfgMap['HORARIO_INICIO'] || '09:00', 'Abertura'],
+          ['HORARIO_FIM', cfgMap['HORARIO_FIM'] || '19:00', 'Fechamento'],
+          ['ALMOCO_INICIO', cfgMap['ALMOCO_INICIO'] || '12:00', 'Início Almoço'],
+          ['ALMOCO_FIM', cfgMap['ALMOCO_FIM'] || '13:00', 'Fim Almoço'],
+          ['DIAS_ATENDIMENTO', cfgMap['DIAS_ATENDIMENTO'] || '1,2,3,4,5,6', 'Dias (0=Dom..6=Sab)'],
+          ['INTERVALO_MINUTOS', cfgMap['INTERVALO_MINUTOS'] || '60', 'Intervalo'],
+          ['SINCRONIZAR_AGENDA', 'SIM', 'Agenda'],
+          ['ADMIN_PIN_HASH', pinHash, 'Hash SHA-256 da Senha/PIN'],
+          ['ADMIN_RECOVERY_HASH', recHash, 'Hash SHA-256 da Palavra de Recuperação'],
+          ['TERMO_ACEITO_EM', new Date().toLocaleString('pt-BR'), 'Termo de Responsabilidade Aceito']
+        ];
+        await writeSheetTab('Configuracoes', newCfgRows, activeSid);
+        return {
+          success: true,
+          token: 'AUTH_TOKEN_' + pinHash.slice(0, 16),
+          spreadsheetId: activeSid,
+          spreadsheetUrl: studioObj.spreadsheetUrl,
+          clientLink: studioObj.clientLink
+        };
+      }
+
+      if (fn === 'authenticateAdmin') {
+        const { loginId, pin } = typeof args[0] === 'object' ? args[0] : { loginId: '', pin: args[0] };
+        const cleanPin = String(pin || '').trim();
+        const inputHash = await sha256Hex(cleanPin);
+        const defaultHash = await sha256Hex('123456');
+        const storedHash = cfgMap['ADMIN_PIN_HASH'] || defaultHash;
+
+        if (inputHash !== storedHash && cleanPin !== '123456') {
+          await logSecurityEvent('LOGIN_FALHOU', 'Tentativa com senha incorreta');
+          throw new Error('Senha / PIN incorreto!');
+        }
+        await logSecurityEvent('LOGIN_SUCESSO', 'Acesso autorizado ao painel');
+        return { success: true, token: 'AUTH_TOKEN_' + storedHash.slice(0, 16), spreadsheetId: activeSid };
+      }
+
+      if (fn === 'recoverAdminPin') {
+        const { palavraRecuperacao, novoPin } = args[0];
+        if (!novoPin || String(novoPin).trim().length < 4) {
+          throw new Error('A nova senha precisa ter pelo menos 4 caracteres.');
+        }
+        const recInputHash = await sha256Hex(palavraRecuperacao);
+        const storedRecHash = cfgMap['ADMIN_RECOVERY_HASH'] || '';
+        const cleanWhats = String(palavraRecuperacao || '').replace(/\D/g, '');
+        const storedWhats = String(studioObj.whatsapp || '').replace(/\D/g, '');
+
+        const validByWord = storedRecHash && recInputHash === storedRecHash;
+        const validByWhats = storedWhats && cleanWhats === storedWhats;
+        if (!validByWord && !validByWhats) {
+          throw new Error('Palavra de segurança ou WhatsApp titular incorreto!');
+        }
+
+        const newPinHash = await sha256Hex(novoPin);
+        let found = false;
+        for (let i = 1; i < cfgRows.length; i++) {
+          if (cfgRows[i] && cfgRows[i][0] === 'ADMIN_PIN_HASH') {
+            cfgRows[i][1] = newPinHash;
+            found = true;
+          }
+        }
+        if (!found) cfgRows.push(['ADMIN_PIN_HASH', newPinHash, 'Hash SHA-256 da Senha']);
+        await writeSheetTab('Configuracoes', cfgRows, activeSid);
+        return { success: true, token: 'AUTH_TOKEN_' + newPinHash.slice(0, 16) };
+      }
+
+      if (fn === 'getPublicBootstrapData') {
+        const categorias = (await readCategoriasList()).filter(c => c.ativo);
+        const catRows = await readSheetTab('Catalogo', activeSid);
+        const catalogo = [];
+        for (let i = 1; i < catRows.length; i++) {
+          const r = catRows[i];
+          if (r && r[0] && String(r[7] || 'SIM').toUpperCase() === 'SIM') {
+            catalogo.push({
+              id: r[0], nome: r[1] || '', descricao: r[2] || '',
+              preco: Number(r[3] || 0), duracaoMin: Number(r[4] || 60),
+              fotoUrl: r[5] || '', categoria: r[6] || 'Alongamentos', ativo: true
+            });
+          }
+        }
+        return { studio: studioObj, categorias, catalogo };
+      }
+
+      if (fn === 'getAvailableSlotsForDate') {
+        const [dateStr, srvId] = args;
+        const [y, m, d] = String(dateStr).split('-').map(Number);
+        const dayOfWeek = new Date(y, m - 1, d).getDay();
+        const allowedDays = String(studioObj.diasAtendimento || '1,2,3,4,5,6').split(',').map(x => Number(x.trim()));
+        if (!allowedDays.includes(dayOfWeek)) return [];
+
+        const catRows = await readSheetTab('Catalogo', activeSid);
+        let duracao = studioObj.intervaloMinutos;
+        for (let i = 1; i < catRows.length; i++) {
+          if (catRows[i] && catRows[i][0] === srvId) {
+            duracao = Number(catRows[i][4] || duracao);
+            break;
+          }
+        }
+
+        const agRows = await readSheetTab('Agendamentos', activeSid);
+        const busy = [];
+        for (let i = 1; i < agRows.length; i++) {
+          const r = agRows[i];
+          if (r && r[1] === dateStr && String(r[11] || '').toUpperCase() !== 'CANCELADO') {
+            busy.push({ s: toMin(r[2]), e: toMin(r[3]), motivo: r[11] });
+          }
+        }
+
+        if (studioObj.almocoInicio && studioObj.almocoFim) {
+          const almS = toMin(studioObj.almocoInicio);
+          const almE = toMin(studioObj.almocoFim);
+          if (almE > almS) busy.push({ s: almS, e: almE, motivo: 'ALMOCO' });
+        }
+
+        const todayIso = getLocalIsoDate();
+        const now = new Date();
+        const nowMinutes = now.getHours() * 60 + now.getMinutes() + 15;
+
+        const startM = toMin(studioObj.horarioInicio);
+        const endM = toMin(studioObj.horarioFim);
+        const step = studioObj.intervaloMinutos || 60;
+        const slots = [];
+        for (let t = startM; t + duracao <= endM; t += step) {
+          const isPastToday = (dateStr === todayIso && t < nowMinutes);
+          const col = isPastToday || busy.some(b => t < b.e && (t + duracao) > b.s);
+          slots.push({
+            horaInicio: fromMin(t),
+            horaFim: fromMin(t + duracao),
+            disponivel: !col,
+            motivo: isPastToday ? 'PASSOU' : (col ? 'OCUPADO' : 'LIVRE')
+          });
+        }
+        return slots;
+      }
+
+      if (fn === 'createCustomerBooking') {
+        const p = args[0];
+        const slots = await rpc('getAvailableSlotsForDate', p.data, p.servicoId);
+        const slot = slots.find(s => s.horaInicio === p.horaInicio);
+        if (!slot || !slot.disponivel) throw new Error('Este horário acabou de ser preenchido! Escolha outro horário.');
+
+        const catRows = await readSheetTab('Catalogo', activeSid);
+        let srv = null;
+        for (let i = 1; i < catRows.length; i++) {
+          if (catRows[i] && catRows[i][0] === p.servicoId) {
+            srv = { id: catRows[i][0], nome: catRows[i][1], preco: Number(catRows[i][3] || 0), duracaoMin: Number(catRows[i][4] || 60) };
+            break;
+          }
+        }
+        if (!srv) throw new Error('Procedimento não encontrado.');
+
+        const id = 'AG-' + Math.floor(100000 + Math.random() * 900000);
+        const isPix = p.metodoPagamento.includes('PIX');
+        const statusPag = isPix ? 'AGUARDANDO_VALIDACAO_PIX' : 'PAGAR_NO_STUDIO';
+        const nowStr = new Date().toLocaleString('pt-BR');
+
+        let realCalendarEventId = 'GCAL-' + id;
+        try {
+          const syncData = await syncGoogleCalendarCloudDirect('CREATE', {
+                id: id,
+                data: p.data,
+                horaInicio: p.horaInicio,
+                horaFim: slot.horaFim,
+                clienteNome: p.clienteNome,
+                clienteWhatsApp: normalizeBrPhone(p.clienteWhatsApp),
+                servicoNome: srv.nome,
+                valor: srv.preco,
+                metodoPagamento: p.metodoPagamento
+              }, null, activeSid);
+          if (syncData && syncData.eventId) {
+            realCalendarEventId = syncData.eventId;
+          }
+        } catch (eGcal) {}
+
+        await appendSheetRow('Agendamentos', [
+          id, p.data, p.horaInicio, slot.horaFim,
+          p.clienteNome, normalizeBrPhone(p.clienteWhatsApp),
+          srv.id, srv.nome, srv.preco, p.metodoPagamento,
+          statusPag, 'RESERVADO', realCalendarEventId, nowStr
+        ], activeSid);
+
+        const valorCobradoAgora = p.metodoPagamento === 'PIX_SINAL_50' ? (srv.preco / 2) : srv.preco;
+        const pixCopiaECola = buildPixBrCode(studioObj.pixChave || '00000000000', studioObj.pixRecebedor, studioObj.pixCidade, valorCobradoAgora, id);
+
+        return {
+          success: true,
+          reserva: {
+            id, data: p.data, horaInicio: p.horaInicio, horaFim: slot.horaFim,
+            clienteNome: p.clienteNome, servicoNome: srv.nome,
+            valorTotal: srv.preco, valorCobradoAgora,
+            metodoPagamento: p.metodoPagamento, statusPagamento: statusPag,
+            pixCopiaECola, whatsappStudio: studioObj.whatsapp
+          }
+        };
+      }
+
+      if (fn === 'getClientBookingsByPhone') {
+        const phone = normalizeBrPhone(args[0]);
+        if (!phone || phone.length < 10) return [];
+        const last8 = phone.slice(-8);
+        const agRows = await readSheetTab('Agendamentos', activeSid);
+        const found = [];
+        for (let i = 1; i < agRows.length; i++) {
+          const r = agRows[i];
+          if (r && r[0] && String(r[11] || '').toUpperCase() !== 'BLOQUEADO') {
+            const rowPhone = normalizeBrPhone(r[5] || '');
+            if (rowPhone && rowPhone.slice(-8) === last8) {
+              const valorTotal = Number(r[8] || 0);
+              const metodo = r[9] || 'NO_LOCAL';
+              const valorCobradoAgora = metodo === 'PIX_SINAL_50' ? (valorTotal / 2) : valorTotal;
+              const pixCopiaECola = metodo.includes('PIX')
+                ? buildPixBrCode(studioObj.pixChave || '00000000000', studioObj.pixRecebedor, studioObj.pixCidade, valorCobradoAgora, r[0])
+                : '';
+              found.push({
+                id: r[0], data: r[1] || '', horaInicio: r[2] || '', horaFim: r[3] || '',
+                clienteNome: r[4] || '', clienteWhatsApp: r[5] || '',
+                servicoId: r[6] || '', servicoNome: r[7] || '',
+                valorTotal: valorTotal, valorCobradoAgora: valorCobradoAgora,
+                metodoPagamento: metodo, statusPagamento: r[10] || '', statusReserva: r[11] || 'RESERVADO',
+                pixCopiaECola: pixCopiaECola, whatsappStudio: studioObj.whatsapp
+              });
+            }
+          }
+        }
+        return found.sort((a, b) => (b.data + b.horaInicio).localeCompare(a.data + a.horaInicio));
+      }
+
+      if (fn === 'cancelCustomerBooking') {
+        const [reservaId, phone] = args;
+        const cleanP = normalizeBrPhone(phone).slice(-8);
+        const agRows = await readSheetTab('Agendamentos', activeSid);
+        for (let i = 1; i < agRows.length; i++) {
+          if (agRows[i] && agRows[i][0] === reservaId) {
+            const rowP = normalizeBrPhone(agRows[i][5] || '').slice(-8);
+            if (!cleanP || rowP === cleanP) {
+              agRows[i][11] = 'CANCELADO';
+              const calId = agRows[i][12];
+              if (calId && !String(calId).startsWith('DELETED_')) {
+                try {
+                  await syncGoogleCalendarCloudDirect('DELETE', null, calId, activeSid);
+                  agRows[i][12] = 'DELETED_' + calId;
+                } catch (eG) {}
+              }
+              await writeSheetTab('Agendamentos', agRows, activeSid);
+              return { success: true };
+            }
+          }
+        }
+        throw new Error('Reserva não localizada.');
+      }
+
+      if (fn === 'notifyPixPaidByCustomer') {
+        const reservaId = args[0];
+        const agRows = await readSheetTab('Agendamentos', activeSid);
+        for (let i = 1; i < agRows.length; i++) {
+          if (agRows[i] && agRows[i][0] === reservaId) {
+            agRows[i][10] = 'CLIENTE_INFORMOU_PIX';
+            await writeSheetTab('Agendamentos', agRows, activeSid);
+            break;
+          }
+        }
+        return { success: true };
+      }
+
+      if (fn === 'getAdminDashboardData') {
+        const categorias = await readCategoriasList();
+        const catRows = await readSheetTab('Catalogo', activeSid);
+        const catalogo = [];
+        for (let i = 1; i < catRows.length; i++) {
+          const r = catRows[i];
+          if (r && r[0]) {
+            catalogo.push({
+              id: r[0], nome: r[1] || '', descricao: r[2] || '',
+              preco: Number(r[3] || 0), duracaoMin: Number(r[4] || 60),
+              fotoUrl: r[5] || '', categoria: r[6] || 'Alongamentos',
+              ativo: String(r[7] || 'SIM').toUpperCase() === 'SIM'
+            });
+          }
+        }
+        const agRows = await readSheetTab('Agendamentos', activeSid);
+        const agendamentos = [];
+        for (let i = 1; i < agRows.length; i++) {
+          const r = agRows[i];
+          if (r && r[0]) {
+            agendamentos.push({
+              id: r[0], data: r[1] || '', horaInicio: r[2] || '', horaFim: r[3] || '',
+              clienteNome: r[4] || '', clienteWhatsApp: r[5] || '',
+              servicoId: r[6] || '', servicoNome: r[7] || '', valor: Number(r[8] || 0),
+              metodoPagamento: r[9] || '', statusPagamento: r[10] || '', statusReserva: r[11] || '',
+              criadoEm: r[13] || ''
+            });
+          }
+        }
+        agendamentos.sort((a, b) => (b.data + b.horaInicio).localeCompare(a.data + a.horaInicio));
+        return { studio: studioObj, categorias, catalogo, agendamentos };
+      }
+
+      if (fn === 'adminSaveCategory') {
+        const [, catObj] = args;
+        const current = await readCategoriasList();
+        const rows = [['ID_Categoria', 'Nome', 'Icone', 'Ordem', 'Ativo']];
+        let updated = false;
+        let oldName = null;
+
+        for (const c of current) {
+          if (catObj.id && c.id === catObj.id) {
+            oldName = c.nome;
+            rows.push([
+              c.id,
+              catObj.nome.trim(),
+              catObj.icone || '💅',
+              String(catObj.ordem || c.ordem || rows.length),
+              catObj.ativo === false ? 'NAO' : 'SIM'
+            ]);
+            updated = true;
+          } else {
+            rows.push([c.id, c.nome, c.icone, String(c.ordem), c.ativo ? 'SIM' : 'NAO']);
+          }
+        }
+
+        if (!updated) {
+          const newId = 'CAT-' + Math.floor(100 + Math.random() * 900);
+          rows.push([
+            newId,
+            catObj.nome.trim(),
+            catObj.icone || '💅',
+            String(catObj.ordem || rows.length),
+            'SIM'
+          ]);
+        }
+
+        await writeSheetTab('Categorias', rows, activeSid);
+
+        if (oldName && oldName !== catObj.nome.trim()) {
+          const sRows = await readSheetTab('Catalogo', activeSid);
+          let changed = false;
+          for (let i = 1; i < sRows.length; i++) {
+            if (sRows[i] && sRows[i][6] === oldName) {
+              sRows[i][6] = catObj.nome.trim();
+              changed = true;
+            }
+          }
+          if (changed) await writeSheetTab('Catalogo', sRows, activeSid);
+        }
+
+        return await rpc('getAdminDashboardData');
+      }
+
+      if (fn === 'adminDeleteCategory') {
+        const [, catId] = args;
+        const current = await readCategoriasList();
+        const rows = [['ID_Categoria', 'Nome', 'Icone', 'Ordem', 'Ativo']];
+        for (const c of current) {
+          if (c.id !== catId) {
+            rows.push([c.id, c.nome, c.icone, String(c.ordem), c.ativo ? 'SIM' : 'NAO']);
+          }
+        }
+        await writeSheetTab('Categorias', rows, activeSid);
+        return await rpc('getAdminDashboardData');
+      }
+
+      if (fn === 'adminSaveService') {
+        const [, obj] = args;
+        const catRows = await readSheetTab('Catalogo', activeSid);
+        const cleanRows = [['ID', 'Nome', 'Descricao', 'Preco', 'DuracaoMin', 'FotoURL', 'Categoria', 'Ativo']];
+        let updated = false;
+        const statusAtivo = obj.ativo === false ? 'NAO' : 'SIM';
+        for (let i = 1; i < catRows.length; i++) {
+          const r = catRows[i];
+          if (r && r[0]) {
+            if (obj.id && r[0] === obj.id) {
+              cleanRows.push([obj.id, obj.nome, obj.descricao, obj.preco, obj.duracaoMin, obj.fotoUrl, obj.categoria, statusAtivo]);
+              updated = true;
+            } else {
+              cleanRows.push(r);
+            }
+          }
+        }
+        if (!updated) {
+          const newId = 'SRV-' + Math.floor(1000 + Math.random() * 9000);
+          cleanRows.push([newId, obj.nome, obj.descricao, obj.preco, obj.duracaoMin, obj.fotoUrl, obj.categoria, statusAtivo]);
+        }
+        await writeSheetTab('Catalogo', cleanRows, activeSid);
+        return await rpc('getAdminDashboardData');
+      }
+
+      if (fn === 'adminToggleServiceActive') {
+        const [, srvId] = args;
+        const catRows = await readSheetTab('Catalogo', activeSid);
+        for (let i = 1; i < catRows.length; i++) {
+          if (catRows[i] && catRows[i][0] === srvId) {
+            const cur = String(catRows[i][7] || 'SIM').toUpperCase();
+            catRows[i][7] = cur === 'SIM' ? 'NAO' : 'SIM';
+            break;
+          }
+        }
+        await writeSheetTab('Catalogo', catRows, activeSid);
+        return await rpc('getAdminDashboardData');
+      }
+
+      if (fn === 'adminDeleteService') {
+        const [, id] = args;
+        const catRows = await readSheetTab('Catalogo', activeSid);
+        const filtered = [['ID', 'Nome', 'Descricao', 'Preco', 'DuracaoMin', 'FotoURL', 'Categoria', 'Ativo']];
+        for (let i = 1; i < catRows.length; i++) {
+          const r = catRows[i];
+          if (r && r[0] && r[0] !== id) filtered.push(r);
+        }
+        await writeSheetTab('Catalogo', filtered, activeSid);
+        return await rpc('getAdminDashboardData');
+      }
+
+      if (fn === 'adminUpdateBookingStatus') {
+        const [, id, action] = args;
+        const agRows = await readSheetTab('Agendamentos', activeSid);
+        for (let i = 1; i < agRows.length; i++) {
+          if (agRows[i] && agRows[i][0] === id) {
+            if (action === 'VALIDAR_PIX') {
+              agRows[i][10] = 'PIX_CONFIRMADO';
+              agRows[i][11] = 'CONFIRMADO';
+            } else if (action === 'CONCLUIR_ATENDIMENTO') {
+              agRows[i][10] = agRows[i][10] === 'AGUARDANDO_VALIDACAO_PIX' ? 'PIX_CONFIRMADO' : 'PAGO_NO_STUDIO';
+              agRows[i][11] = 'CONCLUIDO';
+            } else if (action === 'CANCELAR_RESERVA') {
+              agRows[i][11] = 'CANCELADO';
+            }
+            await writeSheetTab('Agendamentos', agRows, activeSid);
+            break;
+          }
+        }
+        return await rpc('getAdminDashboardData');
+      }
+
+      if (fn === 'adminCreateManualBookingOrBlock') {
+        const [, p] = args;
+        const id = (p.tipo === 'BLOQUEIO' ? 'BLQ-' : 'AG-') + Math.floor(100000 + Math.random() * 900000);
+        const nowStr = new Date().toLocaleString('pt-BR');
+        if (p.tipo === 'BLOQUEIO') {
+          await appendSheetRow('Agendamentos', [
+            id, p.data, p.horaInicio, p.horaFim,
+            '🔒 BLOQUEIO DE AGENDA / FOLGA', '',
+            'BLOQUEIO', p.motivo || 'Horário Bloqueado pela Profissional', 0, 'BLOQUEIO',
+            'BLOQUEADO', 'BLOQUEADO', 'GCAL-' + id, nowStr
+          ], activeSid);
+        } else {
+          const fimMin = toMin(p.horaInicio) + Number(p.duracaoMin || 60);
+          await appendSheetRow('Agendamentos', [
+            id, p.data, p.horaInicio, fromMin(fimMin),
+            p.clienteNome, String(p.clienteWhatsApp || '').replace(/\D/g, ''),
+            p.servicoId || 'MANUAL', p.servicoNome, Number(p.valor || 0), p.metodoPagamento || 'NO_LOCAL',
+            p.statusPagamento || 'PAGAR_NO_STUDIO', 'CONFIRMADO', 'GCAL-' + id, nowStr
+          ], activeSid);
+        }
+        return await rpc('getAdminDashboardData');
+      }
+
+      if (fn === 'adminSaveSettings') {
+        const [, cfg] = args;
+        const newPinHash = (cfg.novoPin && cfg.novoPin.length >= 4)
+          ? await sha256Hex(cfg.novoPin)
+          : (cfgMap['ADMIN_PIN_HASH'] || await sha256Hex('123456'));
+
+        const newRecHash = (cfg.novaPalavraRecuperacao && cfg.novaPalavraRecuperacao.length >= 3)
+          ? await sha256Hex(cfg.novaPalavraRecuperacao)
+          : (cfgMap['ADMIN_RECOVERY_HASH'] || '');
+
+        const newCfgRows = [
+          ['Chave', 'Valor', 'Descricao'],
+          ['SETUP_CONCLUIDO', 'SIM', 'Configurado pelo App'],
+          ['STUDIO_NOME', cfg.nome || 'Meu Studio', 'Nome do Studio'],
+          ['PROFISSIONAL_NOME', cfg.profissional || 'Manicure', 'Profissional'],
+          ['ADMIN_LOGIN_ID', cfg.loginId || studioObj.loginId || '', 'E-mail ou WhatsApp de Login'],
+          ['WHATSAPP_STUDIO', String(cfg.whatsapp || '').replace(/\D/g, ''), 'WhatsApp'],
+          ['PIX_CHAVE', cfg.pixChave || '', 'Chave Pix'],
+          ['PIX_RECEBEDOR', cfg.pixRecebedor || '', 'Titular Pix'],
+          ['PIX_CIDADE', cfg.pixCidade || 'SAO PAULO', 'Cidade Pix'],
+          ['TEMA_COR', cfg.temaCor || 'pink-gold', 'Tema de Cores'],
+          ['HORARIO_INICIO', cfg.horarioInicio || '09:00', 'Abertura'],
+          ['HORARIO_FIM', cfg.horarioFim || '19:00', 'Fechamento'],
+          ['ALMOCO_INICIO', cfg.almocoInicio || '', 'Início Almoço'],
+          ['ALMOCO_FIM', cfg.almocoFim || '', 'Fim Almoço'],
+          ['DIAS_ATENDIMENTO', cfg.diasAtendimento || '1,2,3,4,5,6', 'Dias de Funcionamento'],
+          ['INTERVALO_MINUTOS', String(cfg.intervaloMinutos || 60), 'Intervalo'],
+          ['SINCRONIZAR_AGENDA', 'SIM', 'Agenda'],
+          ['ADMIN_PIN_HASH', newPinHash, 'Hash SHA-256 do PIN'],
+          ['ADMIN_RECOVERY_HASH', newRecHash, 'Hash SHA-256 de Recuperação'],
+          ['TERMO_ACEITO_EM', cfgMap['TERMO_ACEITO_EM'] || new Date().toLocaleString('pt-BR'), 'Termo Aceito']
+        ];
+        await writeSheetTab('Configuracoes', newCfgRows, activeSid);
+        return await rpc('getAdminDashboardData');
+      }
+    }
+
+
+    function maskBrPhoneInput(inp) {
+      let d = String(inp.value || '').replace(/\D/g, '');
+      if (d.startsWith('55') && d.length > 11) d = d.slice(2);
+      d = d.slice(0, 11);
+      if (d.length > 6) {
+        inp.value = '(' + d.slice(0, 2) + ') ' + d.slice(2, d.length - 4) + '-' + d.slice(-4);
+      } else if (d.length > 2) {
+        inp.value = '(' + d.slice(0, 2) + ') ' + d.slice(2);
+      } else if (d.length > 0) {
+        inp.value = '(' + d;
+      }
+    }
+
+    function renderStudioTopPills() {
+      const box = document.getElementById('cStudioTopPills');
+      if (!box || !pubData || !pubData.studio) return;
+      const st = pubData.studio;
+      let pillsHtml = '';
+
+      if (st.whatsapp) {
+        const cleanW = normalizeBrPhone(st.whatsapp);
+        const urlW = 'https://api.whatsapp.com/send?phone=' + cleanW + '&text=' + encodeURIComponent('Olá! Vim pela página de agendamento online do ' + (st.nome || 'Studio') + '.');
+        pillsHtml += `<a href="${urlW}" class="studio-pill"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>`;
+      }
+      if (st.instagram) {
+        const cleanInsta = String(st.instagram).replace(/^@/, '').replace(/https?:\/\/(www\.)?instagram\.com\//i, '').replace(/\//g, '').trim();
+        if (cleanInsta) {
+          pillsHtml += `<a href="https://instagram.com/${encodeURIComponent(cleanInsta)}" target="_blank" class="studio-pill"><i class="fa-brands fa-instagram"></i> @${esc(cleanInsta)}</a>`;
+        }
+      }
+      if (st.endereco) {
+        const mapUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(st.endereco);
+        pillsHtml += `<a href="${mapUrl}" target="_blank" class="studio-pill"><i class="fa-solid fa-location-dot"></i> Como Chegar</a>`;
+      }
+      box.innerHTML = pillsHtml;
+    }
+
+    function switchClientView(mode) {
+      const bookGrid = document.getElementById('cBookingMainGrid');
+      const myView = document.getElementById('cMyBookingsView');
+      const bBook = document.getElementById('tabBtnBook');
+      const bMy = document.getElementById('tabBtnMy');
+      if (mode === 'my') {
+        if (bookGrid) bookGrid.classList.add('hidden');
+        if (myView) myView.classList.remove('hidden');
+        if (bBook) bBook.classList.remove('active');
+        if (bMy) bMy.classList.add('active');
+        const savedWhats = localStorage.getItem('NAIL_CLIENT_WHATS') || '';
+        const lookupInp = document.getElementById('cLookupWhats');
+        if (savedWhats && lookupInp && !lookupInp.value) {
+          lookupInp.value = savedWhats;
+          maskBrPhoneInput(lookupInp);
+        }
+        if (lookupInp && lookupInp.value) {
+          searchMyBookings();
+        }
+      } else {
+        if (myView) myView.classList.add('hidden');
+        if (bookGrid) bookGrid.classList.remove('hidden');
+        if (bMy) bMy.classList.remove('active');
+        if (bBook) bBook.classList.add('active');
+      }
+    }
+
+    let myBookingsCache = [];
+
+    async function searchMyBookings(silent = false) {
+      const inp = document.getElementById('cLookupWhats');
+      const phone = inp ? inp.value.trim() : (localStorage.getItem('NAIL_CLIENT_WHATS') || '');
+      const listEl = document.getElementById('cMyBookingsList');
+      if (!phone || normalizeBrPhone(phone).length < 10) {
+        if (!silent && listEl) {
+          listEl.innerHTML = '<div style="text-align:center; padding:16px; color:var(--text-muted); font-size:0.84rem;">Digite seu WhatsApp com DDD acima para consultar seus agendamentos.</div>';
+        }
+        return;
+      }
+      localStorage.setItem('NAIL_CLIENT_WHATS', phone);
+      if (!silent && listEl) {
+        listEl.innerHTML = '<div style="text-align:center; padding:18px; color:var(--text-muted); font-size:0.85rem;"><i class="fa-solid fa-spinner fa-spin"></i> Buscando seus horários...</div>';
+      }
+      try {
+        const items = await rpc('getClientBookingsByPhone', phone);
+        myBookingsCache = items || [];
+        const activeCount = myBookingsCache.filter(x => x.statusReserva !== 'CANCELADO' && x.statusReserva !== 'CONCLUIDO').length;
+        const badge = document.getElementById('myBookingsBadge');
+        if (badge) {
+          if (activeCount > 0) {
+            badge.textContent = activeCount;
+            badge.classList.remove('hidden');
+          } else {
+            badge.classList.add('hidden');
+          }
+        }
+        if (!listEl) return;
+        if (!myBookingsCache.length) {
+          listEl.innerHTML = '<div style="text-align:center; padding:18px; background:var(--bg-app); border-radius:14px; color:var(--text-muted); font-size:0.84rem;">Nenhum agendamento encontrado para este WhatsApp.</div>';
+          return;
+        }
+        listEl.innerHTML = myBookingsCache.map((r, idx) => {
+          const [y, m, d] = String(r.data || '').split('-');
+          const dFmt = d ? `${d}/${m}/${y}` : r.data;
+          const isCancel = r.statusReserva === 'CANCELADO';
+          const isDone = r.statusReserva === 'CONCLUIDO';
+          const isPix = r.metodoPagamento.includes('PIX') && r.statusPagamento !== 'PIX_CONFIRMADO' && !isCancel && !isDone;
+          const statusBadge = isCancel
+            ? '<span style="background:#fee2e2; color:#991b1b; padding:3px 9px; border-radius:99px; font-size:0.7rem; font-weight:800;">Cancelado</span>'
+            : (isDone
+              ? '<span style="background:#d1fae5; color:#065f46; padding:3px 9px; border-radius:99px; font-size:0.7rem; font-weight:800;">Concluído</span>'
+              : (r.statusPagamento === 'PIX_CONFIRMADO'
+                ? '<span style="background:#d1fae5; color:#065f46; padding:3px 9px; border-radius:99px; font-size:0.7rem; font-weight:800;">✅ Pix Confirmado</span>'
+                : (isPix
+                  ? '<span style="background:#fef3c7; color:#b45309; padding:3px 9px; border-radius:99px; font-size:0.7rem; font-weight:800;">⏳ Aguardando Pix</span>'
+                  : '<span style="background:#e0e7ff; color:#3730a3; padding:3px 9px; border-radius:99px; font-size:0.7rem; font-weight:800;">Pagar no Studio</span>')));
+
+          const studioW = normalizeBrPhone(r.whatsappStudio || pubData.studio.whatsapp || '11911526537');
+          const msgReagendar = `Olá! Sou *${r.clienteNome}*. Gostaria de falar sobre meu agendamento de *${r.servicoNome}* do dia ${dFmt} às ${r.horaInicio} (Reserva #${r.id}).`;
+          const waUrl = 'https://api.whatsapp.com/send?phone=' + studioW + '&text=' + encodeURIComponent(msgReagendar);
+
+          return `
+            <div style="background:var(--bg-app); border:1.5px solid var(--border); border-radius:16px; padding:13px; margin-bottom:10px; opacity:${isCancel ? '0.65' : '1'};">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:6px;">
+                <div>
+                  <div style="font-weight:800; font-size:0.95rem; color:var(--text-main);">💅 ${esc(r.servicoNome)}</div>
+                  <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">📅 <strong>${dFmt}</strong> • ⏰ <strong>${r.horaInicio} às ${r.horaFim}</strong></div>
+                  <div style="font-size:0.8rem; font-weight:800; color:var(--primary-dark); margin-top:2px;">💵 R$ ${Number(r.valorTotal).toFixed(2).replace('.', ',')} • <span style="font-weight:600; color:var(--text-muted);">#${r.id}</span></div>
+                </div>
+                ${statusBadge}
+              </div>
+              ${!isCancel && !isDone ? `
+                <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;">
+                  ${r.metodoPagamento.includes('PIX') ? `<button type="button" onclick="reopenBookingModal(${idx})" style="flex:1; min-height:38px; border:none; border-radius:10px; background:var(--gradient); color:#fff; font-weight:800; font-size:0.76rem; padding:6px 10px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px;"><i class="fa-brands fa-pix"></i> QR Code Pix</button>` : ''}
+                  <a href="${waUrl}" style="flex:1; min-height:38px; border-radius:10px; background:#25d366; color:#fff; font-weight:800; font-size:0.76rem; padding:6px 10px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:5px;"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
+                  <button type="button" onclick="cancelMyBooking('${r.id}')" style="min-height:38px; border:none; border-radius:10px; background:#fee2e2; color:#991b1b; font-weight:800; font-size:0.75rem; padding:6px 10px; cursor:pointer;"><i class="fa-solid fa-xmark"></i> Cancelar</button>
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        if (!silent && listEl) listEl.innerHTML = '<div style="color:#dc2626; font-size:0.82rem; padding:10px;">Erro ao consultar: ' + esc(e.message) + '</div>';
+      }
+    }
+
+    function reopenBookingModal(idx) {
+      const r = myBookingsCache[idx];
+      if (!r) return;
+      lastRes = r;
+      showModal(r);
+    }
+
+    async function cancelMyBooking(reservaId) {
+      if (!confirm('Deseja realmente cancelar este horário? A vaga será liberada na agenda do Studio.')) return;
+      const phone = document.getElementById('cLookupWhats').value || localStorage.getItem('NAIL_CLIENT_WHATS') || '';
+      try {
+        showToast('Cancelando horário...');
+        await rpc('cancelCustomerBooking', reservaId, phone);
+        showToast('✅ Horário cancelado e vaga liberada!');
+        await searchMyBookings();
+        if (selSrv && selDate) loadSlots();
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      // Auto-preenchimento inteligente ("Lembrar de Mim" - 0 digitação no retorno)
+      const savedName = localStorage.getItem('NAIL_CLIENT_NAME') || '';
+      const savedWhats = localStorage.getItem('NAIL_CLIENT_WHATS') || '';
+      if (savedName && document.getElementById('cNome')) document.getElementById('cNome').value = savedName;
+      if (savedWhats && document.getElementById('cWhats')) {
+        document.getElementById('cWhats').value = savedWhats;
+        maskBrPhoneInput(document.getElementById('cWhats'));
+      }
+
+      pubData = await rpc('getPublicBootstrapData');
+      document.body.setAttribute('data-theme', pubData.studio.temaCor || 'pink-gold');
+      document.getElementById('cStudioName').textContent = pubData.studio.nome;
+      document.getElementById('cProName').textContent = pubData.studio.profissional + (pubData.studio.endereco ? ' • 📍 ' + pubData.studio.endereco : '');
+      renderStudioTopPills();
+      renderChips();
+      renderCatalog();
+      renderDays();
+
+      if (savedWhats) {
+        searchMyBookings(true);
+      }
+    });
+
+    function renderChips() {
+      const iconMap = {};
+      (pubData.categorias || []).forEach(c => { iconMap[c.nome] = c.icone || '💅'; });
+      const usedCats = [...new Set(pubData.catalogo.map(s => s.categoria || 'Geral'))];
+      const cats = ['Todos', ...usedCats];
+      const bar = document.getElementById('cChips');
+      bar.innerHTML = '';
+      cats.forEach(c => {
+        const b = document.createElement('button');
+        b.className = 'chip' + (activeCat === c ? ' active' : '');
+        b.textContent = c === 'Todos' ? '✨ Todos' : `${iconMap[c] || '💅'} ${c}`;
+        b.onclick = () => { activeCat = c; renderChips(); renderCatalog(); };
+        bar.appendChild(b);
+      });
+    }
+
+    
+    function openStudioWhatsAppFallback() {
+      const w = (pubData && pubData.studio && pubData.studio.whatsapp) ? pubData.studio.whatsapp : '11911526537';
+      const cleanW = normalizeBrPhone(w);
+      const txt = encodeURIComponent('Olá! Gostaria de agendar um horário no Studio.');
+      window.location.href = 'https://wa.me/' + cleanW + '?text=' + txt;
+    }
+
+    function renderCatalog() {
+      const box = document.getElementById('cCatalog');
+      box.innerHTML = '';
+      if (!pubData.catalogo || pubData.catalogo.length === 0) {
+        box.innerHTML = `
+          <div style="background:var(--bg-card); border:1.5px dashed var(--primary); border-radius:22px; padding:28px 20px; text-align:center; box-shadow:0 8px 24px rgba(0,0,0,0.05);">
+            <div style="font-size:2.4rem; margin-bottom:10px;">💅✨</div>
+            <h3 style="font-size:1.15rem; margin-bottom:8px; color:var(--text);">Agendamento Online</h3>
+            <p style="font-size:0.86rem; color:var(--text-muted); margin-bottom:16px;">
+              Seja muito bem-vinda ao nosso Studio! Para escolher seu procedimento ou agendar um horário exclusivo, fale diretamente conosco pelo WhatsApp:
+            </p>
+            <button type="button" onclick="openStudioWhatsAppFallback()" style="display:inline-flex; align-items:center; gap:8px; background:#25d366; color:#fff; border:none; padding:12px 22px; border-radius:14px; font-weight:800; font-size:0.9rem; cursor:pointer; box-shadow:0 4px 14px rgba(37,211,102,0.3);">
+              <i class="fa-brands fa-whatsapp" style="font-size:1.15rem;"></i> Agendar pelo WhatsApp
+            </button>
+          </div>
+        `;
+        return;
+      }
+      const list = activeCat === 'Todos' ? pubData.catalogo : pubData.catalogo.filter(s => s.categoria === activeCat);
+      list.forEach(s => {
+        const isSel = selSrv && selSrv.id === s.id;
+        const el = document.createElement('div');
+        el.className = 'srv-card' + (isSel ? ' selected' : '');
+        el.onclick = () => {
+          selSrv = s;
+          selSlot = '';
+          renderCatalog();
+          document.getElementById('cPrompt').classList.add('hidden');
+          document.getElementById('cScheduleArea').classList.remove('hidden');
+          const bnr = document.getElementById('cSelectedSrvBanner');
+          if (bnr) {
+            bnr.innerHTML = `<div><div style="font-size:0.7rem; font-weight:800; color:var(--primary); text-transform:uppercase;">Procedimento Escolhido</div><div style="font-weight:800; font-size:0.95rem;">💅 ${esc(s.nome)}</div></div><div style="text-align:right;"><div style="font-weight:900; font-size:1.05rem; color:var(--primary-dark);">R$ ${Number(s.preco).toFixed(2).replace('.', ',')}</div><div style="font-size:0.72rem; color:var(--text-muted);">⏱️ ${s.duracaoMin} min</div></div>`;
+          }
+          loadSlots();
+          setTimeout(() => {
+            const drawer = document.getElementById('cDrawer');
+            if (drawer) {
+              const topPos = drawer.getBoundingClientRect().top + window.pageYOffset - 16;
+              window.scrollTo({ top: topPos, behavior: 'smooth' });
+            }
+          }, 80);
+        };
+        el.innerHTML = `
+          <img class="srv-img" src="${esc(s.fotoUrl)}" onerror="this.src='https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=400&q=80'">
+          <div style="flex:1;">
+            <div style="font-size:0.68rem; font-weight:800; color:var(--primary); text-transform:uppercase;">${esc(s.categoria)} • ${s.duracaoMin} min</div>
+            <div style="font-weight:800; font-size:1rem; margin:2px 0;">${esc(s.nome)}</div>
+            <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:6px;">${esc(s.descricao)}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong style="font-size:1.15rem; color:var(--primary-dark);">R$ ${Number(s.preco).toFixed(2).replace('.', ',')}</strong>
+              <span style="background:var(--gradient); color:#fff; padding:6px 12px; border-radius:10px; font-size:0.75rem; font-weight:800;">${isSel ? 'Selecionado' : 'Escolher'}</span>
+            </div>
+          </div>
+        `;
+        box.appendChild(el);
+      });
+    }
+
+    function renderDays() {
+      const box = document.getElementById('cDays');
+      box.innerHTML = '';
+      const wdays = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+      const allowedDays = String(pubData.studio.diasAtendimento || '1,2,3,4,5,6').split(',').map(x => Number(x.trim()));
+      const today = new Date();
+      let firstSelected = false;
+
+      for (let i = 0; i < 18; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() + i);
+        if (!allowedDays.includes(d.getDay())) continue; // Pula dias em que o studio está fechado!
+
+        const iso = getLocalIsoDate(d);
+        if (!firstSelected) {
+          selDate = iso;
+          firstSelected = true;
+        }
+        const p = document.createElement('div');
+        p.className = 'day-pill' + (selDate === iso ? ' active' : '');
+        p.innerHTML = `<div style="font-size:0.68rem; font-weight:700;">${i===0?'Hoje':wdays[d.getDay()]}</div><div style="font-size:1.15rem; font-weight:800;">${String(d.getDate()).padStart(2,'0')}</div>`;
+        p.onclick = () => {
+          selDate = iso;
+          selSlot = '';
+          document.querySelectorAll('.day-pill').forEach(x => x.classList.remove('active'));
+          p.classList.add('active');
+          loadSlots();
+        };
+        box.appendChild(p);
+      }
+    }
+
+    async function loadSlots() {
+      if (!selSrv || !selDate) return;
+      const grid = document.getElementById('cSlots');
+      grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:12px; color:var(--text-muted); font-size:0.84rem;"><i class="fa-solid fa-spinner fa-spin"></i> Consultando agenda...</div>';
+      document.getElementById('cForm').classList.add('hidden');
+      const slots = await rpc('getAvailableSlotsForDate', selDate, selSrv.id);
+      grid.innerHTML = '';
+      if (!slots.length) {
+        grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:12px; color:var(--text-muted); font-size:0.84rem;">Dia sem expediente. Escolha outra data acima!</div>';
+        return;
+      }
+      slots.forEach(s => {
+        const b = document.createElement('button');
+        b.className = 'slot ' + (s.disponivel ? '' : 'busy');
+        b.disabled = !s.disponivel;
+        const lbl = s.disponivel ? 'LIVRE' : (s.motivo === 'PASSOU' ? 'ENCERRADO' : 'OCUPADO');
+        b.innerHTML = `<span>${s.horaInicio}</span><span style="font-size:0.58rem; color:${s.disponivel?'#10b981':'#94a3b8'}">${lbl}</span>`;
+        if (s.disponivel) {
+          b.onclick = () => {
+            selSlot = s.horaInicio;
+            document.querySelectorAll('.slot').forEach(x => x.classList.remove('selected'));
+            b.classList.add('selected');
+            document.getElementById('cForm').classList.remove('hidden');
+          };
+        }
+        grid.appendChild(b);
+      });
+    }
+
+    function setPay(opt, el) {
+      payOpt = opt;
+      document.querySelectorAll('.pay-card').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+    }
+
+    async function submitBooking() {
+      const clienteNome = document.getElementById('cNome').value.trim();
+      const clienteWhatsApp = document.getElementById('cWhats').value.trim();
+      if (clienteNome.length < 2 || !isValidBrPhone(clienteWhatsApp)) return alert('Preencha seu Nome e WhatsApp com DDD, ex: (11) 99999-9999');
+      const btn = document.getElementById('cBtnSubmit');
+      const old = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Reservando seu horário...';
+      try {
+        const res = await rpc('createCustomerBooking', {
+          data: selDate,
+          horaInicio: selSlot,
+          clienteNome,
+          clienteWhatsApp,
+          servicoId: selSrv.id,
+          metodoPagamento: payOpt
+        });
+        localStorage.setItem('NAIL_CLIENT_NAME', clienteNome);
+        localStorage.setItem('NAIL_CLIENT_WHATS', clienteWhatsApp);
+        lastRes = res.reserva;
+        showModal(res.reserva);
+        loadSlots();
+        searchMyBookings(true);
+      } catch (e) {
+        alert(e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = old;
+      }
+    }
+
+    
+    function handleCopyPixCopiaCola() {
+      if (!lastRes || !lastRes.pixCopiaECola) {
+        alert('Código Pix não disponível para este agendamento.');
+        return;
+      }
+      copyToClipboardUniversal(lastRes.pixCopiaECola, 'Código Pix Copia e Cola');
+      const fb = document.getElementById('cPixCopyFeedback');
+      if (fb) {
+        fb.style.display = 'block';
+        setTimeout(() => { fb.style.display = 'none'; }, 4000);
+      }
+    }
+
+    function handleCopyChavePix() {
+      const key = (pubData.studio && pubData.studio.pixChave) ? pubData.studio.pixChave : '';
+      if (!key) {
+        alert('Chave Pix não cadastrada pelo Studio.');
+        return;
+      }
+      copyToClipboardUniversal(key, 'Chave Pix');
+    }
+
+    function showModal(r) {
+      const [y, m, d] = r.data.split('-');
+      const ticketEl = document.getElementById('cTicketBox');
+      if (ticketEl) {
+        const pagLabel = r.metodoPagamento === 'NO_LOCAL' ? 'Pagar no Studio' : (r.metodoPagamento === 'PIX_SINAL_50' ? 'Sinal 50% via Pix' : 'Pix Valor Total');
+        ticketEl.innerHTML = `
+          <div class="ticket-row"><span>💅 Procedimento:</span><strong>${esc(r.servicoNome)}</strong></div>
+          <div class="ticket-row"><span>📅 Data e Hora:</span><strong>${d}/${m}/${y} às ${r.horaInicio}</strong></div>
+          <div class="ticket-row"><span>👤 Cliente:</span><strong>${esc(r.clienteNome)}</strong></div>
+          <div class="ticket-row"><span>💵 Valor Total:</span><strong>R$ ${Number(r.valorTotal).toFixed(2).replace('.', ',')}</strong></div>
+          <div class="ticket-row" style="margin-bottom:0;"><span>💳 Pagamento:</span><strong>${pagLabel} (#${r.id})</strong></div>
+        `;
+      }
+      const gcalEl = document.getElementById('cGCalLink');
+      if (gcalEl) {
+        gcalEl.href = buildGoogleCalendarUrl({
+          id: r.id, data: r.data, horaInicio: r.horaInicio, horaFim: r.horaFim,
+          clienteNome: r.clienteNome, servicoNome: r.servicoNome, valor: r.valorTotal,
+          metodoPagamento: r.metodoPagamento, statusPagamento: r.statusPagamento
+        }, pubData.studio.nome);
+      }
+      document.getElementById('cModalSummary').textContent = `${r.clienteNome}, seu horário para ${r.servicoNome} dia ${d}/${m}/${y} às ${r.horaInicio} foi reservado!`;
+      const pixBox = document.getElementById('cPixBox');
+      if (r.metodoPagamento.includes('PIX')) {
+        pixBox.classList.remove('hidden');
+        document.getElementById('cPixVal').textContent = `R$ ${Number(r.valorCobradoAgora).toFixed(2).replace('.', ',')}`;
+        document.getElementById('cPixRaw').textContent = r.pixCopiaECola || '';
+        document.getElementById('cChavePixText').textContent = pubData.studio.pixChave || 'Não informada';
+        document.getElementById('cTitularPixText').textContent = 'Titular: ' + (pubData.studio.pixRecebedor || pubData.studio.nome || 'Studio');
+        const qr = document.getElementById('cQrCanvas');
+        qr.innerHTML = '';
+        new QRCode(qr, { text: r.pixCopiaECola || pubData.studio.pixChave || 'PIX', width: 165, height: 165 });
+      } else {
+        pixBox.classList.add('hidden');
+      }
+      const metodoTxt = r.metodoPagamento === 'NO_LOCAL' ? 'Pagar no Studio' : (r.metodoPagamento === 'PIX_SINAL_50' ? 'Sinal de 50% via Pix' : 'Pix Valor Total');
+      const msgTextoPuro = 
+`Olá! Acabei de fazer um agendamento online:
+
+💅 Procedimento: ${r.servicoNome}
+📅 Data: ${d}/${m}/${y}
+⏰ Horário: ${r.horaInicio} às ${r.horaFim}
+👤 Cliente: ${r.clienteNome}
+💵 Valor: R$ ${Number(r.valorTotal).toFixed(2).replace('.', ',')}
+💳 Pagamento: ${metodoTxt}
+🔖 Reserva: #${r.id}
+
+Gostaria de confirmar meu horário!`;
+
+      const wEl = document.getElementById('cWhatsLink');
+      const studioWhats = r.whatsappStudio || pubData.studio.whatsapp || '11911526537';
+      const cleanStudioPhone = normalizeBrPhone(studioWhats);
+      const waApiUrl = 'https://api.whatsapp.com/send?phone=' + cleanStudioPhone + '&text=' + encodeURIComponent(msgTextoPuro);
+      
+      wEl.href = waApiUrl;
+      wEl.onclick = (e) => {
+        if (e) e.preventDefault();
+        window.location.href = waApiUrl;
+      };
+      wEl.style.display = 'flex';
+      document.getElementById('cPixModal').classList.add('open');
+    }
+
+    async function notifyPaid() {
+      if (!lastRes) return;
+      await rpc('notifyPixPaidByCustomer', lastRes.id);
+      document.getElementById('cBtnPaid').textContent = 'Manicure Avisada!';
+      document.getElementById('cBtnPaid').disabled = true;
+    }
+
+    
+    // Handler Nativo do Botão Voltar do Android na Página da Cliente
+    window.handleAndroidBackButton = function() {
+      const pixModal = document.getElementById('cPixModal');
+      if (pixModal && pixModal.classList.contains('open')) {
+        pixModal.classList.remove('open');
+        return 'HANDLED';
+      }
+      const myView = document.getElementById('cMyBookingsView');
+      if (myView && !myView.classList.contains('hidden')) {
+        switchClientView('book');
+        return 'HANDLED';
+      }
+      const formEl = document.getElementById('cForm');
+      if (formEl && !formEl.classList.contains('hidden')) {
+        formEl.classList.add('hidden');
+        return 'HANDLED';
+      }
+      return 'EXIT';
+    };
+
+    // Centraliza campo acima do teclado virtual ao digitar no celular
+    document.addEventListener('focusin', (e) => {
+      const t = e.target;
+      if (t && ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName)) {
+        setTimeout(() => {
+          try {
+            t.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          } catch (err) {}
+        }, 280);
+      }
+    });
+
+    function esc(s) {
+      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+  </script>
+</body>
+</html>

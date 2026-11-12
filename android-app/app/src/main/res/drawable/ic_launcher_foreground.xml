@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Silhueta da Unha Esmaltada (Branco Pérola) -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:strokeColor="#F59E0B"
+        android:strokeWidth="1.5"
+        android:pathData="M 40,32 C 40,24 68,24 68,32 L 66,74 L 42,74 Z" />
+
+    <!-- Francesinha / Esmaltação Rosa Metálica na ponta -->
+    <path
+        android:fillColor="#FF1675"
+        android:pathData="M 40,32 C 40,24 68,24 68,32 L 67.5,46 C 60,49 48,49 40.5,46 Z" />
+
+    <!-- Reflexo de Brilho Espelhado -->
+    <path
+        android:strokeColor="#80FFFFFF"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M 44,36 L 45,66" />
+
+    <!-- Estrela Diamante Grande Superior Direita -->
+    <path
+        android:fillColor="#FEF08A"
+        android:pathData="M 78,28 L 81,35 L 88,38 L 81,41 L 78,48 L 75,41 L 68,38 L 75,35 Z" />
+
+    <!-- Miolo da Estrela em Branco -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M 78,33 L 79.5,36.5 L 83,38 L 79.5,39.5 L 78,43 L 76.5,39.5 L 73,38 L 76.5,36.5 Z" />
+
+    <!-- Estrela Diamante Menor Inferior Esquerda -->
+    <path
+        android:fillColor="#FEF08A"
+        android:pathData="M 32,54 L 33.5,58.5 L 38,60 L 33.5,61.5 L 32,66 L 30.5,61.5 L 26,60 L 30.5,58.5 Z" />
+
+    <!-- Estrelinha Delicada Topo Esquerdo -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M 35,26 L 36,29 L 39,30 L 36,31 L 35,34 L 34,31 L 31,30 L 34,29 Z" />
+
+</vector>
