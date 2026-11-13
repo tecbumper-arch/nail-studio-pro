@@ -11,6 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="config.js"></script>
 
   <style>
     :root, [data-theme="pink-gold"] {
@@ -448,6 +449,8 @@
   </header>
 
   <main class="container">
+    <div id="cWelcome" class="hidden drawer-box" style="margin-bottom:12px; font-size:0.86rem; line-height:1.45;"></div>
+
     <!-- BARRA DE MODO: AGENDAR EM 3 TOQUES vs MEUS HORÁRIOS -->
     <div class="client-mode-tabs">
       <button type="button" id="tabBtnBook" class="c-mode-btn active" onclick="switchClientView('book')">
@@ -497,23 +500,24 @@
           <div id="cForm" class="hidden" style="border-top:1px dashed var(--border); padding-top:14px;">
             <input type="text" id="cNome" class="inp" placeholder="Seu Nome Completo *">
             <input type="tel" id="cWhats" class="inp" placeholder="Seu WhatsApp (Ex: 11 99999-9999)" oninput="maskBrPhoneInput(this)">
+            <input type="text" id="cObs" class="inp" maxlength="200" placeholder="Observação (opcional): cor, formato, referência...">
 
             <div style="font-size:0.78rem; font-weight:700; margin:6px 0;">Como deseja pagar?</div>
-            <div class="pay-card active" onclick="setPay('PIX_TOTAL', this)">
+            <div class="pay-card active" id="payCardPixTotal" onclick="setPay('PIX_TOTAL', this)">
               <i class="fa-brands fa-pix" style="color:var(--primary); font-size:1.2rem;"></i>
               <div>
                 <div style="font-weight:800; font-size:0.85rem;">Pix Valor Total (QR Code Agora)</div>
                 <div style="font-size:0.72rem; color:var(--text-muted);">Gera QR Code e Copia e Cola imediato</div>
               </div>
             </div>
-            <div class="pay-card" onclick="setPay('PIX_SINAL_50', this)">
+            <div class="pay-card" id="payCardSinal" onclick="setPay('PIX_SINAL_50', this)">
               <i class="fa-solid fa-percent" style="color:var(--primary); font-size:1.1rem;"></i>
               <div>
                 <div style="font-weight:800; font-size:0.85rem;">Sinal de 50% via Pix</div>
                 <div style="font-size:0.72rem; color:var(--text-muted);">Metade agora e metade no Studio</div>
               </div>
             </div>
-            <div class="pay-card" onclick="setPay('NO_LOCAL', this)">
+            <div class="pay-card" id="payCardLocal" onclick="setPay('NO_LOCAL', this)">
               <i class="fa-solid fa-store" style="color:var(--primary); font-size:1.1rem;"></i>
               <div>
                 <div style="font-weight:800; font-size:0.85rem;">Pagar no Studio</div>
@@ -587,6 +591,9 @@
         <a id="cGCalLink" href="#" target="_blank" class="btn-cta" style="flex:1; min-height:42px; font-size:0.8rem; background:#3b82f6; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:6px;">
           <i class="fa-regular fa-calendar-plus"></i> Salvar na Agenda
         </a>
+        <button type="button" id="cIcsBtn" class="btn-cta" style="flex:1; min-height:42px; font-size:0.8rem; background:#0f172a; color:#fff; border:none; border-radius:12px; font-weight:700; cursor:pointer;">
+          <i class="fa-brands fa-apple"></i> iPhone/Outlook
+        </button>
         <button onclick="document.getElementById('cPixModal').classList.remove('open')" style="padding:10px 14px; border-radius:12px; border:none; background:#e2e8f0; font-weight:700; cursor:pointer;">Fechar</button>
       </div>
     </div>
@@ -603,26 +610,69 @@
 
 
     // =========================================================================
-    // MOTOR SAAS V4 - MULTI-TENANT GOOGLE SHEETS + DRIVE AUTO-PROVISIONING
+    // NAIL STUDIO PRO v3 — PÁGINA PÚBLICA DA CLIENTE
+    // Sem nenhuma senha ou token aqui: tudo passa pela API segura (Apps Script).
     // =========================================================================
-    const GSHEET_CONFIG = {
-      templateSpreadsheetId: "18lhkSiX1d6Y-NzJtTtHdGgUPbbYIUZAVfjUKe-gn9nM",
-      defaultSpreadsheetId: "14r4nifHaaQgDMm8OmCgRjCoScY8rOPGLMfdKnRz1a9Q",
-      masterSpreadsheetId: "14r4nifHaaQgDMm8OmCgRjCoScY8rOPGLMfdKnRz1a9Q",
-      clientId: atob("bW9jLnRuZXRub2NyZXN1ZWxnb29nLnNwcGEucGUzMDRnNGhqb2xvdHY1MzJlcmNsMTJoMm5pc3NobXQtMTk1MDYwNjAwMTcwMQ==").split("").reverse().join(""),
-      clientSecret: atob("ZkFEcTZ6NENYczhCTG0xSkxkTDY4NFJXRjg1Sy1YUFNDT0c=").split("").reverse().join(""),
-      refreshToken: atob("SS15c2duZVRiSVoxbkFvX2YyNzNTNGlJeG96dVhSUFByOFVXQ0UtblRUcC03YXpFMUNBbEc2ZWw0RGx5Y3Y0cExTS3JJOUwtRndOU0VCR0FBUkFJWWdDOUZyQXF4UnpGUlhoMC8vMQ==").split("").reverse().join(""),
-      publicBaseUrl: "https://nailstudiopro-app.surge.sh"
-    };
+    const CFG = window.NAIL_CONFIG || {};
 
-    // Determina qual Planilha Google está ativa (via ?s=ID na URL, ou salva no celular da manicure, ou a principal)
-    function getActiveSpreadsheetId() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const fromUrl = urlParams.get('s');
-      if (fromUrl && fromUrl.length > 15) return fromUrl.trim();
-      return GSHEET_CONFIG.masterSpreadsheetId;
+    function studioParam() {
+      return (new URLSearchParams(window.location.search).get('s') || '').trim();
     }
 
+    async function api(fn, args) {
+      if (!CFG.API_URL || !/^(https:\/\/|http:\/\/(localhost|127\.0\.0\.1)[:\/])/.test(CFG.API_URL) || /COLE_AQUI/.test(CFG.API_URL)) throw new Error('Página ainda não configurada pelo Studio.');
+      let res;
+      try {
+        res = await fetch(CFG.API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn, args: args || {} }) });
+      } catch (e) {
+        throw new Error('Sem conexão. Verifique sua internet e tente de novo.');
+      }
+      let out;
+      try { out = await res.json(); } catch (e) { throw new Error('Servidor indisponível no momento. Tente novamente em instantes.'); }
+      if (!out.ok) throw new Error(out.error || 'Erro desconhecido');
+      return out.data;
+    }
+
+    async function rpc(fn, ...a) {
+      const s = studioParam();
+      switch (fn) {
+        case 'getPublicBootstrapData': return api(fn, { s });
+        case 'getAvailableSlotsForDate': return api(fn, { s, date: a[0], serviceId: a[1] });
+        case 'createCustomerBooking': return api(fn, Object.assign({ s }, a[0]));
+        case 'getClientBookingsByPhone': return api(fn, { s, phone: a[0] });
+        case 'cancelCustomerBooking': return api(fn, { s, id: a[0], phone: a[1] });
+        case 'notifyPixPaidByCustomer': return api(fn, { s, id: a[0], phone: a[1] });
+        default: throw new Error('Função desconhecida: ' + fn);
+      }
+    }
+
+    function showFatal(msg) {
+      document.getElementById('cStudioName').textContent = 'Agendamento indisponível';
+      document.getElementById('cProName').textContent = msg;
+      const grid = document.getElementById('cBookingMainGrid');
+      if (grid) grid.innerHTML = '<div class="drawer-box" style="text-align:center; padding:28px 18px;"><div style="font-size:2rem">💅</div><p style="margin-top:8px; color:var(--text-muted); font-size:0.9rem;">' + esc(msg) + '</p></div>';
+      const tabs = document.querySelector('.client-mode-tabs');
+      if (tabs) tabs.classList.add('hidden');
+    }
+
+    function downloadIcs(r) {
+      const d = String(r.data).replace(/-/g, '');
+      const t = s => String(s || '').replace(':', '') + '00';
+      const escI = s => String(s || '').replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n');
+      const st = pubData.studio || {};
+      const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Nail Studio Pro//PT-BR', 'BEGIN:VEVENT',
+        'UID:' + r.id + '@nailstudiopro', 'DTSTART:' + d + 'T' + t(r.horaInicio), 'DTEND:' + d + 'T' + t(r.horaFim || r.horaInicio),
+        'SUMMARY:' + escI('💅 ' + r.servicoNome + ' - ' + (st.nome || 'Studio')),
+        'LOCATION:' + escI(st.endereco || ''), 'DESCRIPTION:' + escI('Reserva #' + r.id),
+        'BEGIN:VALARM', 'TRIGGER:-PT2H', 'ACTION:DISPLAY', 'DESCRIPTION:' + escI('Seu horário no ' + (st.nome || 'Studio')), 'END:VALARM',
+        'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
+      a.download = 'meu-horario-' + r.id + '.ics';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    }
 
     // Normaliza telefone brasileiro para o formato do WhatsApp: 55 + DDD + número
     function normalizeBrPhone(v) {
@@ -639,337 +689,6 @@
     function waLink(phone, text) {
       const n = normalizeBrPhone(phone);
       return 'https://wa.me/' + n + (text ? '?text=' + text : '');
-    }
-
-    function setActiveSpreadsheetId(sheetId) {
-      if (!sheetId) return;
-      localStorage.setItem('NAIL_ACTIVE_SHEET_ID', sheetId);
-      sessionStorage.setItem('NAIL_ACTIVE_SHEET_ID', sheetId);
-    }
-
-    let cachedAccessToken = null;
-    let tokenExpiresAt = 0;
-
-    async function getGoogleAccessToken() {
-      if (cachedAccessToken && Date.now() < tokenExpiresAt) {
-        return cachedAccessToken;
-      }
-      const body = new URLSearchParams({
-        client_id: GSHEET_CONFIG.clientId,
-        client_secret: GSHEET_CONFIG.clientSecret,
-        refresh_token: GSHEET_CONFIG.refreshToken,
-        grant_type: 'refresh_token'
-      });
-      const res = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body.toString()
-      });
-      const data = await res.json();
-      if (!data.access_token) throw new Error('Falha ao conectar ao Google Cloud.');
-      cachedAccessToken = data.access_token;
-      tokenExpiresAt = Date.now() + ((data.expires_in - 60) * 1000);
-      return cachedAccessToken;
-    }
-
-    async function readSheetTab(tabName, customSheetId = null) {
-      const sid = customSheetId || getActiveSpreadsheetId();
-      const token = await getGoogleAccessToken();
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${sid}/values/${encodeURIComponent(tabName)}!A1:Z500`;
-      const res = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!res.ok) return [];
-      const data = await res.json();
-      return data.values || [];
-    }
-
-    async function writeSheetTab(tabName, rows2D, customSheetId = null) {
-      const sid = customSheetId || getActiveSpreadsheetId();
-      const token = await getGoogleAccessToken();
-      const clearUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sid}/values/${encodeURIComponent(tabName)}!A1:Z500:clear`;
-      await fetch(clearUrl, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
-      });
-
-      const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sid}/values/${encodeURIComponent(tabName)}!A1?valueInputOption=USER_ENTERED`;
-      await fetch(writeUrl, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ values: rows2D })
-      });
-    }
-
-    async function appendSheetRow(tabName, rowValues, customSheetId = null) {
-      const sid = customSheetId || getActiveSpreadsheetId();
-      const token = await getGoogleAccessToken();
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${sid}/values/${encodeURIComponent(tabName)}!A1:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
-      await fetch(url, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ values: [rowValues] })
-      });
-    }
-
-
-    async function syncGoogleCalendarCloudDirect(action, eventData = null, eventId = null, customSheetId = null) {
-      try {
-        const sid = customSheetId || getActiveSpreadsheetId();
-        const rows = await readSheetTab('Configuracoes', sid);
-        const map = {};
-        for (let i = 1; i < rows.length; i++) {
-          if (rows[i] && rows[i][0]) map[String(rows[i][0]).trim()] = String(rows[i][1] || '').trim();
-        }
-        const refreshToken = map['GCAL_REFRESH_TOKEN'] || '';
-        const webhookUrl = map['GCAL_WEBHOOK_URL'] || '';
-
-        if (refreshToken) {
-          const body = new URLSearchParams({
-            client_id: GSHEET_CONFIG.clientId,
-            client_secret: GSHEET_CONFIG.clientSecret,
-            refresh_token: refreshToken,
-            grant_type: 'refresh_token'
-          });
-          const tRes = await fetch('https://oauth2.googleapis.com/token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: body.toString()
-          });
-          const tData = await tRes.json();
-          if (tData && tData.access_token) {
-            const calToken = tData.access_token;
-            if (action === 'CREATE' && eventData) {
-              const cleanDate = eventData.data.includes('/') ? eventData.data.split('/').reverse().join('-') : eventData.data;
-              const startIso = cleanDate + 'T' + (eventData.horaInicio || '09:00') + ':00-03:00';
-              const endIso = cleanDate + 'T' + (eventData.horaFim || '10:00') + ':00-03:00';
-              const gEvent = {
-                summary: '💅 ' + (eventData.servicoNome || 'Procedimento') + ' - ' + (eventData.clienteNome || 'Cliente'),
-                description: [
-                  'Reserva confirmada via Nail Studio Pro',
-                  'Cliente: ' + (eventData.clienteNome || ''),
-                  'WhatsApp: ' + (eventData.clienteWhatsApp || ''),
-                  'Procedimento: ' + (eventData.servicoNome || ''),
-                  'Valor: R$ ' + Number(eventData.valor || 0).toFixed(2),
-                  'Pagamento: ' + (eventData.metodoPagamento || ''),
-                  'Código: ' + (eventData.id || '')
-                ].join('\n'),
-                start: { dateTime: startIso, timeZone: 'America/Sao_Paulo' },
-                end: { dateTime: endIso, timeZone: 'America/Sao_Paulo' }
-              };
-              const cRes = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
-                method: 'POST',
-                headers: { 'Authorization': 'Bearer ' + calToken, 'Content-Type': 'application/json' },
-                body: JSON.stringify(gEvent)
-              });
-              const cData = await cRes.json();
-              if (cData && cData.id) return { success: true, eventId: cData.id };
-            }
-            if (action === 'DELETE' && eventId && !String(eventId).startsWith('GCAL-') && !String(eventId).startsWith('DELETED_')) {
-              await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events/' + encodeURIComponent(eventId), {
-                method: 'DELETE',
-                headers: { 'Authorization': 'Bearer ' + calToken }
-              });
-              return { success: true, deleted: true };
-            }
-          }
-        }
-        if (webhookUrl && webhookUrl.startsWith('https://script.google.com/')) {
-          const wRes = await fetch(webhookUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action, eventData, eventId })
-          });
-          const wData = await wRes.json();
-          if (wData && wData.success) return wData;
-        }
-      } catch (e) {}
-      return { success: false };
-    }
-
-    async function logSecurityEvent(evento, detalhes, customSheetId = null) {
-      try {
-        const nowStr = new Date().toLocaleString('pt-BR');
-        await appendSheetRow('Logs_Seguranca', [nowStr, evento, detalhes], customSheetId);
-      } catch (e) {}
-    }
-
-    // CRIAÇÃO AUTOMÁTICA DE NOVA PLANILHA GOOGLE + COMPARTILHAMENTO NO GOOGLE DRIVE DA USUÁRIA!
-    async function provisionNewGoogleSpreadsheetForUser(p, pinHash, recHash) {
-      const token = await getGoogleAccessToken();
-      const cleanEmail = String(p.googleEmail || '').trim().toLowerCase();
-      const studioTitle = `${p.studioNome || 'Meu Studio'} - App & Agenda (Banco Oficial)`;
-
-      // 1. Cria a Planilha com as 5 abas já estruturadas
-      const createRes = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          properties: { title: studioTitle, locale: 'pt_BR' },
-          sheets: [
-            { properties: { title: 'Configuracoes', sheetId: 0 } },
-            { properties: { title: 'Categorias', sheetId: 101 } },
-            { properties: { title: 'Catalogo', sheetId: 102 } },
-            { properties: { title: 'Agendamentos', sheetId: 103 } },
-            { properties: { title: 'Logs_Seguranca', sheetId: 104 } }
-          ]
-        })
-      });
-      const created = await createRes.json();
-      if (!created.spreadsheetId) {
-        throw new Error('Não foi possível criar a planilha no Google Sheets.');
-      }
-      const newSheetId = created.spreadsheetId;
-
-      // 2. Popula dados iniciais das 5 abas
-      const cfgRows = [
-        ['Chave', 'Valor', 'Descricao'],
-        ['SETUP_CONCLUIDO', 'SIM', 'Criado automaticamente pelo App'],
-        ['STUDIO_NOME', p.studioNome || 'Meu Studio de Unhas', 'Nome do Studio'],
-        ['PROFISSIONAL_NOME', p.profissionalNome || 'Manicure', 'Nome da Profissional'],
-        ['ADMIN_LOGIN_ID', cleanEmail || p.whatsapp, 'Conta Google / Login Titular'],
-        ['WHATSAPP_STUDIO', String(p.whatsapp || '').replace(/\D/g, ''), 'WhatsApp Oficial'],
-        ['PIX_CHAVE', p.pixChave || '', 'Chave Pix'],
-        ['PIX_RECEBEDOR', p.pixRecebedor || p.profissionalNome || 'STUDIO NAILS', 'Titular Pix'],
-        ['PIX_CIDADE', p.pixCidade || 'SAO PAULO', 'Cidade Pix'],
-        ['TEMA_COR', p.temaCor || 'pink-gold', 'Tema de Cores'],
-        ['HORARIO_INICIO', '09:00', 'Abertura'],
-        ['HORARIO_FIM', '19:00', 'Fechamento'],
-        ['ALMOCO_INICIO', '12:00', 'Início Almoço'],
-        ['ALMOCO_FIM', '13:00', 'Fim Almoço'],
-        ['DIAS_ATENDIMENTO', '1,2,3,4,5,6', 'Dias (0=Dom..6=Sab)'],
-        ['INTERVALO_MINUTOS', '60', 'Intervalo'],
-        ['SINCRONIZAR_AGENDA', 'SIM', 'Agenda'],
-        ['ADMIN_PIN_HASH', pinHash, 'Hash SHA-256 da Senha/PIN'],
-        ['ADMIN_RECOVERY_HASH', recHash, 'Hash SHA-256 da Palavra de Recuperação'],
-        ['TERMO_ACEITO_EM', new Date().toLocaleString('pt-BR'), 'Termo de Responsabilidade Aceito']
-      ];
-
-      const catDefaultRows = [
-        ['ID_Categoria', 'Nome', 'Icone', 'Ordem', 'Ativo'],
-        ['CAT-01', 'Alongamentos', '💅', '1', 'SIM'],
-        ['CAT-02', 'Manicure & Pedicure', '✨', '2', 'SIM'],
-        ['CAT-03', 'Blindagem & Banho de Gel', '💎', '3', 'SIM'],
-        ['CAT-04', 'Nail Art & Decoradas', '🎨', '4', 'SIM'],
-        ['CAT-05', 'Spa dos Pés & Mãos', '🌸', '5', 'SIM']
-      ];
-
-      await writeSheetTab('Configuracoes', cfgRows, newSheetId);
-      await writeSheetTab('Categorias', catDefaultRows, newSheetId);
-      await writeSheetTab('Catalogo', [['ID', 'Nome', 'Descricao', 'Preco', 'DuracaoMin', 'FotoURL', 'Categoria', 'Ativo']], newSheetId);
-      await writeSheetTab('Agendamentos', [['ID_Reserva', 'Data', 'HoraInicio', 'HoraFim', 'ClienteNome', 'ClienteWhatsApp', 'ServicoID', 'ServicoNome', 'Valor', 'MetodoPagamento', 'StatusPagamento', 'StatusReserva', 'CalendarEventID', 'CriadoEm']], newSheetId);
-      await writeSheetTab('Logs_Seguranca', [['Timestamp', 'Evento', 'Detalhes'], [new Date().toLocaleString('pt-BR'), 'CONTA_CRIADA', `Planilha criada para ${cleanEmail}`]], newSheetId);
-
-      // 3. Compartilha no Google Drive com o e-mail Google da profissional (Permissão de Edição!) e leitura por link
-      if (cleanEmail && cleanEmail.includes('@')) {
-        try {
-          await fetch(`https://www.googleapis.com/drive/v3/files/${newSheetId}/permissions?sendNotificationEmail=false`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ role: 'writer', type: 'user', emailAddress: cleanEmail })
-          });
-        } catch (e) {}
-      }
-      // [SEGURANÇA REFORÇADA V6] Planilha estritamente privada, sem permissão pública ('anyone')
-
-      // 4. Registra na aba Contas_Manicures da planilha mestre para login por e-mail de qualquer dispositivo!
-      const sheetUrl = `https://docs.google.com/spreadsheets/d/${newSheetId}/edit`;
-      const clientLink = `${GSHEET_CONFIG.publicBaseUrl}/Pagina_Cliente.html?s=${newSheetId}`;
-      await appendSheetRow('Contas_Manicures', [
-        cleanEmail || p.whatsapp,
-        p.profissionalNome || '',
-        p.studioNome || '',
-        newSheetId,
-        sheetUrl,
-        clientLink,
-        pinHash,
-        recHash,
-        new Date().toLocaleString('pt-BR')
-      ], GSHEET_CONFIG.masterSpreadsheetId);
-
-      return { newSheetId, sheetUrl, clientLink };
-    }
-
-    function pureJsSha256(ascii) {
-      function rightRotate(value, amount) {
-        return (value >>> amount) | (value << (32 - amount));
-      }
-      const mathPow = Math.pow;
-      const maxWord = mathPow(2, 32);
-      const lengthProperty = 'length';
-      let i, j;
-      let result = '';
-      const words = [];
-      const asciiBitLength = ascii[lengthProperty] * 8;
-      let hash = pureJsSha256.h = pureJsSha256.h || [];
-      const k = pureJsSha256.k = pureJsSha256.k || [];
-      let primeCounter = k[lengthProperty];
-      const isComposite = {};
-      for (let candidate = 2; primeCounter < 64; candidate++) {
-        if (!isComposite[candidate]) {
-          for (i = 0; i < 313; i += candidate) {
-            isComposite[i] = candidate;
-          }
-          hash[primeCounter] = (mathPow(candidate, .5) * maxWord) | 0;
-          k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
-        }
-      }
-      ascii += '\x80';
-      while (ascii[lengthProperty] % 64 - 56) ascii += '\x00';
-      for (i = 0; i < ascii[lengthProperty]; i++) {
-        j = ascii.charCodeAt(i);
-        if (j >> 8) return '';
-        words[i >> 2] |= j << ((3 - i) % 4) * 8;
-      }
-      words[words[lengthProperty]] = ((asciiBitLength / maxWord) | 0);
-      words[words[lengthProperty]] = (asciiBitLength);
-      for (j = 0; j < words[lengthProperty];) {
-        const w = words.slice(j, j += 16);
-        const oldHash = hash;
-        hash = hash.slice(0, 8);
-        for (i = 0; i < 64; i++) {
-          const w15 = w[i - 15], w2 = w[i - 2];
-          const a = hash[0], e = hash[4];
-          const temp1 = hash[7]
-            + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25))
-            + ((e & hash[5]) ^ ((~e) & hash[6]))
-            + k[i]
-            + (w[i] = (i < 16) ? w[i] : (
-              w[i - 16]
-              + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3))
-              + w[i - 7]
-              + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))
-            ) | 0);
-          const temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22))
-            + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
-          hash = [(temp1 + temp2) | 0].concat(hash);
-          hash[4] = (hash[4] + temp1) | 0;
-        }
-        for (i = 0; i < 8; i++) {
-          hash[i] = (hash[i] + oldHash[i]) | 0;
-        }
-      }
-      for (i = 0; i < 8; i++) {
-        for (j = 3; j + 1; j--) {
-          const b = (hash[i] >> (j * 8)) & 255;
-          result += ((b < 16) ? 0 : '') + b.toString(16);
-        }
-      }
-      return result;
-    }
-
-    async function sha256Hex(text) {
-      const salted = 'NAIL_STUDIO_PRO_SALT_2026_' + String(text).trim().toLowerCase();
-      try {
-        if (window.crypto && window.crypto.subtle) {
-          const msgBuffer = new TextEncoder().encode(salted);
-          const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgBuffer);
-          const hashArray = Array.from(new Uint8Array(hashBuffer));
-          return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        }
-      } catch (err) {}
-      const utf8Str = unescape(encodeURIComponent(salted));
-      return pureJsSha256(utf8Str);
     }
 
     function toMin(t) {
@@ -1117,692 +836,6 @@
       return p + crc.toString(16).toUpperCase().padStart(4, '0');
     }
 
-    async function readCategoriasList() {
-      const rows = await readSheetTab('Categorias');
-      const list = [];
-      for (let i = 1; i < rows.length; i++) {
-        const r = rows[i];
-        if (r && r[0]) {
-          list.push({
-            id: r[0],
-            nome: r[1] || 'Geral',
-            icone: r[2] || '💅',
-            ordem: Number(r[3] || i),
-            ativo: String(r[4] || 'SIM').toUpperCase() === 'SIM'
-          });
-        }
-      }
-      if (list.length === 0) {
-        return [
-          { id: 'CAT-01', nome: 'Alongamentos', icone: '💅', ordem: 1, ativo: true },
-          { id: 'CAT-02', nome: 'Manicure & Pedicure', icone: '✨', ordem: 2, ativo: true },
-          { id: 'CAT-03', nome: 'Blindagem & Banho de Gel', icone: '💎', ordem: 3, ativo: true },
-          { id: 'CAT-04', nome: 'Nail Art & Decoradas', icone: '🎨', ordem: 4, ativo: true },
-          { id: 'CAT-05', nome: 'Spa dos Pés & Mãos', icone: '🌸', ordem: 5, ativo: true }
-        ];
-      }
-      return list.sort((a, b) => a.ordem - b.ordem);
-    }
-
-    async function rpc(fn, ...args) {
-      // Se for criação de nova conta com Google, cria ou configura a planilha antes de ler Configuracoes!
-      if (fn === 'completeInitialOnboarding') {
-        const p = args[0];
-        const pinHash = await sha256Hex(p.pin);
-        const recHash = await sha256Hex(p.palavraRecuperacao);
-        const emailNovo = String(p.googleEmail || '').trim().toLowerCase();
-        if (!emailNovo.includes('@')) throw new Error('Informe o e-mail da sua conta Google.');
-
-        let targetSheetId = p.customSheetId;
-
-        // Se a usuária informou uma planilha própria criada no Drive dela:
-        if (targetSheetId) {
-          // 1. Testa se o conector consegue acessar a planilha dela
-          try {
-            await readSheetTab('Configuracoes', targetSheetId);
-          } catch (errAcc) {
-            throw new Error('Não foi possível acessar a planilha do Studio. Verifique com a profissional o link correto.');
-          }
-
-          // 2. Grava as configurações do studio da manicure na planilha DELA
-          const newCfgRows = [
-            ['Chave', 'Valor', 'Descricao'],
-            ['SETUP_CONCLUIDO', 'SIM', 'Configurado pelo App'],
-            ['STUDIO_NOME', p.studioNome || 'Meu Studio de Unhas', 'Nome do Studio'],
-            ['PROFISSIONAL_NOME', p.profissionalNome || 'Manicure', 'Nome da Profissional'],
-            ['ADMIN_LOGIN_ID', emailNovo, 'E-mail Google do Titular'],
-            ['WHATSAPP_STUDIO', normalizeBrPhone(p.whatsapp), 'WhatsApp Oficial'],
-            ['PIX_CHAVE', p.pixChave || '', 'Chave Pix'],
-            ['PIX_RECEBEDOR', p.profissionalNome || p.studioNome, 'Nome do Titular Pix'],
-            ['PIX_CIDADE', 'SAO PAULO', 'Cidade'],
-            ['TEMA_COR', 'pink-gold', 'Tema de Cores'],
-            ['HORARIO_INICIO', '09:00', 'Abertura'],
-            ['HORARIO_FIM', '19:00', 'Fechamento'],
-            ['ALMOCO_INICIO', '12:00', 'Inicio Almoco'],
-            ['ALMOCO_FIM', '13:00', 'Fim Almoco'],
-            ['DIAS_ATENDIMENTO', '1,2,3,4,5,6', 'Dias de Funcionamento'],
-            ['INTERVALO_MINUTOS', '60', 'Intervalo em Minutos'],
-            ['SINCRONIZAR_AGENDA', 'SIM', 'Sincronizar Google Agenda'],
-            ['ADMIN_PIN_HASH', pinHash, 'Hash do PIN'],
-            ['ADMIN_RECOVERY_HASH', recHash, 'Hash de Recuperacao'],
-            ['TERMO_ACEITO_EM', new Date().toLocaleDateString('pt-BR'), 'Termo Aceito']
-          ];
-          await writeSheetTab('Configuracoes', newCfgRows, targetSheetId);
-
-          // 3. Registra na tabela Contas_Manicures (diretório central)
-          const sheetUrl = `https://docs.google.com/spreadsheets/d/${targetSheetId}/edit`;
-          const clientLink = `${GSHEET_CONFIG.publicBaseUrl}/Pagina_Cliente.html?s=${targetSheetId}`;
-
-          const existentes = await readSheetTab('Contas_Manicures', GSHEET_CONFIG.masterSpreadsheetId);
-          const updated = [existentes[0]];
-          for (let i = 1; i < existentes.length; i++) {
-            if (existentes[i] && existentes[i][0] && String(existentes[i][0]).trim().toLowerCase() !== emailNovo) {
-              updated.push(existentes[i]);
-            }
-          }
-          updated.push([
-            emailNovo,
-            p.profissionalNome,
-            p.studioNome,
-            targetSheetId,
-            sheetUrl,
-            clientLink,
-            pinHash,
-            recHash,
-            new Date().toLocaleString('pt-BR')
-          ]);
-          await writeSheetTab('Contas_Manicures', updated, GSHEET_CONFIG.masterSpreadsheetId);
-
-          setActiveSpreadsheetId(targetSheetId);
-          return {
-            success: true,
-            token: 'AUTH_TOKEN_' + pinHash.slice(0, 16),
-            spreadsheetId: targetSheetId,
-            spreadsheetUrl: sheetUrl,
-            clientLink: clientLink
-          };
-        }
-      }
-
-      // Se for login por E-mail Google, verifica primeiro no Diretório SaaS (Contas_Manicures) qual é a Planilha daquela conta!
-      if (fn === 'authenticateAdmin') {
-        const { loginId, pin } = typeof args[0] === 'object' ? args[0] : { loginId: '', pin: args[0] };
-        const cleanPin = String(pin || '').trim();
-        const cleanLogin = String(loginId || '').trim().toLowerCase();
-        const inputHash = await sha256Hex(cleanPin);
-
-        if (cleanLogin) {
-          const tenantRows = await readSheetTab('Contas_Manicures', GSHEET_CONFIG.masterSpreadsheetId);
-          for (let i = 1; i < tenantRows.length; i++) {
-            const tr = tenantRows[i];
-            if (tr && tr[0] && String(tr[0]).trim().toLowerCase() === cleanLogin) {
-              const targetSheetId = tr[3];
-              const storedTenantHash = tr[6];
-              if (storedTenantHash && inputHash !== storedTenantHash && cleanPin !== '123456') {
-                throw new Error('Senha incorreta para a conta ' + cleanLogin);
-              }
-              if (targetSheetId) {
-                setActiveSpreadsheetId(targetSheetId);
-                return {
-                  success: true,
-                  token: 'AUTH_TOKEN_' + inputHash.slice(0, 16),
-                  spreadsheetId: targetSheetId
-                };
-              }
-            }
-          }
-        }
-      }
-
-      const activeSid = getActiveSpreadsheetId();
-      const cfgRows = await readSheetTab('Configuracoes', activeSid);
-      const cfgMap = {};
-      for (let i = 1; i < cfgRows.length; i++) {
-        if (cfgRows[i] && cfgRows[i][0]) cfgMap[String(cfgRows[i][0]).trim()] = cfgRows[i][1] || '';
-      }
-
-      const studioObj = {
-        spreadsheetId: activeSid,
-        spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${activeSid}/edit`,
-        clientLink: `${GSHEET_CONFIG.publicBaseUrl}/Pagina_Cliente.html?s=${activeSid}`,
-        setupConcluido: String(cfgMap['SETUP_CONCLUIDO'] || 'NAO').toUpperCase() === 'SIM',
-        nome: cfgMap['STUDIO_NOME'] || 'Meu Studio de Unhas',
-        profissional: cfgMap['PROFISSIONAL_NOME'] || 'Manicure & Nail Designer',
-        loginId: cfgMap['ADMIN_LOGIN_ID'] || '',
-        whatsapp: cfgMap['WHATSAPP_STUDIO'] || '',
-        pixChave: cfgMap['PIX_CHAVE'] || '',
-        pixRecebedor: cfgMap['PIX_RECEBEDOR'] || 'STUDIO NAILS',
-        pixCidade: cfgMap['PIX_CIDADE'] || 'SAO PAULO',
-        temaCor: cfgMap['TEMA_COR'] || 'pink-gold',
-        horarioInicio: cfgMap['HORARIO_INICIO'] || '09:00',
-        horarioFim: cfgMap['HORARIO_FIM'] || '19:00',
-        almocoInicio: cfgMap['ALMOCO_INICIO'] || '12:00',
-        almocoFim: cfgMap['ALMOCO_FIM'] || '13:00',
-        diasAtendimento: cfgMap['DIAS_ATENDIMENTO'] || '1,2,3,4,5,6',
-        intervaloMinutos: Number(cfgMap['INTERVALO_MINUTOS'] || 60),
-        sincronizarAgenda: cfgMap['SINCRONIZAR_AGENDA'] || 'SIM',
-        instagram: cfgMap['INSTAGRAM_STUDIO'] || '',
-        endereco: cfgMap['ENDERECO_STUDIO'] || ''
-      };
-
-      if (fn === 'checkAuthStatus') {
-        return {
-          setupConcluido: studioObj.setupConcluido,
-          studioNome: studioObj.nome,
-          profissional: studioObj.profissional,
-          loginIdHint: studioObj.loginId,
-          spreadsheetId: activeSid
-        };
-      }
-
-      if (fn === 'completeInitialOnboarding') {
-        const p = args[0];
-        const pinHash = await sha256Hex(p.pin);
-        const recHash = await sha256Hex(p.palavraRecuperacao);
-        const newCfgRows = [
-          ['Chave', 'Valor', 'Descricao'],
-          ['SETUP_CONCLUIDO', 'SIM', 'Ativado com responsabilidade pela profissional'],
-          ['STUDIO_NOME', p.studioNome || 'Meu Studio de Unhas', 'Nome do Studio'],
-          ['PROFISSIONAL_NOME', p.profissionalNome || 'Manicure', 'Nome da Profissional'],
-          ['ADMIN_LOGIN_ID', String(p.googleEmail || p.whatsapp || '').trim(), 'Conta Google / Login Titular'],
-          ['WHATSAPP_STUDIO', String(p.whatsapp || '').replace(/\D/g, ''), 'WhatsApp Oficial'],
-          ['PIX_CHAVE', p.pixChave || '', 'Chave Pix'],
-          ['PIX_RECEBEDOR', p.pixRecebedor || p.profissionalNome || 'STUDIO NAILS', 'Titular Pix'],
-          ['PIX_CIDADE', p.pixCidade || 'SAO PAULO', 'Cidade Pix'],
-          ['TEMA_COR', p.temaCor || 'pink-gold', 'Tema de Cores'],
-          ['HORARIO_INICIO', cfgMap['HORARIO_INICIO'] || '09:00', 'Abertura'],
-          ['HORARIO_FIM', cfgMap['HORARIO_FIM'] || '19:00', 'Fechamento'],
-          ['ALMOCO_INICIO', cfgMap['ALMOCO_INICIO'] || '12:00', 'Início Almoço'],
-          ['ALMOCO_FIM', cfgMap['ALMOCO_FIM'] || '13:00', 'Fim Almoço'],
-          ['DIAS_ATENDIMENTO', cfgMap['DIAS_ATENDIMENTO'] || '1,2,3,4,5,6', 'Dias (0=Dom..6=Sab)'],
-          ['INTERVALO_MINUTOS', cfgMap['INTERVALO_MINUTOS'] || '60', 'Intervalo'],
-          ['SINCRONIZAR_AGENDA', 'SIM', 'Agenda'],
-          ['ADMIN_PIN_HASH', pinHash, 'Hash SHA-256 da Senha/PIN'],
-          ['ADMIN_RECOVERY_HASH', recHash, 'Hash SHA-256 da Palavra de Recuperação'],
-          ['TERMO_ACEITO_EM', new Date().toLocaleString('pt-BR'), 'Termo de Responsabilidade Aceito']
-        ];
-        await writeSheetTab('Configuracoes', newCfgRows, activeSid);
-        return {
-          success: true,
-          token: 'AUTH_TOKEN_' + pinHash.slice(0, 16),
-          spreadsheetId: activeSid,
-          spreadsheetUrl: studioObj.spreadsheetUrl,
-          clientLink: studioObj.clientLink
-        };
-      }
-
-      if (fn === 'authenticateAdmin') {
-        const { loginId, pin } = typeof args[0] === 'object' ? args[0] : { loginId: '', pin: args[0] };
-        const cleanPin = String(pin || '').trim();
-        const inputHash = await sha256Hex(cleanPin);
-        const defaultHash = await sha256Hex('123456');
-        const storedHash = cfgMap['ADMIN_PIN_HASH'] || defaultHash;
-
-        if (inputHash !== storedHash && cleanPin !== '123456') {
-          await logSecurityEvent('LOGIN_FALHOU', 'Tentativa com senha incorreta');
-          throw new Error('Senha / PIN incorreto!');
-        }
-        await logSecurityEvent('LOGIN_SUCESSO', 'Acesso autorizado ao painel');
-        return { success: true, token: 'AUTH_TOKEN_' + storedHash.slice(0, 16), spreadsheetId: activeSid };
-      }
-
-      if (fn === 'recoverAdminPin') {
-        const { palavraRecuperacao, novoPin } = args[0];
-        if (!novoPin || String(novoPin).trim().length < 4) {
-          throw new Error('A nova senha precisa ter pelo menos 4 caracteres.');
-        }
-        const recInputHash = await sha256Hex(palavraRecuperacao);
-        const storedRecHash = cfgMap['ADMIN_RECOVERY_HASH'] || '';
-        const cleanWhats = String(palavraRecuperacao || '').replace(/\D/g, '');
-        const storedWhats = String(studioObj.whatsapp || '').replace(/\D/g, '');
-
-        const validByWord = storedRecHash && recInputHash === storedRecHash;
-        const validByWhats = storedWhats && cleanWhats === storedWhats;
-        if (!validByWord && !validByWhats) {
-          throw new Error('Palavra de segurança ou WhatsApp titular incorreto!');
-        }
-
-        const newPinHash = await sha256Hex(novoPin);
-        let found = false;
-        for (let i = 1; i < cfgRows.length; i++) {
-          if (cfgRows[i] && cfgRows[i][0] === 'ADMIN_PIN_HASH') {
-            cfgRows[i][1] = newPinHash;
-            found = true;
-          }
-        }
-        if (!found) cfgRows.push(['ADMIN_PIN_HASH', newPinHash, 'Hash SHA-256 da Senha']);
-        await writeSheetTab('Configuracoes', cfgRows, activeSid);
-        return { success: true, token: 'AUTH_TOKEN_' + newPinHash.slice(0, 16) };
-      }
-
-      if (fn === 'getPublicBootstrapData') {
-        const categorias = (await readCategoriasList()).filter(c => c.ativo);
-        const catRows = await readSheetTab('Catalogo', activeSid);
-        const catalogo = [];
-        for (let i = 1; i < catRows.length; i++) {
-          const r = catRows[i];
-          if (r && r[0] && String(r[7] || 'SIM').toUpperCase() === 'SIM') {
-            catalogo.push({
-              id: r[0], nome: r[1] || '', descricao: r[2] || '',
-              preco: Number(r[3] || 0), duracaoMin: Number(r[4] || 60),
-              fotoUrl: r[5] || '', categoria: r[6] || 'Alongamentos', ativo: true
-            });
-          }
-        }
-        return { studio: studioObj, categorias, catalogo };
-      }
-
-      if (fn === 'getAvailableSlotsForDate') {
-        const [dateStr, srvId] = args;
-        const [y, m, d] = String(dateStr).split('-').map(Number);
-        const dayOfWeek = new Date(y, m - 1, d).getDay();
-        const allowedDays = String(studioObj.diasAtendimento || '1,2,3,4,5,6').split(',').map(x => Number(x.trim()));
-        if (!allowedDays.includes(dayOfWeek)) return [];
-
-        const catRows = await readSheetTab('Catalogo', activeSid);
-        let duracao = studioObj.intervaloMinutos;
-        for (let i = 1; i < catRows.length; i++) {
-          if (catRows[i] && catRows[i][0] === srvId) {
-            duracao = Number(catRows[i][4] || duracao);
-            break;
-          }
-        }
-
-        const agRows = await readSheetTab('Agendamentos', activeSid);
-        const busy = [];
-        for (let i = 1; i < agRows.length; i++) {
-          const r = agRows[i];
-          if (r && r[1] === dateStr && String(r[11] || '').toUpperCase() !== 'CANCELADO') {
-            busy.push({ s: toMin(r[2]), e: toMin(r[3]), motivo: r[11] });
-          }
-        }
-
-        if (studioObj.almocoInicio && studioObj.almocoFim) {
-          const almS = toMin(studioObj.almocoInicio);
-          const almE = toMin(studioObj.almocoFim);
-          if (almE > almS) busy.push({ s: almS, e: almE, motivo: 'ALMOCO' });
-        }
-
-        const todayIso = getLocalIsoDate();
-        const now = new Date();
-        const nowMinutes = now.getHours() * 60 + now.getMinutes() + 15;
-
-        const startM = toMin(studioObj.horarioInicio);
-        const endM = toMin(studioObj.horarioFim);
-        const step = studioObj.intervaloMinutos || 60;
-        const slots = [];
-        for (let t = startM; t + duracao <= endM; t += step) {
-          const isPastToday = (dateStr === todayIso && t < nowMinutes);
-          const col = isPastToday || busy.some(b => t < b.e && (t + duracao) > b.s);
-          slots.push({
-            horaInicio: fromMin(t),
-            horaFim: fromMin(t + duracao),
-            disponivel: !col,
-            motivo: isPastToday ? 'PASSOU' : (col ? 'OCUPADO' : 'LIVRE')
-          });
-        }
-        return slots;
-      }
-
-      if (fn === 'createCustomerBooking') {
-        const p = args[0];
-        const slots = await rpc('getAvailableSlotsForDate', p.data, p.servicoId);
-        const slot = slots.find(s => s.horaInicio === p.horaInicio);
-        if (!slot || !slot.disponivel) throw new Error('Este horário acabou de ser preenchido! Escolha outro horário.');
-
-        const catRows = await readSheetTab('Catalogo', activeSid);
-        let srv = null;
-        for (let i = 1; i < catRows.length; i++) {
-          if (catRows[i] && catRows[i][0] === p.servicoId) {
-            srv = { id: catRows[i][0], nome: catRows[i][1], preco: Number(catRows[i][3] || 0), duracaoMin: Number(catRows[i][4] || 60) };
-            break;
-          }
-        }
-        if (!srv) throw new Error('Procedimento não encontrado.');
-
-        const id = 'AG-' + Math.floor(100000 + Math.random() * 900000);
-        const isPix = p.metodoPagamento.includes('PIX');
-        const statusPag = isPix ? 'AGUARDANDO_VALIDACAO_PIX' : 'PAGAR_NO_STUDIO';
-        const nowStr = new Date().toLocaleString('pt-BR');
-
-        let realCalendarEventId = 'GCAL-' + id;
-        try {
-          const syncData = await syncGoogleCalendarCloudDirect('CREATE', {
-                id: id,
-                data: p.data,
-                horaInicio: p.horaInicio,
-                horaFim: slot.horaFim,
-                clienteNome: p.clienteNome,
-                clienteWhatsApp: normalizeBrPhone(p.clienteWhatsApp),
-                servicoNome: srv.nome,
-                valor: srv.preco,
-                metodoPagamento: p.metodoPagamento
-              }, null, activeSid);
-          if (syncData && syncData.eventId) {
-            realCalendarEventId = syncData.eventId;
-          }
-        } catch (eGcal) {}
-
-        await appendSheetRow('Agendamentos', [
-          id, p.data, p.horaInicio, slot.horaFim,
-          p.clienteNome, normalizeBrPhone(p.clienteWhatsApp),
-          srv.id, srv.nome, srv.preco, p.metodoPagamento,
-          statusPag, 'RESERVADO', realCalendarEventId, nowStr
-        ], activeSid);
-
-        const valorCobradoAgora = p.metodoPagamento === 'PIX_SINAL_50' ? (srv.preco / 2) : srv.preco;
-        const pixCopiaECola = buildPixBrCode(studioObj.pixChave || '00000000000', studioObj.pixRecebedor, studioObj.pixCidade, valorCobradoAgora, id);
-
-        return {
-          success: true,
-          reserva: {
-            id, data: p.data, horaInicio: p.horaInicio, horaFim: slot.horaFim,
-            clienteNome: p.clienteNome, servicoNome: srv.nome,
-            valorTotal: srv.preco, valorCobradoAgora,
-            metodoPagamento: p.metodoPagamento, statusPagamento: statusPag,
-            pixCopiaECola, whatsappStudio: studioObj.whatsapp
-          }
-        };
-      }
-
-      if (fn === 'getClientBookingsByPhone') {
-        const phone = normalizeBrPhone(args[0]);
-        if (!phone || phone.length < 10) return [];
-        const last8 = phone.slice(-8);
-        const agRows = await readSheetTab('Agendamentos', activeSid);
-        const found = [];
-        for (let i = 1; i < agRows.length; i++) {
-          const r = agRows[i];
-          if (r && r[0] && String(r[11] || '').toUpperCase() !== 'BLOQUEADO') {
-            const rowPhone = normalizeBrPhone(r[5] || '');
-            if (rowPhone && rowPhone.slice(-8) === last8) {
-              const valorTotal = Number(r[8] || 0);
-              const metodo = r[9] || 'NO_LOCAL';
-              const valorCobradoAgora = metodo === 'PIX_SINAL_50' ? (valorTotal / 2) : valorTotal;
-              const pixCopiaECola = metodo.includes('PIX')
-                ? buildPixBrCode(studioObj.pixChave || '00000000000', studioObj.pixRecebedor, studioObj.pixCidade, valorCobradoAgora, r[0])
-                : '';
-              found.push({
-                id: r[0], data: r[1] || '', horaInicio: r[2] || '', horaFim: r[3] || '',
-                clienteNome: r[4] || '', clienteWhatsApp: r[5] || '',
-                servicoId: r[6] || '', servicoNome: r[7] || '',
-                valorTotal: valorTotal, valorCobradoAgora: valorCobradoAgora,
-                metodoPagamento: metodo, statusPagamento: r[10] || '', statusReserva: r[11] || 'RESERVADO',
-                pixCopiaECola: pixCopiaECola, whatsappStudio: studioObj.whatsapp
-              });
-            }
-          }
-        }
-        return found.sort((a, b) => (b.data + b.horaInicio).localeCompare(a.data + a.horaInicio));
-      }
-
-      if (fn === 'cancelCustomerBooking') {
-        const [reservaId, phone] = args;
-        const cleanP = normalizeBrPhone(phone).slice(-8);
-        const agRows = await readSheetTab('Agendamentos', activeSid);
-        for (let i = 1; i < agRows.length; i++) {
-          if (agRows[i] && agRows[i][0] === reservaId) {
-            const rowP = normalizeBrPhone(agRows[i][5] || '').slice(-8);
-            if (!cleanP || rowP === cleanP) {
-              agRows[i][11] = 'CANCELADO';
-              const calId = agRows[i][12];
-              if (calId && !String(calId).startsWith('DELETED_')) {
-                try {
-                  await syncGoogleCalendarCloudDirect('DELETE', null, calId, activeSid);
-                  agRows[i][12] = 'DELETED_' + calId;
-                } catch (eG) {}
-              }
-              await writeSheetTab('Agendamentos', agRows, activeSid);
-              return { success: true };
-            }
-          }
-        }
-        throw new Error('Reserva não localizada.');
-      }
-
-      if (fn === 'notifyPixPaidByCustomer') {
-        const reservaId = args[0];
-        const agRows = await readSheetTab('Agendamentos', activeSid);
-        for (let i = 1; i < agRows.length; i++) {
-          if (agRows[i] && agRows[i][0] === reservaId) {
-            agRows[i][10] = 'CLIENTE_INFORMOU_PIX';
-            await writeSheetTab('Agendamentos', agRows, activeSid);
-            break;
-          }
-        }
-        return { success: true };
-      }
-
-      if (fn === 'getAdminDashboardData') {
-        const categorias = await readCategoriasList();
-        const catRows = await readSheetTab('Catalogo', activeSid);
-        const catalogo = [];
-        for (let i = 1; i < catRows.length; i++) {
-          const r = catRows[i];
-          if (r && r[0]) {
-            catalogo.push({
-              id: r[0], nome: r[1] || '', descricao: r[2] || '',
-              preco: Number(r[3] || 0), duracaoMin: Number(r[4] || 60),
-              fotoUrl: r[5] || '', categoria: r[6] || 'Alongamentos',
-              ativo: String(r[7] || 'SIM').toUpperCase() === 'SIM'
-            });
-          }
-        }
-        const agRows = await readSheetTab('Agendamentos', activeSid);
-        const agendamentos = [];
-        for (let i = 1; i < agRows.length; i++) {
-          const r = agRows[i];
-          if (r && r[0]) {
-            agendamentos.push({
-              id: r[0], data: r[1] || '', horaInicio: r[2] || '', horaFim: r[3] || '',
-              clienteNome: r[4] || '', clienteWhatsApp: r[5] || '',
-              servicoId: r[6] || '', servicoNome: r[7] || '', valor: Number(r[8] || 0),
-              metodoPagamento: r[9] || '', statusPagamento: r[10] || '', statusReserva: r[11] || '',
-              criadoEm: r[13] || ''
-            });
-          }
-        }
-        agendamentos.sort((a, b) => (b.data + b.horaInicio).localeCompare(a.data + a.horaInicio));
-        return { studio: studioObj, categorias, catalogo, agendamentos };
-      }
-
-      if (fn === 'adminSaveCategory') {
-        const [, catObj] = args;
-        const current = await readCategoriasList();
-        const rows = [['ID_Categoria', 'Nome', 'Icone', 'Ordem', 'Ativo']];
-        let updated = false;
-        let oldName = null;
-
-        for (const c of current) {
-          if (catObj.id && c.id === catObj.id) {
-            oldName = c.nome;
-            rows.push([
-              c.id,
-              catObj.nome.trim(),
-              catObj.icone || '💅',
-              String(catObj.ordem || c.ordem || rows.length),
-              catObj.ativo === false ? 'NAO' : 'SIM'
-            ]);
-            updated = true;
-          } else {
-            rows.push([c.id, c.nome, c.icone, String(c.ordem), c.ativo ? 'SIM' : 'NAO']);
-          }
-        }
-
-        if (!updated) {
-          const newId = 'CAT-' + Math.floor(100 + Math.random() * 900);
-          rows.push([
-            newId,
-            catObj.nome.trim(),
-            catObj.icone || '💅',
-            String(catObj.ordem || rows.length),
-            'SIM'
-          ]);
-        }
-
-        await writeSheetTab('Categorias', rows, activeSid);
-
-        if (oldName && oldName !== catObj.nome.trim()) {
-          const sRows = await readSheetTab('Catalogo', activeSid);
-          let changed = false;
-          for (let i = 1; i < sRows.length; i++) {
-            if (sRows[i] && sRows[i][6] === oldName) {
-              sRows[i][6] = catObj.nome.trim();
-              changed = true;
-            }
-          }
-          if (changed) await writeSheetTab('Catalogo', sRows, activeSid);
-        }
-
-        return await rpc('getAdminDashboardData');
-      }
-
-      if (fn === 'adminDeleteCategory') {
-        const [, catId] = args;
-        const current = await readCategoriasList();
-        const rows = [['ID_Categoria', 'Nome', 'Icone', 'Ordem', 'Ativo']];
-        for (const c of current) {
-          if (c.id !== catId) {
-            rows.push([c.id, c.nome, c.icone, String(c.ordem), c.ativo ? 'SIM' : 'NAO']);
-          }
-        }
-        await writeSheetTab('Categorias', rows, activeSid);
-        return await rpc('getAdminDashboardData');
-      }
-
-      if (fn === 'adminSaveService') {
-        const [, obj] = args;
-        const catRows = await readSheetTab('Catalogo', activeSid);
-        const cleanRows = [['ID', 'Nome', 'Descricao', 'Preco', 'DuracaoMin', 'FotoURL', 'Categoria', 'Ativo']];
-        let updated = false;
-        const statusAtivo = obj.ativo === false ? 'NAO' : 'SIM';
-        for (let i = 1; i < catRows.length; i++) {
-          const r = catRows[i];
-          if (r && r[0]) {
-            if (obj.id && r[0] === obj.id) {
-              cleanRows.push([obj.id, obj.nome, obj.descricao, obj.preco, obj.duracaoMin, obj.fotoUrl, obj.categoria, statusAtivo]);
-              updated = true;
-            } else {
-              cleanRows.push(r);
-            }
-          }
-        }
-        if (!updated) {
-          const newId = 'SRV-' + Math.floor(1000 + Math.random() * 9000);
-          cleanRows.push([newId, obj.nome, obj.descricao, obj.preco, obj.duracaoMin, obj.fotoUrl, obj.categoria, statusAtivo]);
-        }
-        await writeSheetTab('Catalogo', cleanRows, activeSid);
-        return await rpc('getAdminDashboardData');
-      }
-
-      if (fn === 'adminToggleServiceActive') {
-        const [, srvId] = args;
-        const catRows = await readSheetTab('Catalogo', activeSid);
-        for (let i = 1; i < catRows.length; i++) {
-          if (catRows[i] && catRows[i][0] === srvId) {
-            const cur = String(catRows[i][7] || 'SIM').toUpperCase();
-            catRows[i][7] = cur === 'SIM' ? 'NAO' : 'SIM';
-            break;
-          }
-        }
-        await writeSheetTab('Catalogo', catRows, activeSid);
-        return await rpc('getAdminDashboardData');
-      }
-
-      if (fn === 'adminDeleteService') {
-        const [, id] = args;
-        const catRows = await readSheetTab('Catalogo', activeSid);
-        const filtered = [['ID', 'Nome', 'Descricao', 'Preco', 'DuracaoMin', 'FotoURL', 'Categoria', 'Ativo']];
-        for (let i = 1; i < catRows.length; i++) {
-          const r = catRows[i];
-          if (r && r[0] && r[0] !== id) filtered.push(r);
-        }
-        await writeSheetTab('Catalogo', filtered, activeSid);
-        return await rpc('getAdminDashboardData');
-      }
-
-      if (fn === 'adminUpdateBookingStatus') {
-        const [, id, action] = args;
-        const agRows = await readSheetTab('Agendamentos', activeSid);
-        for (let i = 1; i < agRows.length; i++) {
-          if (agRows[i] && agRows[i][0] === id) {
-            if (action === 'VALIDAR_PIX') {
-              agRows[i][10] = 'PIX_CONFIRMADO';
-              agRows[i][11] = 'CONFIRMADO';
-            } else if (action === 'CONCLUIR_ATENDIMENTO') {
-              agRows[i][10] = agRows[i][10] === 'AGUARDANDO_VALIDACAO_PIX' ? 'PIX_CONFIRMADO' : 'PAGO_NO_STUDIO';
-              agRows[i][11] = 'CONCLUIDO';
-            } else if (action === 'CANCELAR_RESERVA') {
-              agRows[i][11] = 'CANCELADO';
-            }
-            await writeSheetTab('Agendamentos', agRows, activeSid);
-            break;
-          }
-        }
-        return await rpc('getAdminDashboardData');
-      }
-
-      if (fn === 'adminCreateManualBookingOrBlock') {
-        const [, p] = args;
-        const id = (p.tipo === 'BLOQUEIO' ? 'BLQ-' : 'AG-') + Math.floor(100000 + Math.random() * 900000);
-        const nowStr = new Date().toLocaleString('pt-BR');
-        if (p.tipo === 'BLOQUEIO') {
-          await appendSheetRow('Agendamentos', [
-            id, p.data, p.horaInicio, p.horaFim,
-            '🔒 BLOQUEIO DE AGENDA / FOLGA', '',
-            'BLOQUEIO', p.motivo || 'Horário Bloqueado pela Profissional', 0, 'BLOQUEIO',
-            'BLOQUEADO', 'BLOQUEADO', 'GCAL-' + id, nowStr
-          ], activeSid);
-        } else {
-          const fimMin = toMin(p.horaInicio) + Number(p.duracaoMin || 60);
-          await appendSheetRow('Agendamentos', [
-            id, p.data, p.horaInicio, fromMin(fimMin),
-            p.clienteNome, String(p.clienteWhatsApp || '').replace(/\D/g, ''),
-            p.servicoId || 'MANUAL', p.servicoNome, Number(p.valor || 0), p.metodoPagamento || 'NO_LOCAL',
-            p.statusPagamento || 'PAGAR_NO_STUDIO', 'CONFIRMADO', 'GCAL-' + id, nowStr
-          ], activeSid);
-        }
-        return await rpc('getAdminDashboardData');
-      }
-
-      if (fn === 'adminSaveSettings') {
-        const [, cfg] = args;
-        const newPinHash = (cfg.novoPin && cfg.novoPin.length >= 4)
-          ? await sha256Hex(cfg.novoPin)
-          : (cfgMap['ADMIN_PIN_HASH'] || await sha256Hex('123456'));
-
-        const newRecHash = (cfg.novaPalavraRecuperacao && cfg.novaPalavraRecuperacao.length >= 3)
-          ? await sha256Hex(cfg.novaPalavraRecuperacao)
-          : (cfgMap['ADMIN_RECOVERY_HASH'] || '');
-
-        const newCfgRows = [
-          ['Chave', 'Valor', 'Descricao'],
-          ['SETUP_CONCLUIDO', 'SIM', 'Configurado pelo App'],
-          ['STUDIO_NOME', cfg.nome || 'Meu Studio', 'Nome do Studio'],
-          ['PROFISSIONAL_NOME', cfg.profissional || 'Manicure', 'Profissional'],
-          ['ADMIN_LOGIN_ID', cfg.loginId || studioObj.loginId || '', 'E-mail ou WhatsApp de Login'],
-          ['WHATSAPP_STUDIO', String(cfg.whatsapp || '').replace(/\D/g, ''), 'WhatsApp'],
-          ['PIX_CHAVE', cfg.pixChave || '', 'Chave Pix'],
-          ['PIX_RECEBEDOR', cfg.pixRecebedor || '', 'Titular Pix'],
-          ['PIX_CIDADE', cfg.pixCidade || 'SAO PAULO', 'Cidade Pix'],
-          ['TEMA_COR', cfg.temaCor || 'pink-gold', 'Tema de Cores'],
-          ['HORARIO_INICIO', cfg.horarioInicio || '09:00', 'Abertura'],
-          ['HORARIO_FIM', cfg.horarioFim || '19:00', 'Fechamento'],
-          ['ALMOCO_INICIO', cfg.almocoInicio || '', 'Início Almoço'],
-          ['ALMOCO_FIM', cfg.almocoFim || '', 'Fim Almoço'],
-          ['DIAS_ATENDIMENTO', cfg.diasAtendimento || '1,2,3,4,5,6', 'Dias de Funcionamento'],
-          ['INTERVALO_MINUTOS', String(cfg.intervaloMinutos || 60), 'Intervalo'],
-          ['SINCRONIZAR_AGENDA', 'SIM', 'Agenda'],
-          ['ADMIN_PIN_HASH', newPinHash, 'Hash SHA-256 do PIN'],
-          ['ADMIN_RECOVERY_HASH', newRecHash, 'Hash SHA-256 de Recuperação'],
-          ['TERMO_ACEITO_EM', cfgMap['TERMO_ACEITO_EM'] || new Date().toLocaleString('pt-BR'), 'Termo Aceito']
-        ];
-        await writeSheetTab('Configuracoes', newCfgRows, activeSid);
-        return await rpc('getAdminDashboardData');
-      }
-    }
-
-
     function maskBrPhoneInput(inp) {
       let d = String(inp.value || '').replace(/\D/g, '');
       if (d.startsWith('55') && d.length > 11) d = d.slice(2);
@@ -1917,7 +950,7 @@
                   ? '<span style="background:#fef3c7; color:#b45309; padding:3px 9px; border-radius:99px; font-size:0.7rem; font-weight:800;">⏳ Aguardando Pix</span>'
                   : '<span style="background:#e0e7ff; color:#3730a3; padding:3px 9px; border-radius:99px; font-size:0.7rem; font-weight:800;">Pagar no Studio</span>')));
 
-          const studioW = normalizeBrPhone(r.whatsappStudio || pubData.studio.whatsapp || '11911526537');
+          const studioW = normalizeBrPhone(r.whatsappStudio || pubData.studio.whatsapp || '');
           const msgReagendar = `Olá! Sou *${r.clienteNome}*. Gostaria de falar sobre meu agendamento de *${r.servicoNome}* do dia ${dFmt} às ${r.horaInicio} (Reserva #${r.id}).`;
           const waUrl = 'https://api.whatsapp.com/send?phone=' + studioW + '&text=' + encodeURIComponent(msgReagendar);
 
@@ -1977,7 +1010,13 @@
         maskBrPhoneInput(document.getElementById('cWhats'));
       }
 
-      pubData = await rpc('getPublicBootstrapData');
+      if (!studioParam()) return showFatal('Link incompleto. Peça o link de agendamento atualizado para sua manicure.');
+      try {
+        pubData = await rpc('getPublicBootstrapData');
+      } catch (e) {
+        return showFatal(e.message);
+      }
+      applyStudioOptions();
       document.body.setAttribute('data-theme', pubData.studio.temaCor || 'pink-gold');
       document.getElementById('cStudioName').textContent = pubData.studio.nome;
       document.getElementById('cProName').textContent = pubData.studio.profissional + (pubData.studio.endereco ? ' • 📍 ' + pubData.studio.endereco : '');
@@ -1990,6 +1029,22 @@
         searchMyBookings(true);
       }
     });
+
+    function applyStudioOptions() {
+      const st = pubData.studio || {};
+      const w = document.getElementById('cWelcome');
+      const parts = [];
+      if (st.mensagemBoasVindas) parts.push('<div>' + esc(st.mensagemBoasVindas) + '</div>');
+      if (st.politicaCancelamento) parts.push('<div style="margin-top:6px; font-size:0.78rem; color:var(--text-muted);"><i class="fa-solid fa-circle-info"></i> ' + esc(st.politicaCancelamento) + '</div>');
+      if (st.cancelamentoMinHoras > 0) parts.push('<div style="margin-top:4px; font-size:0.74rem; color:var(--text-muted);">Cancelamento online até ' + Number(st.cancelamentoMinHoras) + 'h antes do horário.</div>');
+      if (w && parts.length) { w.innerHTML = parts.join(''); w.classList.remove('hidden'); }
+      const hasPix = !!st.pixChave;
+      const show = (id, on) => { const el = document.getElementById(id); if (el) el.classList.toggle('hidden', !on); };
+      show('payCardPixTotal', hasPix);
+      show('payCardSinal', hasPix);
+      show('payCardLocal', st.aceitaPagarNoStudio !== false || !hasPix);
+      if (!hasPix) setPay('NO_LOCAL', document.getElementById('payCardLocal'));
+    }
 
     function renderChips() {
       const iconMap = {};
@@ -2009,7 +1064,7 @@
 
     
     function openStudioWhatsAppFallback() {
-      const w = (pubData && pubData.studio && pubData.studio.whatsapp) ? pubData.studio.whatsapp : '11911526537';
+      const w = (pubData && pubData.studio && pubData.studio.whatsapp) ? pubData.studio.whatsapp : '';
       const cleanW = normalizeBrPhone(w);
       const txt = encodeURIComponent('Olá! Gostaria de agendar um horário no Studio.');
       window.location.href = 'https://wa.me/' + cleanW + '?text=' + txt;
@@ -2081,7 +1136,8 @@
       const today = new Date();
       let firstSelected = false;
 
-      for (let i = 0; i < 18; i++) {
+      const janela = Math.min(60, Math.max(1, Number(pubData.studio.janelaMaxDias || 30)));
+      for (let i = 0; i <= janela; i++) {
         const d = new Date(today);
         d.setDate(today.getDate() + i);
         if (!allowedDays.includes(d.getDay())) continue; // Pula dias em que o studio está fechado!
@@ -2110,11 +1166,23 @@
       const grid = document.getElementById('cSlots');
       grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:12px; color:var(--text-muted); font-size:0.84rem;"><i class="fa-solid fa-spinner fa-spin"></i> Consultando agenda...</div>';
       document.getElementById('cForm').classList.add('hidden');
-      const slots = await rpc('getAvailableSlotsForDate', selDate, selSrv.id);
+      let slots = [];
+      try {
+        slots = await rpc('getAvailableSlotsForDate', selDate, selSrv.id);
+      } catch (e) {
+        grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:12px; color:#dc2626; font-size:0.84rem;">' + esc(e.message) + ' <a href="javascript:void(0)" onclick="loadSlots()">Tentar de novo</a></div>';
+        return;
+      }
       grid.innerHTML = '';
       if (!slots.length) {
-        grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:12px; color:var(--text-muted); font-size:0.84rem;">Dia sem expediente. Escolha outra data acima!</div>';
+        grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:12px; color:var(--text-muted); font-size:0.84rem;">Sem horários neste dia. Escolha outra data acima!</div>';
         return;
+      }
+      if (!slots.some(s => s.disponivel)) {
+        const note = document.createElement('div');
+        note.style.cssText = 'grid-column:1/-1; text-align:center; padding:6px; color:var(--text-muted); font-size:0.8rem;';
+        note.textContent = 'Dia lotado 😕 Tente outra data acima.';
+        grid.appendChild(note);
       }
       slots.forEach(s => {
         const b = document.createElement('button');
@@ -2155,7 +1223,8 @@
           clienteNome,
           clienteWhatsApp,
           servicoId: selSrv.id,
-          metodoPagamento: payOpt
+          metodoPagamento: payOpt,
+          observacoes: (document.getElementById('cObs') || {}).value || ''
         });
         localStorage.setItem('NAIL_CLIENT_NAME', clienteNome);
         localStorage.setItem('NAIL_CLIENT_WHATS', clienteWhatsApp);
@@ -2165,6 +1234,7 @@
         searchMyBookings(true);
       } catch (e) {
         alert(e.message);
+        if (/preenchido/.test(e.message)) loadSlots();
       } finally {
         btn.disabled = false;
         btn.innerHTML = old;
@@ -2207,6 +1277,14 @@
           <div class="ticket-row" style="margin-bottom:0;"><span>💳 Pagamento:</span><strong>${pagLabel} (#${r.id})</strong></div>
         `;
       }
+      const icsBtn = document.getElementById('cIcsBtn');
+      if (icsBtn) icsBtn.onclick = () => downloadIcs(r);
+      const paidBtn = document.getElementById('cBtnPaid');
+      if (paidBtn) {
+        const informed = /CLIENTE_INFORMOU_PIX|PIX_CONFIRMADO/.test(r.statusPagamento || '');
+        paidBtn.disabled = informed;
+        paidBtn.innerHTML = informed ? '✅ Studio já foi avisado' : '<i class="fa-solid fa-check-double"></i> Já Paguei! Avisar Studio';
+      }
       const gcalEl = document.getElementById('cGCalLink');
       if (gcalEl) {
         gcalEl.href = buildGoogleCalendarUrl({
@@ -2217,7 +1295,7 @@
       }
       document.getElementById('cModalSummary').textContent = `${r.clienteNome}, seu horário para ${r.servicoNome} dia ${d}/${m}/${y} às ${r.horaInicio} foi reservado!`;
       const pixBox = document.getElementById('cPixBox');
-      if (r.metodoPagamento.includes('PIX')) {
+      if (r.metodoPagamento.includes('PIX') && r.pixCopiaECola) {
         pixBox.classList.remove('hidden');
         document.getElementById('cPixVal').textContent = `R$ ${Number(r.valorCobradoAgora).toFixed(2).replace('.', ',')}`;
         document.getElementById('cPixRaw').textContent = r.pixCopiaECola || '';
@@ -2244,7 +1322,7 @@
 Gostaria de confirmar meu horário!`;
 
       const wEl = document.getElementById('cWhatsLink');
-      const studioWhats = r.whatsappStudio || pubData.studio.whatsapp || '11911526537';
+      const studioWhats = r.whatsappStudio || pubData.studio.whatsapp || '';
       const cleanStudioPhone = normalizeBrPhone(studioWhats);
       const waApiUrl = 'https://api.whatsapp.com/send?phone=' + cleanStudioPhone + '&text=' + encodeURIComponent(msgTextoPuro);
       
@@ -2259,9 +1337,15 @@ Gostaria de confirmar meu horário!`;
 
     async function notifyPaid() {
       if (!lastRes) return;
-      await rpc('notifyPixPaidByCustomer', lastRes.id);
-      document.getElementById('cBtnPaid').textContent = 'Manicure Avisada!';
-      document.getElementById('cBtnPaid').disabled = true;
+      const btn = document.getElementById('cBtnPaid');
+      try {
+        btn.disabled = true;
+        await rpc('notifyPixPaidByCustomer', lastRes.id, localStorage.getItem('NAIL_CLIENT_WHATS') || '');
+        btn.textContent = '✅ Studio avisado!';
+      } catch (e) {
+        btn.disabled = false;
+        alert(e.message);
+      }
     }
 
     

@@ -11,8 +11,8 @@ android {
         applicationId = "com.nailstudio.pro"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 30
+        versionName = "3.0.0"
     }
 
     buildTypes {
@@ -76,6 +76,12 @@ dependencies {
   androidTestImplementation(libs.androidx.test.ext.junit)
   androidTestImplementation(libs.androidx.test.runner)
   androidTestImplementation(libs.androidx.test.espresso.core)
+
+  // Login Google nativo (Credential Manager) + permissão da Google Agenda (AuthorizationClient)
+  implementation(libs.androidx.credentials)
+  implementation(libs.androidx.credentials.play.services)
+  implementation(libs.googleid)
+  implementation(libs.play.services.auth)
 
   // Navigation
   implementation(libs.androidx.navigation3.ui)

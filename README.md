@@ -1,41 +1,82 @@
-# 💅 Nail Studio Pro (v2.2 Cloud-Direct 24/7)
+# 💅 Nail Studio Pro (v3.0 — Login Google real + Google Agenda bidirecional)
 
-Aplicativo Mobile Android (`.APK`) e Plataforma Web SaaS Multi-Contas para **Manicures & Nail Designers**, 100% integrado em tempo real ao **Google Sheets** (banco de dados na nuvem) e ao **Google Agenda** (sincronização automática 24h), sem depender de computador ligado.
+App para **manicures e nail designers**: painel da profissional (web, PWA e APK Android),
+página pública de agendamento para as clientes, Pix Copia e Cola e integração oficial com
+**Google Sheets** (banco de dados) e **Google Agenda** — 24h, sem computador ligado e de graça.
 
----
-
-## 🚀 Links Oficiais em Produção (24/7)
-
-- 📲 **Download Direto do Aplicativo Android (`NailStudioPro.apk`):**
-  - 👉 **[Baixar pela Release Oficial do GitHub (v2.2.0)](https://github.com/tecbumper-arch/nail-studio-pro/releases/latest/download/NailStudioPro.apk)**
-  - 👉 **[Baixar pelo Servidor Cloud 24h](https://nailstudiopro-app.surge.sh/NailStudioPro.apk)**
-- 💅 **Painel da Manicure (Web / Mobile 24h):**
-  - 👉 **[Abrir via GitHub Pages](https://tecbumper-arch.github.io/nail-studio-pro/App_Manicure.html)**
-  - 👉 **[Abrir via Servidor Cloud 24h](https://nailstudiopro-app.surge.sh/App_Manicure.html)**
-- 📅 **Página Pública de Agendamento da Cliente (24h):**
-  - 👉 **[Abrir via GitHub Pages](https://tecbumper-arch.github.io/nail-studio-pro/Pagina_Cliente.html)**
-  - 👉 **[Abrir via Servidor Cloud 24h](https://nailstudiopro-app.surge.sh/Pagina_Cliente.html)**
+> 👉 **Instalação / configuração:** [`backend/README.md`](backend/README.md)
+> (inclui os passos de segurança urgentes da versão 2.2).
 
 ---
 
-## ✨ Principais Funcionalidades
+## 🔗 Links
 
-1. **Autenticação Real com Contas Google do Aparelho (`AccountManager`):**
-   - No Android, utiliza o seletor nativo oficial do sistema (`AccountManager.newChooseAccountIntent` para `"com.google"`), permitindo login exclusivo com contas Google reais cadastradas no aparelho.
-   - Criação e provisionamento automático da planilha individual do Studio no Google Drive no primeiro acesso.
-2. **100% Independente de Computador (Arquitetura Cloud-Direct):**
-   - O APK carrega instantaneamente a partir dos assets internos (`file:///android_asset/App_Manicure.html`) e comunica-se diretamente com as APIs do Google Cloud (`sheets.googleapis.com` e `googleapis.com/calendar/v3`).
-3. **Sincronização em Tempo Real com Google Agenda:**
-   - Novos agendamentos feitos pela cliente ou pela profissional entram automaticamente na Google Agenda.
-   - Cancelamentos removem o evento da Google Agenda e liberam o horário na hora.
-4. **Pagamento Pix Copia e Cola (Padrão Oficial Banco Central) + Comprovante WhatsApp:**
-   - Geração de código BRCode EMV válido (Sinal 50%, Pix Total ou Pagamento no Studio).
-5. **CRM de Clientes & Alerta de Manutenção (15+ dias):**
-   - Identifica automaticamente clientes que precisam de manutenção de alongamento/blindagem e envia lembrete com 1 toque no WhatsApp.
+- 💅 Painel da manicure: `https://tecbumper-arch.github.io/nail-studio-pro/App_Manicure.html`
+- 📅 Página da cliente: `.../Pagina_Cliente.html?s=ID_DO_STUDIO` (o link certo aparece na aba **Meu Link**)
+- 📲 APK Android: gerado a partir de `android-app/` (veja o guia)
 
----
+## 🏗️ Como funciona
 
-## 📂 Estrutura do Repositório
+```
+ Painel (HTML/PWA/APK) ─┐                    ┌─ Planilha do Studio (Google Sheets)
+                        ├─► API Apps Script ─┼─ Google Agenda da manicure (OAuth guardado no servidor)
+ Página da cliente ─────┘   (backend/Code.gs) └─ Diretório de studios (planilha mestre privada)
+```
 
-- `NailApp_Sheets/`: Aplicação Web Mobile-First (`App_Manicure.html`, `Pagina_Cliente.html`), script Google Apps Script (`Code.gs`) e utilitários.
-- `android-app/`: Código-fonte nativo do aplicativo Android em Kotlin (`MainActivity.kt`, WebView imersivo, ponte nativa `AndroidNativeBridge` e integração com `AccountManager`).
+- Nenhum segredo nos HTMLs. O `config.js` só tem a URL da API e o Client ID (públicos).
+- Login: **ID Token do Google** verificado no servidor → sessão assinada (HMAC) de 30 dias.
+- Agendamentos passam por **trava (LockService)**: dois clientes nunca pegam o mesmo horário.
+
+## ✨ Funcionalidades
+
+**Conta e segurança**
+- Login com a **Conta Google real** (botão oficial no navegador; seletor nativo de contas no Android).
+- Primeiro acesso cria o Studio e a planilha automaticamente (compartilhada com a dona).
+- PIN opcional de acesso rápido (com bloqueio após 5 erros) e "Desconectar todos os aparelhos".
+
+**Google Agenda (novo motor)**
+- Conectar uma vez: reservas entram na agenda com lembrete (1 dia e 1 hora antes).
+- **Reagendar move o evento**, cancelar/liberar vaga **apaga o evento**.
+- **Compromissos pessoais da agenda bloqueiam horários** na página da cliente.
+- Status de conexão com aviso de "Reconectar" se o Google revogar a permissão.
+- Assinatura **.ics** para ver a agenda no iPhone/Outlook.
+
+**Agenda e atendimento**
+- Reagendar com sugestão de horários livres + aviso automático no WhatsApp.
+- Status **Confirmar**, **Concluir**, **Faltou** (no-show) e anotações por atendimento (cor, formato, alergias).
+- **Lembretes de amanhã**: lista pronta para mandar WhatsApp para cada cliente.
+- **Pedir avaliação** (Google/Instagram) após concluir.
+- Bloqueio de horário, "fechar o resto do dia" e **férias/folga de vários dias**.
+
+**Regras da página da cliente**
+- Antecedência mínima, até quantos dias à frente, prazo de cancelamento online,
+  aceitar ou não "pagar no Studio", mensagem de boas-vindas e política de cancelamento.
+- Cliente: observação no agendamento, "Meus horários", 2ª via do Pix, salvar na agenda (Google e .ics).
+
+**Gestão**
+- **Relatório**: faturamento dos últimos 6 meses, ticket médio, clientes novas, faltas,
+  serviços que mais faturam e horário mais procurado.
+- CRM: clientes VIP 👑, faltas, próximo horário e lembrete de manutenção (dias configuráveis).
+- Exportar agendamentos e clientes em **CSV** (abre no Excel/Sheets).
+- **QR Code** do link de agendamento para imprimir.
+- **Resumo do dia por e-mail** às 7h (opcional).
+
+## 📂 Estrutura
+
+| Caminho | O que é |
+|---|---|
+| `App_Manicure.html` | Painel da manicure (arquivo principal) |
+| `Pagina_Cliente.html` | Página pública de agendamento |
+| `config.js` | URL da API + Client ID (sem segredos) |
+| `backend/` | Servidor Apps Script (`Code.gs`, `appsscript.json`) + guia |
+| `android-app/` | APK Kotlin (WebView + login Google nativo) |
+| `scripts/sync-copies.sh` | Copia os HTMLs para `Index.html`, `200.html`, `NailApp_Sheets/` e assets do APK |
+| `tests/` | Testes do servidor (Node) e ponta a ponta (Playwright) |
+| `NailApp_Sheets/` | Versão antiga (Apps Script por planilha / servidor local) — mantida só por compatibilidade |
+
+## 🧪 Testes
+
+```bash
+node --test tests/backend.test.js
+node tests/e2e.js
+```

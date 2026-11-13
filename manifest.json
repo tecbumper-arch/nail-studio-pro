@@ -1,18 +1,15 @@
 {
   "name": "Nail Studio Pro - Gestão da Manicure",
   "short_name": "Nail Studio",
-  "description": "Aplicativo Administrativo da Manicure conectado ao Google Sheets e Agenda",
-  "start_url": "/App_Manicure.html",
+  "description": "Agenda, clientes, Pix e Google Agenda para manicures e nail designers",
+  "start_url": "App_Manicure.html",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#240c18",
   "theme_color": "#ff1675",
   "icons": [
-    {
-      "src": "https://cdn-icons-png.flaticon.com/512/3163/3163195.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]
 }
