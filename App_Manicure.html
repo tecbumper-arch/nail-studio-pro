@@ -108,6 +108,24 @@
       margin: auto;
     }
 
+    .login-logo { width: 84px; height: 84px; border-radius: 24px; display: block; margin: 0 auto; box-shadow: 0 12px 28px var(--primary-glow); }
+    .login-perks { list-style: none; padding: 0; margin: 0 0 20px; display: flex; flex-direction: column; gap: 10px; text-align: left; }
+    .login-perks li { display: flex; align-items: center; gap: 12px; font-size: 0.86rem; color: #334155; line-height: 1.35; }
+    .perk-ic { width: 34px; height: 34px; border-radius: 11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.95rem; }
+    .google-native-btn { width: 100%; height: 54px; background: #fff; color: #1f2937; border: 1.5px solid #dadce0; border-radius: 999px; font-size: 0.98rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 12px; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.08); }
+    .login-link { display: block; width: 100%; background: none; border: none; color: var(--primary-dark); font-weight: 800; font-size: 0.86rem; cursor: pointer; padding: 12px 6px 4px; }
+    .pill-back { background: #f1f5f9; border: none; padding: 6px 12px; border-radius: 99px; color: #334155; cursor: pointer; font-size: 0.78rem; font-weight: 800; }
+    .wiz-steps { display: flex; gap: 6px; margin-bottom: 16px; }
+    .wiz-steps span { flex: 1; text-align: center; font-size: 0.7rem; font-weight: 800; color: #94a3b8; padding: 7px 4px; border-radius: 99px; background: #f1f5f9; }
+    .wiz-steps span.on { background: var(--primary); color: #fff; }
+    .wiz-steps span.done { background: var(--primary-soft); color: var(--primary-dark); }
+    .db-option { display: flex; gap: 12px; align-items: flex-start; border: 2px solid var(--border); border-radius: 18px; padding: 12px; margin-bottom: 10px; cursor: pointer; font-size: 0.86rem; color: #1e293b; line-height: 1.4; }
+    .db-option.active { border-color: var(--primary); background: var(--primary-soft); }
+    .db-option input { margin-top: 10px; accent-color: var(--primary); }
+    .db-option small { color: var(--text-muted); }
+    .db-ic { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .rec { font-style: normal; font-size: 0.66rem; font-weight: 800; background: #16a34a; color: #fff; padding: 2px 7px; border-radius: 99px; margin-left: 4px; }
+
     /* TOPBAR MOBILE-FIRST LIMPA */
     .admin-header {
       background: var(--gradient);
@@ -511,7 +529,6 @@
   <!-- ===================================================================== -->
   <div id="lockScreen" class="lock-screen">
     <div class="lock-card">
-      <img src="assets/icons/apple-touch-icon.png" alt="Nail Studio Pro" width="76" height="76" style="width:76px; height:76px; border-radius:22px; display:block; margin:0 auto 14px; box-shadow:0 10px 24px var(--primary-glow);">
 
       <!-- APP AINDA NÃO CONFIGURADO (config.js sem API_URL) -->
       <div id="authModeSetup" class="hidden" style="text-align:left;">
@@ -523,20 +540,25 @@
         </p>
       </div>
 
-      <!-- MODO 1: LOGIN COM CONTA GOOGLE REAL -->
+      <!-- LOGIN: UMA ÚNICA AÇÃO — ENTRAR COM O GOOGLE -->
       <div id="authModeLogin">
-        <h2 id="loginTitle" style="font-size:1.5rem; margin-bottom:6px; font-weight:800; color:#0f172a;">Nail Studio Pro</h2>
-        <p style="font-size:0.88rem; color:var(--text-muted); margin-bottom:20px; line-height:1.4;">
-          Entre com sua <strong>Conta Google</strong>. No primeiro acesso seu Studio é criado na hora, com planilha própria no seu Google Drive.
-        </p>
+        <img src="assets/icons/apple-touch-icon.png" alt="" width="84" height="84" class="login-logo">
+        <h2 style="font-size:1.6rem; margin:14px 0 6px; font-weight:800; color:#0f172a;">Nail Studio Pro</h2>
+        <p style="font-size:0.92rem; color:var(--text-muted); margin-bottom:18px; line-height:1.45;">Agenda, clientes e Pix do seu Studio — tudo ligado à sua conta Google.</p>
 
-        <!-- Botão oficial "Fazer login com o Google" (navegador / iPhone / PC) -->
+        <ul class="login-perks">
+          <li><span class="perk-ic" style="background:#dbeafe; color:#1d4ed8;"><i class="fa-regular fa-calendar-check"></i></span><span><strong>Google Agenda</strong> recebe cada reserva sozinha</span></li>
+          <li><span class="perk-ic" style="background:#dcfce7; color:#15803d;"><i class="fa-solid fa-table"></i></span><span>Seus dados numa <strong>planilha no seu Drive</strong></span></li>
+          <li><span class="perk-ic" style="background:var(--primary-soft); color:var(--primary-dark);"><i class="fa-solid fa-link"></i></span><span><strong>Link de agendamento</strong> para as clientes</span></li>
+        </ul>
+
+        <!-- Botão oficial "Fazer login com o Google" (navegador) -->
         <div id="googleBtnContainer" style="min-height:44px; display:flex; justify-content:center;"></div>
 
-        <!-- Botão nativo (App Android) — usa as contas Google reais do celular -->
-        <button type="button" id="btnNativeGoogle" class="hidden" onclick="startNativeGoogleLogin()" style="width:100%; height:54px; background:#ffffff; color:#0f172a; border:2px solid #cbd5e1; border-radius:18px; font-size:0.92rem; font-weight:800; display:flex; align-items:center; justify-content:center; gap:10px; cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,0.07); padding:0 14px; white-space:nowrap;">
-          <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
-          <span>Continuar com Google</span>
+        <!-- Botão nativo (App Android) — usa as contas Google do celular -->
+        <button type="button" id="btnNativeGoogle" class="hidden google-native-btn" onclick="startNativeGoogleLogin()">
+          <svg width="22" height="22" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+          <span>Entrar com Google</span>
         </button>
 
         <div id="loginBusy" class="hidden" style="margin-top:12px; font-size:0.85rem; font-weight:700; color:var(--primary-dark);">
@@ -544,31 +566,15 @@
         </div>
         <div id="googleLoginHint" class="hidden" style="margin-top:12px; font-size:0.8rem; line-height:1.45; color:#92400e; background:#fffbeb; border:1px solid #fde68a; border-radius:12px; padding:10px 12px; text-align:left;"></div>
 
-        <div style="display:flex; align-items:center; gap:10px; margin:18px 0 10px; color:#94a3b8; font-size:0.75rem; font-weight:700;">
-          <span style="flex:1; height:1px; background:#e2e8f0;"></span> OU <span style="flex:1; height:1px; background:#e2e8f0;"></span>
-        </div>
-        <button type="button" onclick="showAuthMode('pin')" style="background:none; border:none; color:var(--primary-dark); font-weight:800; font-size:0.86rem; cursor:pointer; padding:6px;">
-          <i class="fa-solid fa-key"></i> Entrar com e-mail e PIN
-        </button>
-
-        <!-- BLOCO DE INSTALAÇÃO (OCULTO DENTRO DO APK ANDROID) -->
-        <div id="loginInstallAppBlock" style="margin-top:16px; padding-top:14px; border-top:1px solid #f1f5f9; text-align:center;">
-          <div style="display:flex; gap:8px; justify-content:center;">
-            <a href="NailStudioPro.apk" download="NailStudioPro.apk" style="flex:1; height:42px; display:flex; align-items:center; justify-content:center; gap:6px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:0 10px; font-size:0.78rem; font-weight:800; color:#166534; text-decoration:none;">
-              <i class="fa-brands fa-android" style="color:#22c55e; font-size:1rem;"></i> Android (APK)
-            </a>
-            <button type="button" onclick="openIosInstallModal()" style="flex:1; height:42px; display:flex; align-items:center; justify-content:center; gap:6px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:12px; padding:0 10px; font-size:0.78rem; font-weight:800; color:#0f172a; cursor:pointer;">
-              <i class="fa-brands fa-apple" style="font-size:1rem;"></i> iPhone (iOS)
-            </button>
-          </div>
-        </div>
+        <button type="button" onclick="showAuthMode('pin')" class="login-link">Entrar com e-mail e PIN</button>
+        <p style="font-size:0.7rem; color:#94a3b8; margin-top:10px; line-height:1.4;">Usamos sua conta Google só para identificar você e, se você permitir, para a sua agenda. Nada é postado em seu nome.</p>
       </div>
 
-      <!-- MODO 2: LOGIN ALTERNATIVO COM E-MAIL + PIN -->
+      <!-- LOGIN ALTERNATIVO COM E-MAIL + PIN -->
       <div id="authModePin" class="hidden" style="text-align:left;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
           <h2 style="font-size:1.2rem; margin:0; color:#0f172a;">🔐 Entrar com PIN</h2>
-          <button type="button" onclick="showAuthMode('login')" style="background:#f1f5f9; border:none; padding:6px 12px; border-radius:99px; color:#334155; cursor:pointer; font-size:0.78rem; font-weight:800;">Voltar</button>
+          <button type="button" onclick="showAuthMode('login')" class="pill-back">Voltar</button>
         </div>
         <div class="field">
           <label>E-mail da sua Conta Google</label>
@@ -582,40 +588,87 @@
           <i class="fa-solid fa-unlock"></i> Entrar
         </button>
         <p style="font-size:0.78rem; color:var(--text-muted); margin-top:12px; line-height:1.45;">
-          O PIN é criado em <strong>Opções → Segurança</strong> depois de entrar com o Google.
-          Esqueceu o PIN? Entre com o botão do Google e crie outro.
+          O PIN é criado em <strong>Opções → Segurança</strong> depois de entrar com o Google. Esqueceu? Entre com o Google e crie outro.
         </p>
       </div>
 
-      <!-- MODO 3: PRIMEIRO ACESSO — CRIAR O STUDIO -->
+      <!-- ASSISTENTE DE PRIMEIRO ACESSO -->
       <div id="authModeOnboarding" class="hidden" style="text-align:left;">
-        <h2 style="font-size:1.25rem; margin-bottom:4px; color:#0f172a;">Bem-vinda! ✨</h2>
-        <p style="font-size:0.84rem; color:var(--text-muted); margin-bottom:14px; line-height:1.45;">
-          Conta Google verificada: <strong id="obEmailLabel"></strong>.<br>Só faltam 3 informações para criar seu Studio:
-        </p>
-        <div class="field">
-          <label>Nome do seu Studio *</label>
-          <input type="text" id="obStudioNome" class="inp" maxlength="60" placeholder="Ex: Studio Glow Nails">
+        <div class="wiz-steps" id="wizSteps">
+          <span data-step="1">1 · Studio</span><span data-step="2">2 · Planilha</span><span data-step="3">3 · Agenda</span>
         </div>
-        <div class="field">
-          <label>Seu nome *</label>
-          <input type="text" id="obProNome" class="inp" maxlength="60" placeholder="Ex: Camila">
+
+        <!-- Passo 1: dados do Studio -->
+        <div id="wizStep1">
+          <h2 style="font-size:1.3rem; margin-bottom:4px; color:#0f172a;">Olá<span id="obHello"></span>! ✨</h2>
+          <p style="font-size:0.84rem; color:var(--text-muted); margin-bottom:14px; line-height:1.45;">Conta Google: <strong id="obEmailLabel"></strong></p>
+          <div class="field">
+            <label>Nome do seu Studio *</label>
+            <input type="text" id="obStudioNome" class="inp" maxlength="60" placeholder="Ex: Studio Glow Nails">
+          </div>
+          <div class="field">
+            <label>Seu nome *</label>
+            <input type="text" id="obProNome" class="inp" maxlength="60" placeholder="Ex: Camila">
+          </div>
+          <div class="field">
+            <label>Seu WhatsApp com DDD *</label>
+            <input type="tel" id="obWhatsapp" class="inp" placeholder="(11) 99999-9999">
+          </div>
+          <div class="field">
+            <label>Chave Pix (opcional)</label>
+            <input type="text" id="obPixChave" class="inp" placeholder="Celular, CPF, e-mail ou aleatória">
+          </div>
+          <button type="button" class="btn-main" onclick="wizNext()">Continuar <i class="fa-solid fa-arrow-right"></i></button>
+          <button type="button" onclick="logoutApp(true)" class="login-link">Usar outra conta</button>
         </div>
-        <div class="field">
-          <label>Seu WhatsApp com DDD *</label>
-          <input type="tel" id="obWhatsapp" class="inp" placeholder="(11) 99999-9999">
+
+        <!-- Passo 2: planilha (banco de dados) -->
+        <div id="wizStep2" class="hidden">
+          <h2 style="font-size:1.25rem; margin-bottom:4px; color:#0f172a;">Onde guardar seus dados?</h2>
+          <p style="font-size:0.84rem; color:var(--text-muted); margin-bottom:14px; line-height:1.45;">Clientes, serviços e agendamentos ficam numa planilha do Google que é sua — dá para abrir e conferir quando quiser.</p>
+          <label class="db-option active" id="dbOptNew">
+            <input type="radio" name="dbMode" value="NOVA" checked onchange="setDbMode('NOVA')">
+            <span class="db-ic" style="background:#dcfce7; color:#15803d;"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+            <span><strong>Criar minha planilha agora</strong> <em class="rec">Recomendado</em><br><small>Já vem com abas e um catálogo de exemplo. Aparece no seu Google Drive.</small></span>
+          </label>
+          <label class="db-option" id="dbOptExisting">
+            <input type="radio" name="dbMode" value="EXISTENTE" onchange="setDbMode('EXISTENTE')">
+            <span class="db-ic" style="background:#e0e7ff; color:#3730a3;"><i class="fa-solid fa-table"></i></span>
+            <span><strong>Usar uma planilha que já tenho</strong><br><small>Mantemos o que já existe e criamos só as abas que faltarem.</small></span>
+          </label>
+          <div id="dbExistingBox" class="hidden" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:16px; padding:12px; margin-bottom:12px;">
+            <div class="field" style="margin-bottom:10px;">
+              <label>Link da sua planilha</label>
+              <input type="url" id="obPlanilha" class="inp" placeholder="https://docs.google.com/spreadsheets/d/..." style="margin:0;">
+            </div>
+            <div style="font-size:0.78rem; color:#334155; line-height:1.5;">
+              <strong>Antes, dê acesso ao app:</strong> abra a planilha → <em>Compartilhar</em> → adicione
+              <span id="obServerEmail" style="font-weight:800; color:var(--primary-dark); word-break:break-all;">o e-mail do app</span> como <em>Editor</em>.
+            </div>
+            <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+              <button type="button" class="btn-sm" style="background:#0f172a; color:#fff;" onclick="copyServerEmail()"><i class="fa-regular fa-copy"></i> Copiar e-mail</button>
+              <button type="button" class="btn-sm" style="background:#e0e7ff; color:#3730a3;" onclick="openTypedSheet()"><i class="fa-solid fa-up-right-from-square"></i> Abrir planilha</button>
+            </div>
+          </div>
+          <label style="display:flex; gap:8px; align-items:flex-start; font-size:0.78rem; color:var(--text-muted); margin:4px 0 12px; line-height:1.4;">
+            <input type="checkbox" id="obTermo" style="margin-top:2px;"> Sou responsável pelos dados das minhas clientes e pelos valores cobrados.
+          </label>
+          <button type="button" id="btnOnboarding" class="btn-main" onclick="submitCreateStudio()"><i class="fa-solid fa-rocket"></i> Criar meu Studio</button>
+          <button type="button" onclick="wizGo(1)" class="login-link">Voltar</button>
         </div>
-        <div class="field">
-          <label>Chave Pix (opcional — pode preencher depois)</label>
-          <input type="text" id="obPixChave" class="inp" placeholder="Celular, CPF, e-mail ou aleatória">
+
+        <!-- Passo 3: Google Agenda -->
+        <div id="wizStep3" class="hidden" style="text-align:center;">
+          <div style="width:72px; height:72px; border-radius:22px; background:#dbeafe; color:#1d4ed8; display:flex; align-items:center; justify-content:center; font-size:2rem; margin:4px auto 12px;"><i class="fa-regular fa-calendar-check"></i></div>
+          <h2 style="font-size:1.25rem; margin-bottom:6px; color:#0f172a;" id="wizCalTitle">Ligar sua Google Agenda?</h2>
+          <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:14px; line-height:1.5;">Quando uma cliente agendar, o horário aparece no seu calendário do celular com lembrete. Se ela desmarcar, sai sozinho. Seus compromissos pessoais bloqueiam esses horários para as clientes.</p>
+          <ul class="login-perks" style="text-align:left;">
+            <li><span class="perk-ic" style="background:#dcfce7; color:#15803d;"><i class="fa-solid fa-check"></i></span><span>Na tela do Google, marque <strong>"Ver e editar eventos"</strong></span></li>
+            <li><span class="perk-ic" style="background:#fef3c7; color:#b45309;"><i class="fa-solid fa-shield-halved"></i></span><span>O app só mexe nos eventos dos seus agendamentos</span></li>
+          </ul>
+          <button type="button" id="btnWizCal" class="btn-main" style="background:#2563eb; box-shadow:0 8px 20px rgba(37,99,235,0.25);" onclick="connectGoogleCalendar()"><i class="fa-brands fa-google"></i> Conectar Google Agenda</button>
+          <button type="button" onclick="finishWizard(false)" class="login-link">Agora não</button>
         </div>
-        <label style="display:flex; gap:8px; align-items:flex-start; font-size:0.78rem; color:var(--text-muted); margin-bottom:12px; line-height:1.4;">
-          <input type="checkbox" id="obTermo" style="margin-top:2px;"> Sou responsável pelos dados das minhas clientes e pelos valores cobrados.
-        </label>
-        <button type="button" id="btnOnboarding" class="btn-main" onclick="submitCreateStudio()">
-          <i class="fa-solid fa-rocket"></i> Criar Meu Studio
-        </button>
-        <button type="button" onclick="logoutApp(true)" class="btn-sm" style="width:100%; margin-top:8px; background:#f1f5f9; color:#475569;">Usar outra conta</button>
       </div>
     </div>
   </div>
@@ -1148,6 +1201,7 @@
       <div class="card-panel">
         <h2 class="section-title" style="margin-bottom:14px;"><i class="fa-solid fa-robot" style="color:var(--primary)"></i> Automações & Mensagens</h2>
         <label class="day-chk" style="width:100%; margin-bottom:8px;"><input type="checkbox" id="cfgBloquearGoogle"> Compromissos da minha Google Agenda bloqueiam horários</label>
+        <label class="day-chk" style="width:100%; margin-bottom:8px;"><input type="checkbox" id="cfgNotificarEmail"> E-mail na hora a cada reserva ou cancelamento</label>
         <label class="day-chk" style="width:100%; margin-bottom:12px;"><input type="checkbox" id="cfgResumoDiario"> Receber resumo do dia por e-mail às 7h</label>
         <div class="field">
           <label>Lembrar cliente de voltar após (dias)</label>
@@ -1187,7 +1241,8 @@
           </div>
           <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:16px; padding:14px;">
             <div style="font-weight:800; font-size:0.9rem; color:#1e293b; margin-bottom:4px;">📊 Sua planilha (banco de dados)</div>
-            <p style="font-size:0.8rem; color:#64748b; margin-bottom:10px;">Ela fica compartilhada com seu e-mail Google. Evite apagar abas ou colunas.</p>
+            <p style="font-size:0.8rem; color:#64748b; margin-bottom:10px;">É o banco de dados do seu Studio. Evite apagar abas ou colunas.</p>
+            <div id="sheetOwnerBox" style="font-size:0.8rem; margin-bottom:10px;"></div>
             <input type="text" id="mySheetUrlInput" class="inp" readonly style="margin-bottom:10px; background:#fff;">
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
               <a id="mySheetOpenBtn" href="#" target="_blank" rel="noopener" class="btn-sm" style="background:#059669; color:#fff;"><i class="fa-solid fa-table"></i> Abrir Planilha</a>
@@ -1209,6 +1264,14 @@
     <!-- ABA 5: MEU LINK DE AGENDAMENTO (PARA CLIENTES)                       -->
     <!-- =================================================================== -->
     <section id="tabShare" class="hidden">
+      <div id="installCard" class="card-panel hidden" style="display:flex; align-items:center; gap:12px;">
+        <img src="assets/icons/apple-touch-icon.png" alt="" width="48" height="48" style="width:48px; height:48px; border-radius:14px; flex-shrink:0;">
+        <div style="flex:1; min-width:0;">
+          <div style="font-weight:800; font-size:0.92rem;">Instale o app no celular</div>
+          <div style="font-size:0.78rem; color:var(--text-muted);">Abre direto da tela inicial, em tela cheia.</div>
+        </div>
+        <button type="button" class="btn-sm" style="background:var(--primary); color:#fff; flex-shrink:0;" onclick="installApp()">Instalar</button>
+      </div>
       <div class="card-panel" style="text-align:center;">
         <div style="width:60px; height:60px; border-radius:20px; background:var(--primary-soft); color:var(--primary); display:flex; align-items:center; justify-content:center; font-size:1.7rem; margin:0 auto 12px;">
           <i class="fa-solid fa-link"></i>
@@ -1499,7 +1562,10 @@
       try { out = await res.json(); } catch (e) { throw new Error('Resposta inválida do servidor (verifique a implantação do Apps Script).'); }
       if (!out.ok) {
         if (out.code && String(out.code).indexOf('SESSAO_') === 0) handleSessionExpired();
-        throw new Error(out.error || 'Erro desconhecido');
+        const err = new Error(out.error || 'Erro desconhecido');
+        err.code = out.code || '';
+        err.info = out.info || null;
+        throw err;
       }
       return out.data;
     }
@@ -1576,15 +1642,11 @@
       try {
         const r = await api('authGoogle', { idToken });
         if (r.needsOnboarding) {
-          pendingSignup = r;
-          document.getElementById('obEmailLabel').textContent = r.email;
-          const pro = document.getElementById('obProNome');
-          if (pro && !pro.value) pro.value = (r.name || '').split(' ')[0] || '';
-          showAuthMode('onboarding');
+          startWizard(r);
           return;
         }
         setSession(r.session, r.email);
-        await enterApp('💅 Bem-vinda, ' + (r.name ? r.name.split(' ')[0] : r.email) + '!');
+        await afterLogin('💅 Bem-vinda, ' + (r.name ? r.name.split(' ')[0] : r.email) + '!');
       } catch (e) {
         showLoginHint('❌ ' + escapeHtml(e.message));
       } finally {
@@ -1600,8 +1662,6 @@
       if (IS_ANDROID_APP && typeof window.AndroidNative.signInWithGoogle === 'function') {
         nativeBtn.classList.remove('hidden');
         container.classList.add('hidden');
-        const inst = document.getElementById('loginInstallAppBlock');
-        if (inst) inst.classList.add('hidden');
         return;
       }
       if (IS_ANDROID_APP) {
@@ -1654,27 +1714,146 @@
       if (msg && msg !== 'CANCELADO') showLoginHint('❌ ' + escapeHtml(msg));
     };
 
-    async function submitCreateStudio() {
-      if (!pendingSignup) return showAuthMode('login');
+    // =========================================================================
+    // ASSISTENTE DE PRIMEIRO ACESSO: Studio → Planilha → Google Agenda
+    // =========================================================================
+    let wizardActive = false;
+    let setupInfo = null;
+    let dbMode = 'NOVA';
+
+    function wizGo(n, opts) {
+      [1, 2, 3].forEach(k => document.getElementById('wizStep' + k).classList.toggle('hidden', k !== n));
+      document.querySelectorAll('#wizSteps span').forEach(sp => {
+        const k = Number(sp.dataset.step);
+        sp.classList.toggle('on', k === n);
+        sp.classList.toggle('done', k < n);
+      });
+      document.getElementById('wizSteps').classList.toggle('hidden', !!(opts && opts.agendaOnly));
+      showAuthMode('onboarding');
+      document.getElementById('lockScreen').scrollTop = 0;
+    }
+
+    async function loadSetupInfo() {
+      if (setupInfo) return setupInfo;
+      try { setupInfo = await api('getSetupInfo'); } catch (e) { setupInfo = { serverEmail: '', calendarReady: true }; }
+      if (setupInfo.serverEmail) document.getElementById('obServerEmail').textContent = setupInfo.serverEmail;
+      return setupInfo;
+    }
+
+    function startWizard(r) {
+      pendingSignup = r;
+      wizardActive = true;
+      document.getElementById('obEmailLabel').textContent = r.email;
+      const first = (r.name || '').split(' ')[0] || '';
+      document.getElementById('obHello').textContent = first ? ', ' + first : '';
+      const pro = document.getElementById('obProNome');
+      if (pro && !pro.value) pro.value = first;
+      wizGo(1);
+      loadSetupInfo();
+    }
+
+    function wizNext() {
       const studioNome = document.getElementById('obStudioNome').value.trim();
       const profissionalNome = document.getElementById('obProNome').value.trim();
       const whatsapp = document.getElementById('obWhatsapp').value.trim();
-      const pixChave = document.getElementById('obPixChave').value.trim();
       if (!studioNome || !profissionalNome) return showToast('Preencha o nome do Studio e o seu nome.');
       if (!isValidBrPhone(whatsapp)) return showToast('WhatsApp inválido: use DDD + número.');
+      wizGo(2);
+    }
+
+    function setDbMode(mode) {
+      dbMode = mode;
+      document.getElementById('dbOptNew').classList.toggle('active', mode === 'NOVA');
+      document.getElementById('dbOptExisting').classList.toggle('active', mode === 'EXISTENTE');
+      document.getElementById('dbExistingBox').classList.toggle('hidden', mode !== 'EXISTENTE');
+      document.getElementById('btnOnboarding').innerHTML = mode === 'NOVA' ? '<i class="fa-solid fa-rocket"></i> Criar meu Studio' : '<i class="fa-solid fa-link"></i> Vincular minha planilha';
+      if (mode === 'EXISTENTE') loadSetupInfo();
+    }
+
+    function copyServerEmail() {
+      const e = (setupInfo && setupInfo.serverEmail) || '';
+      if (!e) return showToast('Carregando o e-mail do app... tente de novo.');
+      copyToClipboardUniversal(e, 'E-mail do app');
+    }
+
+    function openTypedSheet() {
+      const v = document.getElementById('obPlanilha').value.trim();
+      const url = /^https:\/\/docs\.google\.com\//.test(v) ? v : 'https://docs.google.com/spreadsheets/u/0/';
+      if (window.AndroidNative && typeof window.AndroidNative.openExternalUrl === 'function') window.AndroidNative.openExternalUrl(url);
+      else window.open(url, '_blank');
+    }
+
+    async function submitCreateStudio() {
+      if (!pendingSignup) return showAuthMode('login');
+      const payload = {
+        signupToken: pendingSignup.signupToken,
+        studioNome: document.getElementById('obStudioNome').value.trim(),
+        profissionalNome: document.getElementById('obProNome').value.trim(),
+        whatsapp: document.getElementById('obWhatsapp').value.trim(),
+        pixChave: document.getElementById('obPixChave').value.trim()
+      };
+      if (dbMode === 'EXISTENTE') {
+        payload.planilha = document.getElementById('obPlanilha').value.trim();
+        if (!payload.planilha) return showToast('Cole o link da sua planilha.');
+      }
       if (!document.getElementById('obTermo').checked) return showToast('Confirme o termo de responsabilidade.');
-      const done = busy(document.getElementById('btnOnboarding'), 'Criando seu Studio e planilha...');
+      const done = busy(document.getElementById('btnOnboarding'), dbMode === 'NOVA' ? 'Criando seu Studio e a planilha...' : 'Conferindo sua planilha...');
       try {
-        const r = await api('createStudio', { signupToken: pendingSignup.signupToken, studioNome, profissionalNome, whatsapp, pixChave });
+        const r = await api('createStudio', payload);
         setSession(r.session, r.email);
         pendingSignup = null;
-        await enterApp('🎉 Studio criado! A planilha já está no seu Google Drive.');
-        const navBtns = document.querySelectorAll('.nav-btn');
-        if (navBtns[4]) switchTab('tabConfig', navBtns[4]);
+        await refreshAdminData();
+        showToast(r.vinculada ? '✅ Planilha vinculada! Seus dados ficam nela.' : (r.isNew ? '🎉 Studio criado! A planilha está no seu Google Drive.' : '💅 Você já tinha um Studio — abrimos ele.'), 6000);
+        const info = await loadSetupInfo();
+        if (info.calendarReady && !(dashState.gcal && dashState.gcal.connected)) wizGo(3);
+        else finishWizard(false);
       } catch (e) {
-        showToast(e.message, 6000);
+        if (e.code === 'SEM_ACESSO') {
+          if (e.info && e.info.serverEmail) {
+            setupInfo = Object.assign(setupInfo || {}, { serverEmail: e.info.serverEmail });
+            document.getElementById('obServerEmail').textContent = e.info.serverEmail;
+          }
+          document.getElementById('dbExistingBox').style.borderColor = '#f59e0b';
+          showToast('Falta compartilhar a planilha com o app (veja as instruções) e tocar de novo.', 7000);
+          done();
+          document.getElementById('btnOnboarding').innerHTML = '<i class="fa-solid fa-rotate"></i> Já compartilhei — verificar de novo';
+          return;
+        }
+        showToast(e.message, 7000);
       } finally {
-        done();
+        if (document.getElementById('btnOnboarding').disabled) done();
+        else document.getElementById('btnOnboarding').disabled = false;
+      }
+    }
+
+    /** Depois do login de quem já tem Studio: oferece a Google Agenda se ainda não ligou. */
+    async function afterLogin(msg) {
+      await refreshAdminData();
+      let dismissed = 0;
+      try { dismissed = Number(localStorage.getItem('NAIL_GCAL_PROMPT_SKIP') || 0); } catch (e) {}
+      const g = dashState.gcal || {};
+      if (g.configured !== false && !g.connected && Date.now() - dismissed > 7 * 86400000) {
+        wizardActive = true;
+        document.getElementById('wizCalTitle').textContent = g.status === 'EXPIRADA' ? 'Reconectar sua Google Agenda' : 'Falta só a sua Google Agenda';
+        wizGo(3, { agendaOnly: true });
+        return;
+      }
+      document.getElementById('lockScreen').classList.add('hidden');
+      if (msg) showToast(msg);
+    }
+
+    function finishWizard(connected) {
+      if (!connected) { try { localStorage.setItem('NAIL_GCAL_PROMPT_SKIP', String(Date.now())); } catch (e) {} }
+      const wasNew = !document.getElementById('wizSteps').classList.contains('hidden');
+      wizardActive = false;
+      document.getElementById('lockScreen').classList.add('hidden');
+      showAuthMode('login');
+      if (wasNew) {
+        const navBtns = document.querySelectorAll('.nav-btn');
+        if (navBtns[3]) switchTab('tabShare', navBtns[3]);
+        showToast(connected ? '🎉 Tudo pronto! Agora é só mandar seu link para as clientes.' : 'Tudo pronto! Você pode ligar a agenda depois em Opções.', 6000);
+      } else if (!connected) {
+        showToast('Você pode ligar a Google Agenda depois em Opções.');
       }
     }
 
@@ -1697,14 +1876,13 @@
     }
 
     async function enterApp(msg) {
-      document.getElementById('lockScreen').classList.add('hidden');
-      await refreshAdminData();
-      if (msg) showToast(msg);
+      return afterLogin(msg);
     }
 
     function logoutApp(silent) {
       clearSession();
       pendingSignup = null;
+      wizardActive = false;
       try { if (window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect(); } catch (e) {}
       try { if (window.AndroidNative && typeof window.AndroidNative.signOut === 'function') window.AndroidNative.signOut(); } catch (e) {}
       const pin = document.getElementById('pinInput');
@@ -1814,6 +1992,7 @@
       try {
         const d = await adminCall('gcalConnect', { code, redirectUri });
         showToast('🎉 Google Agenda conectada!' + (d.synced ? ' ' + d.synced + ' reserva(s) enviada(s) para a agenda.' : ''), 6000);
+        if (wizardActive) finishWizard(true);
       } catch (e) {
         showToast(e.message, 7000);
       }
@@ -2223,6 +2402,7 @@
 
     window.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('manData').value = getLocalIsoDate();
+      updateInstallCard();
       if (!isConfigured()) {
         showAuthMode('setup');
         return;
@@ -2294,8 +2474,28 @@
       renderBookingsList();
     }
 
+    function renderSheetOwner(st) {
+      const box = document.getElementById('sheetOwnerBox');
+      if (!box) return;
+      const own = st.planilhaDona;
+      if (own === 'MANICURE') box.innerHTML = '<span class="badge b-ok"><i class="fa-solid fa-user-check"></i> A planilha é sua (está no seu Google Drive)</span>';
+      else if (own === 'PENDENTE') box.innerHTML = '<span class="badge b-warn"><i class="fa-regular fa-envelope"></i> Aceite a transferência no e-mail do Google ou no seu Drive</span>';
+      else box.innerHTML = '<div style="color:#64748b; margin-bottom:6px;">Hoje a planilha está guardada pelo app e compartilhada com você.</div><button type="button" class="btn-sm" style="background:#16a34a; color:#fff;" onclick="transferSheetOwnership(this)"><i class="fa-solid fa-hand-holding-heart"></i> Quero ser a dona da planilha</button>';
+    }
+
+    async function transferSheetOwnership(btn) {
+      if (!confirm('O Google vai enviar um pedido para você aceitar a propriedade da planilha. Depois de aceitar, NÃO remova o acesso do app (ele continua como editor). Continuar?')) return;
+      const done = busy(btn, 'Enviando pedido...');
+      try {
+        const r = await api('adminTransferOwnership');
+        showToast(r.status === 'JA_DONA' ? 'A planilha já é sua!' : '📧 Pedido enviado! Abra o e-mail do Google (ou o Drive) e toque em Aceitar.', 7000);
+        await refreshAdminData();
+      } catch (e) { showToast(e.message, 6000); done(); }
+    }
+
     function renderDashboard(data) {
       document.body.setAttribute('data-theme', data.studio.temaCor || 'pink-gold');
+      renderSheetOwner(data.studio);
       document.getElementById('hdrStudioName').textContent = data.studio.nome || 'Meu Studio';
       if (data.studio.spreadsheetUrl) {
         const shInp = document.getElementById('mySheetUrlInput');
@@ -2402,6 +2602,7 @@
 
         const inCal = /^(?!GCAL-|DELETED_).+/.test(ag.calendarEventId || '');
         const calIcon = !isBlock && inCal && !closed ? ' <i class="fa-regular fa-calendar-check" title="Na sua Google Agenda" style="color:#2563eb"></i>' : '';
+        const calPending = !isBlock && !inCal && !closed && ag.statusReserva !== 'CONCLUIDO' && ag.data >= todayIso && dashState.gcal && dashState.gcal.connected;
         const actions = [];
         if (isPixWarn) actions.push(`<button class="btn-sm" style="background:#10b981; color:#fff;" onclick="bookingAction('${id}','VALIDAR_PIX')"><i class="fa-solid fa-check"></i> Validar Pix</button>`);
         if (!isBlock && !closed && ag.statusReserva === 'RESERVADO' && !String(ag.metodoPagamento).includes('PIX')) actions.push(`<button class="btn-sm" style="background:#6366f1; color:#fff;" onclick="bookingAction('${id}','CONFIRMAR')"><i class="fa-solid fa-thumbs-up"></i> Confirmar</button>`);
@@ -2422,6 +2623,7 @@
               <div style="font-size:0.79rem; color:var(--text-muted);"><i class="fa-regular fa-calendar"></i> <strong>${fmtBr(ag.data)}</strong> • <strong>${esc(ag.horaInicio)} às ${esc(ag.horaFim)}</strong>${isPast && !closed && ag.statusReserva !== 'CONCLUIDO' && !isBlock ? ' • <span style="color:#b45309">já passou</span>' : ''}</div>
               <div style="font-size:0.81rem; font-weight:700; color:var(--primary-dark); margin-top:2px;">${esc(ag.servicoNome)} ${!isBlock ? '• ' + money(ag.valor) : ''}</div>
               ${ag.observacoes ? `<div style="font-size:0.76rem; color:#475569; margin-top:3px;"><i class="fa-regular fa-note-sticky"></i> ${esc(ag.observacoes)}</div>` : ''}
+              ${calPending ? `<button type="button" onclick="resyncGcal()" style="margin-top:5px; border:none; background:#fff7ed; color:#9a3412; border-radius:99px; padding:3px 10px; font-size:0.72rem; font-weight:800; cursor:pointer;"><i class="fa-solid fa-rotate"></i> Ainda não está na Google Agenda — enviar agora</button>` : ''}
             </div>
             </div>
             ${badge}
@@ -2704,6 +2906,7 @@
       document.getElementById('cfgAceitaLocal').checked = st.aceitaPagarNoStudio !== false;
       document.getElementById('cfgBloquearGoogle').checked = st.bloquearComGoogleAgenda !== false;
       document.getElementById('cfgResumoDiario').checked = !!st.resumoDiario;
+      document.getElementById('cfgNotificarEmail').checked = st.notificarEmail !== false;
       document.getElementById('cfgDiasRetorno').value = st.diasRetorno || 15;
       document.getElementById('cfgLinkAvaliacao').value = st.linkAvaliacao || '';
       document.getElementById('cfgBoasVindas').value = st.mensagemBoasVindas || '';
@@ -2970,6 +3173,7 @@
         aceitaPagarNoStudio: document.getElementById('cfgAceitaLocal').checked,
         bloquearComGoogleAgenda: document.getElementById('cfgBloquearGoogle').checked,
         resumoDiario: document.getElementById('cfgResumoDiario').checked,
+        notificarEmail: document.getElementById('cfgNotificarEmail').checked,
         diasRetorno: Number(document.getElementById('cfgDiasRetorno').value || 15),
         linkAvaliacao: document.getElementById('cfgLinkAvaliacao').value.trim(),
         mensagemBoasVindas: document.getElementById('cfgBoasVindas').value.trim(),
@@ -3014,15 +3218,28 @@
       copyToClipboardUniversal(inp ? inp.value : '', 'Link da página das clientes');
     }
 
-    async function installAppOnPhone() {
+    const IS_IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const IS_STANDALONE = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+    function updateInstallCard() {
+      const c = document.getElementById('installCard');
+      if (c) c.classList.toggle('hidden', IS_ANDROID_APP || IS_STANDALONE);
+    }
+
+    /** Instala do jeito certo para o aparelho, sem a pessoa precisar escolher. */
+    async function installApp() {
+      if (IS_IOS) return openIosInstallModal();
       if (deferredInstallPrompt) {
         deferredInstallPrompt.prompt();
         await deferredInstallPrompt.userChoice;
         deferredInstallPrompt = null;
-      } else {
-        alert('📱 Para instalar na tela inicial:\n\n• Android (Chrome): toque nos 3 pontinhos e escolha "Instalar aplicativo".\n• iPhone (Safari): toque em Compartilhar e "Adicionar à Tela de Início".');
+        updateInstallCard();
+        return;
       }
+      if (/Android/i.test(navigator.userAgent)) return downloadAndUpdateAndroidApk();
+      alert('No navegador, use o ícone de instalar na barra de endereço (ou o menu ⋮ → "Instalar Nail Studio Pro").');
     }
+    const installAppOnPhone = installApp;
 
     async function seedStarterCatalog() {
       const done = busy(document.getElementById('btnSeedCatalog'), 'Criando procedimentos...');

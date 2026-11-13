@@ -76,7 +76,7 @@ class Range {
   setNumberFormat() { return this; }
 }
 class Spreadsheet {
-  constructor(id, name) { this.id = id; this.name = name; this.sheets = [new Sheet('Página1')]; this.tz = 'America/Sao_Paulo'; this.editors = []; }
+  constructor(id, name, owner) { this.id = id; this.name = name; this.sheets = [new Sheet('Página1')]; this.tz = 'America/Sao_Paulo'; this.editors = []; this.owner = owner || 'servidor@gmail.com'; this.pendingOwner = null; }
   getId() { return this.id; }
   getSheets() { return this.sheets; }
   getSheetByName(n) { return this.sheets.find(s => s.name === n) || null; }
@@ -129,6 +129,15 @@ class FakeGoogle {
       this.revoked.push(t); delete this.refreshTokens[t];
       return res(200, {});
     }
+    const mPerm = url.match(/^https:\/\/www\.googleapis\.com\/drive\/v3\/files\/([^/?]+)\/permissions(?:\/([^?]+))?/);
+    if (mPerm && this.spreadsheets) {
+      const ss = this.spreadsheets[mPerm[1]];
+      if (!ss) return res(404, { error: { message: 'not found' } });
+      const perms = () => [{ id: 'p-owner', emailAddress: ss.owner, role: 'owner' }].concat(ss.editors.map(e => ({ id: 'p-' + e, emailAddress: e, role: 'writer' })));
+      if (method === 'get') return res(200, { permissions: perms() });
+      if (method === 'post') { const b = JSON.parse(opts.payload); ss.editors.push(b.emailAddress); return res(200, { id: 'p-' + b.emailAddress }); }
+      if (method === 'patch') { const b = JSON.parse(opts.payload); if (b.pendingOwner) ss.pendingOwner = mPerm[2].replace(/^p-/, ''); return res(200, {}); }
+    }
     if (url.startsWith('https://www.googleapis.com/calendar/v3/calendars/primary/events')) {
       const auth = (opts.headers || {}).Authorization || '';
       const email = this.accessTokens[auth.replace('Bearer ', '')];
@@ -163,6 +172,8 @@ function createGas({ apiUrl = 'http://localhost/exec' } = {}) {
   const cache = {};
   const spreadsheets = {};
   const google = new FakeGoogle();
+  google.spreadsheets = spreadsheets;
+  const triggers = [];
   const mails = [];
   const drive = { folders: {}, files: {} };
   const logs = [];
@@ -179,7 +190,7 @@ function createGas({ apiUrl = 'http://localhost/exec' } = {}) {
       put: (k, v, s = 600) => { cache[k] = { v: String(v), exp: Date.now() + s * 1000 }; },
       remove: k => { delete cache[k]; } }) },
     LockService: { getScriptLock: () => ({ tryLock: () => true, waitLock: () => {}, releaseLock: () => {} }) },
-    Session: { getScriptTimeZone: () => 'America/Sao_Paulo' },
+    Session: { getScriptTimeZone: () => 'America/Sao_Paulo', getEffectiveUser: () => ({ getEmail: () => 'servidor@gmail.com' }) },
     Utilities: {
       formatDate,
       DigestAlgorithm: { SHA_256: 'sha256' }, Charset: { UTF_8: 'utf8' },
@@ -193,7 +204,7 @@ function createGas({ apiUrl = 'http://localhost/exec' } = {}) {
     },
     SpreadsheetApp: {
       create: (name) => { const id = newId(); return (spreadsheets[id] = new Spreadsheet(id, name)); },
-      openById: (id) => { const s = spreadsheets[id]; if (!s) throw new Error('Planilha inexistente: ' + id); return s; }
+      openById: (id) => { const s = spreadsheets[id]; if (!s) throw new Error('Planilha inexistente: ' + id); if (s.noServerAccess && !s.editors.includes('servidor@gmail.com')) throw new Error('Você não tem permissão para acessar o documento solicitado.'); return s; }
     },
     UrlFetchApp: { fetch: (u, o) => google.fetch(u, o) },
     ContentService: {
@@ -202,8 +213,9 @@ function createGas({ apiUrl = 'http://localhost/exec' } = {}) {
     },
     ScriptApp: {
       getService: () => ({ getUrl: () => apiUrl }),
-      getProjectTriggers: () => [],
-      newTrigger: () => { const ch = { timeBased: () => ch, everyDays: () => ch, atHour: () => ch, create: () => ({}) }; return ch; }
+      getOAuthToken: () => 'server-token',
+      getProjectTriggers: () => triggers.map(t => ({ getHandlerFunction: () => t.fn })),
+      newTrigger: (fn) => { const t = { fn }; const ch = { timeBased: () => ch, everyDays: (n) => { t.days = n; return ch; }, everyMinutes: (n) => { t.minutes = n; return ch; }, atHour: (h) => { t.hour = h; return ch; }, create: () => { triggers.push(t); return {}; } }; return ch; }
     },
     MailApp: { sendEmail: (m) => mails.push(m) },
     DriveApp: {
@@ -223,7 +235,12 @@ function createGas({ apiUrl = 'http://localhost/exec' } = {}) {
         return folder;
       },
       getFolderById: (id) => { if (!drive.folders[id]) throw new Error('pasta inexistente'); return drive.folders[id]; },
-      getFileById: (id) => { if (!drive.files[id]) throw new Error('arquivo inexistente'); return drive.files[id]; }
+      getFileById: (id) => {
+        if (drive.files[id]) return drive.files[id];
+        const ss = spreadsheets[id];
+        if (!ss) throw new Error('arquivo inexistente');
+        return { getOwner: () => ({ getEmail: () => ss.owner }), getEditors: () => ss.editors.map(e => ({ getEmail: () => e })) };
+      }
     }
   };
   const context = vm.createContext(env);
@@ -231,7 +248,9 @@ function createGas({ apiUrl = 'http://localhost/exec' } = {}) {
   vm.runInContext(code, context, { filename: 'Code.gs' });
 
   const api = {
-    context, props, cache, spreadsheets, google, mails, logs, drive,
+    context, props, cache, spreadsheets, google, mails, logs, drive, triggers,
+    /** Simula uma planilha que já existe no Drive da manicure. */
+    createUserSheet(owner, name) { const id = 'USERSHEET' + crypto.randomBytes(10).toString('hex'); spreadsheets[id] = new Spreadsheet(id, name || 'Minha planilha', owner); spreadsheets[id].noServerAccess = true; return spreadsheets[id]; },
     call(fn, args, session) { return JSON.parse(JSON.stringify(context.dispatch_({ fn, args, session }))); },
     ok(fn, args, session) { const r = api.call(fn, args, session); if (!r.ok) throw new Error(fn + ' falhou: ' + r.error); return r.data; },
     clearCache() { Object.keys(cache).forEach(k => delete cache[k]); }

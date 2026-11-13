@@ -29,12 +29,24 @@ página pública de agendamento para as clientes, Pix Copia e Cola e integraçã
 
 ## ✨ Funcionalidades
 
-**Conta e segurança**
+**Primeiro acesso em 3 passos (novo)**
+- Tela de login única: **Entrar com Google** (no APK usa as contas do próprio celular). Sem perguntar iOS/Android.
+- Assistente: **1. Studio** (nome, WhatsApp, Pix) → **2. Planilha**: criar uma nova no Drive *ou* **vincular uma planilha que ela já tem**
+  (mantém os dados e cria só as abas que faltam) → **3. Google Agenda**: conectar com 1 toque (ou "agora não").
+- Quem já tem Studio e ainda não ligou a agenda recebe o convite ao entrar (no máximo 1x por semana).
+- "Quero ser a dona da planilha": transfere a propriedade da planilha para o Drive da manicure.
+- O link para instalar o app fica em **Meu Link**, e já detecta o aparelho (iPhone, Android ou computador).
+
 - Login com a **Conta Google real** (botão oficial no navegador; seletor nativo de contas no Android).
 - Primeiro acesso cria o Studio e a planilha automaticamente (compartilhada com a dona).
 - PIN opcional de acesso rápido (com bloqueio após 5 erros) e "Desconectar todos os aparelhos".
 
 **Google Agenda (novo motor)**
+- **Cliente agendou → entra na hora na Google Agenda. Cliente desmarcou → sai na hora.** Vale também para reservas,
+  cancelamentos e reagendamentos feitos pela manicure.
+- **Sincronização automática a cada 15 min**: reenvia o que falhou (Google instável) e tira da agenda reservas canceladas
+  direto na planilha. No painel, reserva que ainda não chegou à agenda mostra "enviar agora".
+- **E-mail na hora** para a manicure a cada nova reserva ou cancelamento (pode desligar).
 - Conectar uma vez: reservas entram na agenda com lembrete (1 dia e 1 hora antes).
 - **Reagendar move o evento**, cancelar/liberar vaga **apaga o evento**.
 - **Compromissos pessoais da agenda bloqueiam horários** na página da cliente.

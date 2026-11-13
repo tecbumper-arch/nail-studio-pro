@@ -66,26 +66,36 @@ async function shot(page, name) {
   page.on('dialog', d => d.accept());
 
   try {
-    // 1. Login Google + criação do Studio
+    // 1. Login Google + assistente: Studio → Planilha → Agenda
     await page.goto(base + '/App_Manicure.html');
     await page.waitForSelector('#fakeGoogleBtn');
+    assert.ok(!(await page.textContent('#authModeLogin')).includes('iPhone'), 'login não pergunta iOS/Android');
     await shot(page, '01-login');
     await page.click('#fakeGoogleBtn');
-    await page.waitForSelector('#authModeOnboarding:not(.hidden)');
+    await page.waitForSelector('#wizStep1:not(.hidden)');
     assert.strictEqual(await page.textContent('#obEmailLabel'), 'ana@gmail.com');
     assert.strictEqual(await page.inputValue('#obProNome'), 'Ana');
     await page.fill('#obStudioNome', 'Studio Ana Nails');
     await page.fill('#obWhatsapp', '(11) 98888-7777');
     await page.fill('#obPixChave', '11988887777');
+    await shot(page, '02-wizard-studio');
+    await page.click('#wizStep1 button:has-text("Continuar")');
+    await page.waitForSelector('#wizStep2:not(.hidden)');
+    await page.click('#dbOptExisting');
+    await page.waitForFunction(() => document.getElementById('obServerEmail').textContent.includes('servidor@gmail.com'));
+    await shot(page, '02b-wizard-planilha-existente');
+    await page.click('#dbOptNew');
     await page.check('#obTermo');
-    await shot(page, '02-onboarding');
+    await shot(page, '02c-wizard-planilha');
     await page.click('#btnOnboarding');
-    await page.waitForFunction(() => document.getElementById('hdrStudioName').textContent === 'Studio Ana Nails');
-    assert.ok(await page.isHidden('#lockScreen'));
-
-    // 2. Conectar Google Agenda
-    await page.waitForSelector('#tabConfig:not(.hidden)');
-    await page.click('#btnConnectGCal');
+    await page.waitForSelector('#wizStep3:not(.hidden)');
+    await shot(page, '02d-wizard-agenda');
+    // 2. Conectar Google Agenda pelo assistente
+    await page.click('#btnWizCal');
+    await page.waitForSelector('#lockScreen', { state: 'hidden' });
+    await page.waitForSelector('#tabShare:not(.hidden)');
+    assert.strictEqual(await page.textContent('#hdrStudioName'), 'Studio Ana Nails');
+    await page.click('.nav-btn >> nth=4');
     await page.waitForFunction(() => document.getElementById('gcalStatusBadge').textContent.includes('Conectada'));
     assert.match(await page.textContent('#gcalAccountLine'), /ana@gmail.com/);
     await shot(page, '03-agenda-conectada');

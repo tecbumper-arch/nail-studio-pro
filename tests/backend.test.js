@@ -376,3 +376,83 @@ test('fotos dos trabalhos: envio para o Drive, várias por serviço, capa e remo
   // catálogo inicial não traz fotos genéricas
   assert.ok(d.catalogo.filter(x => x.id !== 'SRV-101').every(x => x.fotos.length === 0));
 });
+
+test('reserva da cliente entra na agenda e avisa por e-mail; cancelamento sai da agenda e avisa', () => {
+  const gas = setupGas();
+  const { spreadsheetId: s, session } = signUp(gas);
+  gas.ok('gcalConnect', { code: gas.google.issueCode('ana@gmail.com'), redirectUri: 'postmessage' }, session);
+  assert.ok(gas.triggers.some(t => t.fn === 'sincronizarAgendas' && t.minutes === 15), 'sincronização automática instalada');
+  const day = nextWorkday();
+  const r = gas.ok('createCustomerBooking', { s, servicoId: 'SRV-104', data: day, horaInicio: '10:00', clienteNome: 'Bia', clienteWhatsApp: '21977776666', metodoPagamento: 'NO_LOCAL' });
+  assert.strictEqual(gas.google.events['ana@gmail.com'].length, 1, 'evento criado na hora');
+  assert.match(gas.mails[0].subject, /Nova reserva: Bia/);
+  assert.match(gas.mails[0].htmlBody, /Já está na sua Google Agenda/);
+  gas.ok('cancelCustomerBooking', { s, id: r.reserva.id, phone: '21977776666' });
+  assert.strictEqual(gas.google.events['ana@gmail.com'].length, 0, 'evento removido na hora');
+  assert.match(gas.mails[1].subject, /Cancelou: Bia/);
+  // desligar o e-mail
+  gas.ok('adminSaveSettings', { notificarEmail: false }, session);
+  gas.ok('createCustomerBooking', { s, servicoId: 'SRV-104', data: day, horaInicio: '15:00', clienteNome: 'Carla', clienteWhatsApp: '21966665555', metodoPagamento: 'NO_LOCAL' });
+  assert.strictEqual(gas.mails.length, 2);
+});
+
+test('sincronização automática: refaz envio que falhou e tira da agenda o que foi cancelado na planilha', () => {
+  const gas = setupGas();
+  const { spreadsheetId: s, session } = signUp(gas);
+  gas.ok('gcalConnect', { code: gas.google.issueCode('ana@gmail.com'), redirectUri: 'postmessage' }, session);
+  const day = nextWorkday();
+  // Google instável no momento da reserva
+  const realFetch = gas.google.fetch.bind(gas.google);
+  gas.google.fetch = (u, o) => (u.includes('/calendar/v3/') && (o.method || '').toLowerCase() === 'post') ? { getResponseCode: () => 503, getContentText: () => '{"error":{"message":"backend error"}}' } : realFetch(u, o);
+  const r = gas.ok('createCustomerBooking', { s, servicoId: 'SRV-104', data: day, horaInicio: '11:00', clienteNome: 'Duda', clienteWhatsApp: '21955554444', metodoPagamento: 'NO_LOCAL' });
+  assert.ok(r.reserva.id, 'reserva não falha por causa da agenda');
+  assert.strictEqual((gas.google.events['ana@gmail.com'] || []).length, 0);
+  gas.google.fetch = realFetch;
+  assert.strictEqual(gas.context.sincronizarAgendas(), 1);
+  assert.strictEqual(gas.google.events['ana@gmail.com'].length, 1, 'evento criado pela sincronização');
+  // a manicure cancela direto na planilha
+  const sh = gas.spreadsheets[s].getSheetByName('Agendamentos');
+  sh.data[1][11] = 'CANCELADO';
+  gas.context.sincronizarAgendas();
+  assert.strictEqual(gas.google.events['ana@gmail.com'].length, 0, 'evento removido pela sincronização');
+});
+
+test('primeiro acesso vinculando uma planilha que a manicure já tem', () => {
+  const gas = setupGas();
+  const mine = gas.createUserSheet('bia@gmail.com', 'Agenda da Bia');
+  mine.getSheets()[0].setName('Agendamentos');
+  mine.getSheets()[0].data = [['ID_Reserva', 'Data'], ['AG-ANTIGA', '2026-01-10']];
+  const first = gas.ok('authGoogle', { idToken: gas.google.issueIdToken('bia@gmail.com', CLIENT_ID, 'Bia') });
+  const args = { signupToken: first.signupToken, studioNome: 'Bia Nails', profissionalNome: 'Bia', whatsapp: '11977776666', planilha: 'https://docs.google.com/spreadsheets/d/' + mine.id + '/edit#gid=0' };
+  const noAccess = gas.call('createStudio', args);
+  assert.strictEqual(noAccess.code, 'SEM_ACESSO');
+  assert.strictEqual(noAccess.info.serverEmail, 'servidor@gmail.com');
+  assert.match(noAccess.error, /servidor@gmail\.com/);
+  // ela compartilha com o servidor
+  mine.editors.push('servidor@gmail.com');
+  const ok = gas.ok('createStudio', args);
+  assert.strictEqual(ok.spreadsheetId, mine.id);
+  assert.strictEqual(ok.vinculada, true);
+  const dash = gas.ok('getAdminDashboardData', {}, ok.session);
+  assert.strictEqual(dash.studio.nome, 'Bia Nails');
+  assert.strictEqual(dash.studio.planilhaDona, 'MANICURE');
+  assert.ok(dash.agendamentos.some(b => b.id === 'AG-ANTIGA'), 'dados existentes mantidos');
+  assert.ok(mine.getSheetByName('Catalogo') && mine.getSheetByName('Configuracoes'), 'abas que faltavam foram criadas');
+  // planilha de outra pessoa não pode ser usada
+  const other = gas.createUserSheet('outra@gmail.com');
+  other.editors.push('servidor@gmail.com');
+  const f2 = gas.ok('authGoogle', { idToken: gas.google.issueIdToken('carla@gmail.com', CLIENT_ID) });
+  const bad = gas.call('createStudio', { signupToken: f2.signupToken, studioNome: 'X', planilha: other.id });
+  assert.match(bad.error, /não é da sua conta/);
+});
+
+test('tornar a manicure dona da planilha criada pelo app', () => {
+  const gas = setupGas();
+  const { spreadsheetId: s, session } = signUp(gas);
+  let dash = gas.ok('getAdminDashboardData', {}, session);
+  assert.strictEqual(dash.studio.planilhaDona, 'SERVIDOR');
+  assert.strictEqual(gas.ok('adminTransferOwnership', {}, session).status, 'AGUARDANDO_ACEITE');
+  assert.strictEqual(gas.spreadsheets[s].pendingOwner, 'ana@gmail.com');
+  dash = gas.ok('getAdminDashboardData', {}, session);
+  assert.strictEqual(dash.studio.planilhaDona, 'PENDENTE');
+});

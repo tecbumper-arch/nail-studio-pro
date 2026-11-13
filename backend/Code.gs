@@ -98,7 +98,32 @@ function setup() {
   if (!hasDaily) {
     ScriptApp.newTrigger('enviarResumosDiarios').timeBased().everyDays(1).atHour(7).create();
   }
+  ensureSyncTrigger_();
   Logger.log(diagnostico());
+}
+
+/** Instala (uma vez) a sincronização automática da Google Agenda a cada 15 minutos. */
+function ensureSyncTrigger_() {
+  try {
+    var has = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'sincronizarAgendas'; });
+    if (!has) ScriptApp.newTrigger('sincronizarAgendas').timeBased().everyMinutes(15).create();
+  } catch (e) {}
+}
+
+/**
+ * Gatilho (15 em 15 min): garante que toda reserva ativa esteja na Google Agenda e que
+ * reservas canceladas (inclusive direto na planilha) saiam dela. Também refaz envios
+ * que falharam por instabilidade do Google.
+ */
+function sincronizarAgendas() {
+  var rows = directoryRows_();
+  var total = 0;
+  for (var i = 1; i < rows.length; i++) {
+    var sid = String(rows[i][3] || '').trim();
+    if (!sid || !prop_(rtKey_(sid))) continue;
+    try { total += resyncFutureBookings_(openStudio_(sid)); } catch (e) { Logger.log('Sync falhou ' + sid + ': ' + e.message); }
+  }
+  return total;
 }
 
 /** Mostra no log o que está configurado (sem revelar segredos). */
@@ -154,8 +179,15 @@ function dispatch_(req) {
   } catch (err) {
     var msg = (err && err.message) ? err.message : String(err);
     if (msg.indexOf('SESSAO_') === 0) return { ok: false, error: 'Sua sessão expirou. Entre novamente.', code: msg };
-    return { ok: false, error: msg };
+    return err && err.code ? { ok: false, error: msg, code: err.code, info: err.info || null } : { ok: false, error: msg };
   }
+}
+
+function codedError_(code, msg, info) {
+  var e = new Error(msg);
+  e.code = code;
+  e.info = info || null;
+  return e;
 }
 
 // =============================================================================
@@ -482,6 +514,8 @@ function studioAdmin_(ctx) {
   s.sincronizarAgenda = c.SINCRONIZAR_AGENDA || 'SIM';
   s.bloquearComGoogleAgenda = String(c.BLOQUEAR_COM_GOOGLE_AGENDA || 'SIM').toUpperCase() !== 'NAO';
   s.resumoDiario = String(c.RESUMO_DIARIO || 'NAO').toUpperCase() === 'SIM';
+  s.notificarEmail = String(c.NOTIFICAR_EMAIL || 'SIM').toUpperCase() !== 'NAO';
+  s.planilhaDona = sheetOwnership_(ctx);
   s.linkAvaliacao = c.LINK_AVALIACAO || '';
   s.diasRetorno = Number(c.DIAS_RETORNO || 15) || 15;
   s.temPin = !!c.ADMIN_PIN_HASH;
@@ -1049,17 +1083,10 @@ function pixFor_(ctx, b) {
 // =============================================================================
 // CRIAÇÃO DE STUDIO
 // =============================================================================
-function provisionStudio_(email, p) {
+function defaultConfigRows_(email, p, now) {
   var studioNome = str_(p.studioNome, 60) || 'Meu Studio';
   var profissional = str_(p.profissionalNome, 60) || 'Manicure';
-  var ss = SpreadsheetApp.create(studioNome + ' - Nail Studio Pro (Banco de Dados)');
-  try { ss.setSpreadsheetTimeZone(Session.getScriptTimeZone()); } catch (e) {}
-  var first = ss.getSheets()[0];
-  first.setName(TAB_CONFIG);
-  var ctx = { ss: ss, sheetId: ss.getId(), tz: Session.getScriptTimeZone(), cfg: {} };
-  var now = nowInTz_(ctx.tz).stamp;
-  writeTable_(first, [
-    ['Chave', 'Valor', 'Descricao'],
+  return [
     ['SETUP_CONCLUIDO', 'SIM', 'Criado pelo App'],
     ['STUDIO_NOME', studioNome, 'Nome do Studio'],
     ['PROFISSIONAL_NOME', profissional, 'Nome da Profissional'],
@@ -1081,8 +1108,21 @@ function provisionStudio_(email, p) {
     ['SINCRONIZAR_AGENDA', 'SIM', 'Google Agenda'],
     ['BLOQUEAR_COM_GOOGLE_AGENDA', 'SIM', 'Compromissos pessoais bloqueiam horários'],
     ['RESUMO_DIARIO', 'NAO', 'Resumo do dia por e-mail às 7h'],
+    ['NOTIFICAR_EMAIL', 'SIM', 'E-mail a cada reserva/cancelamento'],
     ['TERMO_ACEITO_EM', now, 'Termo aceito']
-  ]);
+  ];
+}
+
+function provisionStudio_(email, p) {
+  var studioNome = str_(p.studioNome, 60) || 'Meu Studio';
+  var profissional = str_(p.profissionalNome, 60) || 'Manicure';
+  var ss = SpreadsheetApp.create(studioNome + ' - Nail Studio Pro (Banco de Dados)');
+  try { ss.setSpreadsheetTimeZone(Session.getScriptTimeZone()); } catch (e) {}
+  var first = ss.getSheets()[0];
+  first.setName(TAB_CONFIG);
+  var ctx = { ss: ss, sheetId: ss.getId(), tz: Session.getScriptTimeZone(), cfg: {} };
+  var now = nowInTz_(ctx.tz).stamp;
+  writeTable_(first, [['Chave', 'Valor', 'Descricao']].concat(defaultConfigRows_(email, p, now)));
   writeTable_(ss.insertSheet(TAB_CATS), [CATS_HEADER].concat(DEFAULT_CATS));
   writeTable_(ss.insertSheet(TAB_CATALOG), [CATALOG_HEADER].concat(DEFAULT_SERVICES));
   writeTable_(ss.insertSheet(TAB_BOOKINGS), [BOOKING_HEADER]);
@@ -1093,6 +1133,108 @@ function provisionStudio_(email, p) {
   appendRow_(directorySheet_(), [email, profissional, studioNome, sid, 'https://docs.google.com/spreadsheets/d/' + sid + '/edit', publicBaseUrl_() + '/Pagina_Cliente.html?s=' + sid, '', '', now]);
   cache_().put('reg:' + sid, '1', 600);
   return sid;
+}
+
+// -----------------------------------------------------------------------------
+// PLANILHA QUE A MANICURE JÁ TEM (vincular como banco de dados)
+// -----------------------------------------------------------------------------
+function serverEmail_() {
+  try { return String(Session.getEffectiveUser().getEmail() || ''); } catch (e) { return ''; }
+}
+
+function sheetIdFromInput_(v) {
+  var t = String(v || '').trim();
+  var m = t.match(/\/spreadsheets\/d\/([A-Za-z0-9_-]{20,})/) || t.match(/[?&]id=([A-Za-z0-9_-]{20,})/);
+  if (m) return m[1];
+  return /^[A-Za-z0-9_-]{20,}$/.test(t) ? t : '';
+}
+
+function userCanEdit_(fileId, email) {
+  var f = DriveApp.getFileById(fileId);
+  try { if (String(f.getOwner().getEmail()).toLowerCase() === email) return true; } catch (e) {}
+  return f.getEditors().some(function (u) { return String(u.getEmail()).toLowerCase() === email; });
+}
+
+function adoptSpreadsheet_(email, input, p) {
+  var sheetId = sheetIdFromInput_(input);
+  if (!sheetId) throw new Error('Cole o link da sua planilha do Google (docs.google.com/spreadsheets/...).');
+  var ss;
+  try { ss = SpreadsheetApp.openById(sheetId); } catch (e) {
+    var se = serverEmail_();
+    throw codedError_('SEM_ACESSO', 'O app ainda não tem acesso à sua planilha. Abra a planilha, toque em Compartilhar e adicione ' + (se || 'o e-mail do servidor') + ' como Editor. Depois toque em "Verificar de novo".', { serverEmail: se, sheetId: sheetId });
+  }
+  if (!userCanEdit_(sheetId, email)) throw new Error('Essa planilha não é da sua conta Google (' + email + '). Use uma planilha sua.');
+  var rows = directoryRows_();
+  for (var i = 1; i < rows.length; i++) {
+    if (String(rows[i][3]).trim() === sheetId && String(rows[i][0]).trim().toLowerCase() !== email) throw new Error('Esta planilha já está ligada a outro Studio.');
+  }
+  var tz = Session.getScriptTimeZone();
+  try { tz = ss.getSpreadsheetTimeZone() || tz; } catch (e) {}
+  var ctx = { ss: ss, sheetId: sheetId, tz: tz, cfg: {}, email: email };
+  var now = nowInTz_(tz).stamp;
+  ensureTab_(ctx, TAB_CONFIG, ['Chave', 'Valor', 'Descricao']);
+  ctx.cfg = readConfig_(ctx);
+  var up = {};
+  defaultConfigRows_(email, p, now).forEach(function (r) { if (!ctx.cfg[r[0]]) up[r[0]] = r[1]; });
+  up.ADMIN_LOGIN_ID = email;
+  up.SETUP_CONCLUIDO = 'SIM';
+  upsertConfig_(ctx, up);
+  // Abas que faltarem são criadas; dados existentes são mantidos
+  if (!ctx.ss.getSheetByName(TAB_CATS)) writeTable_(ensureTab_(ctx, TAB_CATS, CATS_HEADER), [CATS_HEADER].concat(DEFAULT_CATS));
+  if (!ctx.ss.getSheetByName(TAB_CATALOG)) writeTable_(ensureTab_(ctx, TAB_CATALOG, CATALOG_HEADER), [CATALOG_HEADER].concat(DEFAULT_SERVICES));
+  else ensureTab_(ctx, TAB_CATALOG, CATALOG_HEADER);
+  ensureTab_(ctx, TAB_BOOKINGS, BOOKING_HEADER);
+  ensureTab_(ctx, TAB_LOGS, ['Timestamp', 'Evento', 'Detalhes']);
+  logEvent_(ctx, 'PLANILHA_VINCULADA', 'Planilha existente vinculada por ' + email);
+  var already = findStudioByEmail_(email);
+  if (!already) {
+    appendRow_(directorySheet_(), [email, ctx.cfg.PROFISSIONAL_NOME || '', ctx.cfg.STUDIO_NOME || '', sheetId, 'https://docs.google.com/spreadsheets/d/' + sheetId + '/edit', publicBaseUrl_() + '/Pagina_Cliente.html?s=' + sheetId, '', '', now]);
+  }
+  cache_().put('reg:' + sheetId, '1', 600);
+  return sheetId;
+}
+
+/** Quem é a dona da planilha (cache 10 min): MANICURE, SERVIDOR ou PENDENTE. */
+function sheetOwnership_(ctx) {
+  var key = 'own:' + ctx.sheetId;
+  var hit = cache_().get(key);
+  if (hit) return hit;
+  var st = 'SERVIDOR';
+  try {
+    var owner = String(DriveApp.getFileById(ctx.sheetId).getOwner().getEmail()).toLowerCase();
+    if (ctx.email && owner === ctx.email) st = 'MANICURE';
+    else if (ctx.cfg.PLANILHA_DONA === 'PENDENTE') st = 'PENDENTE';
+  } catch (e) {}
+  cache_().put(key, st, 600);
+  return st;
+}
+
+// -----------------------------------------------------------------------------
+// AVISO POR E-MAIL PARA A MANICURE (nova reserva / cancelamento pela cliente)
+// -----------------------------------------------------------------------------
+function notifyManicure_(ctx, tipo, b) {
+  try {
+    if (String(ctx.cfg.NOTIFICAR_EMAIL || 'SIM').toUpperCase() === 'NAO') return;
+    var to = String(ctx.cfg.ADMIN_LOGIN_ID || '');
+    if (to.indexOf('@') < 0) return;
+    var nova = tipo === 'NOVA';
+    var dataBr = b.data.split('-').reverse().join('/');
+    var naAgenda = validEventId_(b.calendarEventId);
+    var agendaMsg = gcalConnected_(ctx)
+      ? (nova ? (naAgenda ? '✅ Já está na sua Google Agenda (com lembrete).' : '⏳ Será enviada para a sua Google Agenda em instantes.') : '🗑️ O evento foi removido da sua Google Agenda.')
+      : '💡 Conecte a Google Agenda no app (Opções) para as reservas entrarem sozinhas no seu calendário.';
+    var html = '<div style="font-family:Arial,sans-serif;max-width:520px">' +
+      '<h2 style="color:' + (nova ? '#ff1675' : '#dc2626') + '">' + (nova ? '💅 Nova reserva!' : '❌ Reserva cancelada pela cliente') + '</h2>' +
+      '<p><b>' + escHtml_(b.clienteNome) + '</b> — ' + escHtml_(b.servicoNome) + '<br>📅 ' + dataBr + ' às <b>' + b.horaInicio + '</b> (até ' + b.horaFim + ')' +
+      '<br>💵 R$ ' + Number(b.valor || 0).toFixed(2).replace('.', ',') + (b.metodoPagamento ? ' • ' + escHtml_(b.metodoPagamento) : '') +
+      (b.observacoes ? '<br>📝 ' + escHtml_(b.observacoes) : '') + '</p>' +
+      (b.clienteWhatsApp ? '<p><a href="https://wa.me/' + b.clienteWhatsApp + '">Falar com a cliente no WhatsApp</a></p>' : '') +
+      '<p style="color:#555">' + agendaMsg + '</p>' +
+      '<p style="font-size:12px;color:#888">Desative estes e-mails em Opções → Automações no app.</p></div>';
+    MailApp.sendEmail({ to: to, subject: (nova ? '💅 Nova reserva: ' : '❌ Cancelou: ') + b.clienteNome + ' — ' + dataBr + ' ' + b.horaInicio, htmlBody: html, name: 'Nail Studio Pro' });
+  } catch (e) {
+    logEvent_(ctx, 'EMAIL_FALHOU', e.message);
+  }
 }
 
 function sessionFor_(email, sheetId, ctx) {
@@ -1138,9 +1280,14 @@ var PUBLIC_API = {
     if (a.whatsapp && !isValidPhone_(a.whatsapp)) throw new Error('WhatsApp inválido: use DDD + número.');
     return withLock_(function () {
       var existing = findStudioByEmail_(su.e);
-      var sid = existing ? existing.sheetId : provisionStudio_(su.e, a);
-      return { session: sessionFor_(su.e, sid), email: su.e, spreadsheetId: sid, isNew: !existing };
+      var sid = existing ? existing.sheetId : (a.planilha ? adoptSpreadsheet_(su.e, a.planilha, a) : provisionStudio_(su.e, a));
+      return { session: sessionFor_(su.e, sid), email: su.e, spreadsheetId: sid, isNew: !existing, vinculada: !existing && !!a.planilha };
     });
+  },
+
+  /** Informações para o assistente de primeiro acesso. */
+  getSetupInfo: function () {
+    return { serverEmail: serverEmail_(), calendarReady: !!prop_('GOOGLE_CLIENT_SECRET') };
   },
 
   /** Login alternativo: e-mail + PIN (para quem ainda não usa o botão Google). */
@@ -1208,6 +1355,7 @@ var PUBLIC_API = {
       return saveBooking_(ctx, b);
     });
     syncCalendar_(ctx, booking);
+    notifyManicure_(ctx, 'NOVA', booking);
     logEvent_(ctx, 'RESERVA_CLIENTE', booking.id + ' ' + booking.data + ' ' + booking.horaInicio);
     var pix = pixFor_(ctx, booking);
     return {
@@ -1232,7 +1380,7 @@ var PUBLIC_API = {
     }).map(function (b) {
       var pix = pixFor_(ctx, b);
       return {
-        id: b.id, data: b.data, horaInicio: b.horaInicio, horaFim: b.horaFim, clienteNome: b.clienteNome, servicoNome: b.servicoNome,
+        id: b.id, data: b.data, horaInicio: b.horaInicio, horaFim: b.horaFim, clienteNome: b.clienteNome, servicoId: b.servicoId, servicoNome: b.servicoNome,
         valorTotal: b.valor, valorCobradoAgora: pix.valorCobradoAgora, metodoPagamento: b.metodoPagamento,
         statusPagamento: b.statusPagamento, statusReserva: b.statusReserva, pixCopiaECola: pix.pixCopiaECola, whatsappStudio: st.whatsapp
       };
@@ -1255,6 +1403,7 @@ var PUBLIC_API = {
       return saveBooking_(ctx, bk);
     });
     syncCalendar_(ctx, b);
+    notifyManicure_(ctx, 'CANCELADA', b);
     logEvent_(ctx, 'CANCELADO_CLIENTE', b.id);
     return { success: true };
   },
@@ -1563,6 +1712,7 @@ var ADMIN_API = {
       if (a.aceitaPagarNoStudio !== undefined) up.ACEITA_PAGAR_NO_STUDIO = a.aceitaPagarNoStudio ? 'SIM' : 'NAO';
       if (a.bloquearComGoogleAgenda !== undefined) up.BLOQUEAR_COM_GOOGLE_AGENDA = a.bloquearComGoogleAgenda ? 'SIM' : 'NAO';
       if (a.resumoDiario !== undefined) up.RESUMO_DIARIO = a.resumoDiario ? 'SIM' : 'NAO';
+      if (a.notificarEmail !== undefined) up.NOTIFICAR_EMAIL = a.notificarEmail ? 'SIM' : 'NAO';
       set('INSTAGRAM_STUDIO', a.instagram !== undefined ? str_(a.instagram, 60) : undefined);
       set('ENDERECO_STUDIO', a.endereco !== undefined ? str_(a.endereco, 150) : undefined);
       set('LINK_AVALIACAO', a.linkAvaliacao !== undefined ? str_(a.linkAvaliacao, 300) : undefined);
@@ -1617,10 +1767,34 @@ var ADMIN_API = {
     cache_().put('gat:' + ctx.sheetId, data.access_token, Math.max(60, Number(data.expires_in || 3600) - 300));
     upsertConfig_(ctx, { GCAL_CONNECTED_EMAIL: email, GCAL_STATUS: 'CONECTADA', SINCRONIZAR_AGENDA: 'SIM', GCAL_REFRESH_TOKEN: '' });
     logEvent_(ctx, 'GCAL_CONECTADA', email);
+    ensureSyncTrigger_();
     var synced = resyncFutureBookings_(ctx);
     var dash = dashboard_(ctx);
     dash.synced = synced;
     return dash;
+  },
+
+  /** Pede ao Google para transferir a planilha para a conta da manicure (ela aceita pelo e-mail/Drive). */
+  adminTransferOwnership: function (ctx) {
+    if (!ctx.email) throw new Error('Entre novamente com sua conta Google.');
+    if (sheetOwnership_(ctx) === 'MANICURE') return { status: 'JA_DONA' };
+    var token = ScriptApp.getOAuthToken();
+    var base = 'https://www.googleapis.com/drive/v3/files/' + ctx.sheetId + '/permissions';
+    var hdr = { Authorization: 'Bearer ' + token };
+    var res = UrlFetchApp.fetch(base + '?fields=permissions(id,emailAddress,role)', { headers: hdr, muteHttpExceptions: true });
+    var perms = (JSON.parse(res.getContentText() || '{}').permissions) || [];
+    var perm = perms.filter(function (p) { return String(p.emailAddress || '').toLowerCase() === ctx.email; })[0];
+    if (!perm) {
+      var c = UrlFetchApp.fetch(base + '?sendNotificationEmail=false', { method: 'post', headers: hdr, contentType: 'application/json', payload: JSON.stringify({ role: 'writer', type: 'user', emailAddress: ctx.email }), muteHttpExceptions: true });
+      perm = JSON.parse(c.getContentText() || '{}');
+      if (!perm.id) throw new Error('Não foi possível compartilhar a planilha com você.');
+    }
+    var u = UrlFetchApp.fetch(base + '/' + perm.id, { method: 'patch', headers: hdr, contentType: 'application/json', payload: JSON.stringify({ role: 'writer', pendingOwner: true }), muteHttpExceptions: true });
+    if (u.getResponseCode() >= 300) throw new Error('O Google não permitiu a transferência agora. Tente mais tarde.');
+    upsertConfig_(ctx, { PLANILHA_DONA: 'PENDENTE' });
+    cache_().remove('own:' + ctx.sheetId);
+    logEvent_(ctx, 'PROPRIEDADE_SOLICITADA', ctx.email);
+    return { status: 'AGUARDANDO_ACEITE' };
   },
 
   gcalDisconnect: function (ctx) {

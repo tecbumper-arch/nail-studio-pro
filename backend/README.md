@@ -126,6 +126,24 @@ mostra erro *"Verifique o cliente OAuth Android (SHA-1)"*.
 3. **Opções → Conectar Google Agenda** → marque a caixinha da agenda → status 🟢 Conectada → **Testar**.
 4. Abra o link das clientes (aba **Meu Link**), agende um horário → o evento aparece na Google Agenda.
 
+## 🔁 Sincronização automática e avisos
+
+- `setup()` instala dois gatilhos: **resumo diário (7h)** e **sincronização da Google Agenda a cada 15 min**
+  (`sincronizarAgendas`). O gatilho de 15 min também é instalado sozinho quando a 1ª manicure conecta a agenda.
+  **Quem já tinha o servidor instalado: rode `setup()` de novo uma vez** depois de atualizar o `Code.gs`.
+- E-mails de "nova reserva / cancelou" saem pela conta do servidor (limite do Google: ~100 e-mails/dia em conta Gmail).
+
+## 🔗 Vincular uma planilha que a manicure já tem
+
+No primeiro acesso ela pode escolher "Usar uma planilha que já tenho". O app mostra o e-mail da **conta do servidor**
+para ela compartilhar a planilha como **Editor** (o servidor só acessa planilhas compartilhadas com ele).
+O app confere se a planilha é mesmo da conta Google dela, mantém os dados e cria apenas as abas que faltam.
+
+## 👑 Planilha no nome da manicure
+
+Em Opções → Segurança, Planilha & Backup → "Quero ser a dona da planilha", o Google envia a ela um pedido de
+transferência de propriedade. Depois de aceitar, a conta do servidor continua como editora (não remova esse acesso).
+
 ## 📸 Fotos dos serviços
 
 As fotos que a manicure envia vão para uma pasta no Google Drive da **conta do servidor**

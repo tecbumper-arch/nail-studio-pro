@@ -1009,6 +1009,7 @@
               ${!isCancel && !isDone ? `
                 <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;">
                   ${r.metodoPagamento.includes('PIX') ? `<button type="button" onclick="reopenBookingModal(${idx})" style="flex:1; min-height:38px; border:none; border-radius:10px; background:var(--gradient); color:#fff; font-weight:800; font-size:0.76rem; padding:6px 10px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px;"><i class="fa-brands fa-pix"></i> QR Code Pix</button>` : ''}
+              ${isCancel || isDone ? `<button type="button" onclick="bookAgain('${esc(r.servicoId || '')}', '${esc(r.servicoNome)}')" style="margin-top:10px; width:100%; min-height:38px; border:none; border-radius:10px; background:var(--gradient); color:#fff; font-weight:800; font-size:0.78rem; cursor:pointer;"><i class="fa-solid fa-rotate-right"></i> Agendar de novo</button>` : ''}
                   <a href="${waUrl}" style="flex:1; min-height:38px; border-radius:10px; background:#25d366; color:#fff; font-weight:800; font-size:0.76rem; padding:6px 10px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:5px;"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
                   <button type="button" onclick="cancelMyBooking('${r.id}')" style="min-height:38px; border:none; border-radius:10px; background:#fee2e2; color:#991b1b; font-weight:800; font-size:0.75rem; padding:6px 10px; cursor:pointer;"><i class="fa-solid fa-xmark"></i> Cancelar</button>
                 </div>
@@ -1019,6 +1020,17 @@
       } catch (e) {
         if (!silent && listEl) listEl.innerHTML = '<div style="color:#dc2626; font-size:0.82rem; padding:10px;">Erro ao consultar: ' + esc(e.message) + '</div>';
       }
+    }
+
+    function bookAgain(servicoId, servicoNome) {
+      switchClientView('book');
+      const srv = (pubData.catalogo || []).find(x => x.id === servicoId) || (pubData.catalogo || []).find(x => x.nome === servicoNome);
+      if (!srv) return showToast('Esse serviço não está mais no catálogo. Escolha outro abaixo 💅');
+      activeCat = 'Todos';
+      renderChips();
+      renderCatalog();
+      const card = [...document.querySelectorAll('.srv-card')].find(c => c.dataset.id === srv.id);
+      if (card) card.click();
     }
 
     function reopenBookingModal(idx) {
