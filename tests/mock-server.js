@@ -40,7 +40,33 @@ function start(port = 0) {
         return;
       }
       if (url.pathname === '/__test/code') {
-        res.end(gas.google.issueCode(url.searchParams.get('email')));
+        const scope = url.searchParams.get('scope') || undefined;
+        res.end(gas.google.issueCode(url.searchParams.get('email'), scope ? { scope } : undefined));
+        return;
+      }
+      if (url.pathname === '/__test/grants') {
+        // escopos que a conta já autorizou (o Google devolve a soma: include_granted_scopes)
+        res.end(gas.google.grants[url.searchParams.get('email')] || '');
+        return;
+      }
+      if (url.pathname === '/__test/sheets') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(Object.values(gas.spreadsheets).map(x => ({ id: x.id, owner: x.owner, editors: x.editors, trashed: x.trashed, serverCanOpen: gas.serverCanOpen(x.id) }))));
+        return;
+      }
+      if (url.pathname === '/__test/legacy') {
+        // Studio do app antigo (planilha dela, servidor como editor) com uma reserva
+        const c = gas.context, email = url.searchParams.get('email');
+        const ss = c.SpreadsheetApp.create('Studio Antigo');
+        ss.getSheets()[0].setName(c.TAB_CONFIG);
+        c.writeTable_(ss.getSheetByName(c.TAB_CONFIG), [['Chave', 'Valor', 'Descricao']].concat(c.defaultConfigRows_(email, { studioNome: 'Studio Antigo', profissionalNome: 'Bia', whatsapp: '11977776666' }, '2026-01-01 10:00:00')));
+        c.writeTable_(ss.insertSheet(c.TAB_CATS), [c.CATS_HEADER].concat(c.DEFAULT_CATS));
+        c.writeTable_(ss.insertSheet(c.TAB_CATALOG), [c.CATALOG_HEADER].concat(c.DEFAULT_SERVICES));
+        c.writeTable_(ss.insertSheet(c.TAB_BOOKINGS), [c.BOOKING_HEADER, ['AG-LEGADO1', '2026-01-10', '10:00', '11:00', 'Cliente Antiga', '11966665555', 'SRV-104', 'Pé e Mão', '70', 'NO_LOCAL', 'PAGO_NO_STUDIO', 'CONCLUIDO', '', '2026-01-05', '']]);
+        c.writeTable_(ss.insertSheet(c.TAB_LOGS), [['Timestamp', 'Evento', 'Detalhes']]);
+        ss.owner = email; ss.editors = [gas.SERVER];
+        c.registerStudio_(email, ss.getId(), {}, 'Bia', 'Studio Antigo');
+        res.end(ss.getId());
         return;
       }
       if (url.pathname === '/__test/drive') {

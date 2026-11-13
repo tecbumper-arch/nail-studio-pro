@@ -1,0 +1,498 @@
+{
+ "id": "LEGACYSHEET0000000000000000000000000000000",
+ "owner": "manicure.antiga@gmail.com",
+ "tabs": {
+  "Configuracoes": [
+   [
+    "Chave",
+    "Valor",
+    "Descricao"
+   ],
+   [
+    "SETUP_CONCLUIDO",
+    "SIM",
+    "Configurado pelo App"
+   ],
+   [
+    "STUDIO_NOME",
+    "Studio Exemplo",
+    "Nome do Studio"
+   ],
+   [
+    "PROFISSIONAL_NOME",
+    "Nail Designer",
+    "Profissional"
+   ],
+   [
+    "ADMIN_LOGIN_ID",
+    "manicure.antiga@gmail.com",
+    "E-mail ou WhatsApp de Login"
+   ],
+   [
+    "WHATSAPP_STUDIO",
+    "5511900000000",
+    "WhatsApp"
+   ],
+   [
+    "PIX_CHAVE",
+    "11900000000",
+    "Chave Pix"
+   ],
+   [
+    "PIX_RECEBEDOR",
+    "Fulana de Tal",
+    "Titular Pix"
+   ],
+   [
+    "PIX_CIDADE",
+    "SAO PAULO",
+    "Cidade Pix"
+   ],
+   [
+    "TEMA_COR",
+    "purple-neon",
+    "Tema de Cores"
+   ],
+   [
+    "HORARIO_INICIO",
+    "15:00",
+    "Abertura"
+   ],
+   [
+    "HORARIO_FIM",
+    "22:00",
+    "Fechamento"
+   ],
+   [
+    "ALMOCO_INICIO",
+    "00:00",
+    "Início Almoço"
+   ],
+   [
+    "ALMOCO_FIM",
+    "00:00",
+    "Fim Almoço"
+   ],
+   [
+    "DIAS_ATENDIMENTO",
+    "5",
+    "Dias de Funcionamento"
+   ],
+   [
+    "INTERVALO_MINUTOS",
+    "60",
+    "Intervalo"
+   ],
+   [
+    "SINCRONIZAR_AGENDA",
+    "SIM",
+    "Agenda"
+   ],
+   [
+    "ADMIN_PIN_HASH",
+    "ed946f65d2c785d90e827c5ffd879ce3b49c68d4c88013074176a7e73bc58bcf",
+    "Hash SHA-256 do PIN"
+   ],
+   [
+    "ADMIN_RECOVERY_HASH",
+    "24d8ee129f1fe9a26a032b3cde971ecf5fdc8500e5eedef47cfcf16a8f5e89df",
+    "Hash SHA-256 de Recuperação"
+   ],
+   [
+    "INSTAGRAM_STUDIO",
+    "@studioexemplo",
+    "Instagram do Studio"
+   ],
+   [
+    "ENDERECO_STUDIO",
+    "Rua Exemplo, 100 - Centro, Sao Paulo - SP",
+    "Endereço do Studio"
+   ],
+   [
+    "GCAL_REFRESH_TOKEN",
+    "",
+    "Token OAuth Google Calendar Cloud Direct"
+   ],
+   [
+    "GCAL_CONNECTED_EMAIL",
+    "",
+    "E-mail conectado ao Google Calendar"
+   ],
+   [
+    "GCAL_WEBHOOK_URL",
+    "",
+    "Webhook Apps Script Google Calendar"
+   ],
+   [
+    "INSTAGRAM_STUDIO",
+    "@studioexemplo",
+    "Instagram do Studio"
+   ],
+   [
+    "ENDERECO_STUDIO",
+    "Rua Exemplo, 100 - Centro, Sao Paulo - SP",
+    "Endereço do Studio"
+   ],
+   [
+    "GCAL_REFRESH_TOKEN",
+    "",
+    "Token OAuth Google Calendar Cloud Direct"
+   ],
+   [
+    "GCAL_CONNECTED_EMAIL",
+    "",
+    "E-mail conectado ao Google Calendar"
+   ],
+   [
+    "GCAL_WEBHOOK_URL",
+    "",
+    "Webhook Apps Script Google Calendar"
+   ],
+   [
+    "TERMO_ACEITO_EM",
+    "28/10/2026, 18:57:48",
+    "Termo Aceito"
+   ]
+  ],
+  "Categorias": [
+   [
+    "ID_Categoria",
+    "Nome",
+    "Icone",
+    "Ordem",
+    "Ativo"
+   ],
+   [
+    "CAT-01",
+    "Alongamentos",
+    "💅",
+    "1",
+    "SIM"
+   ],
+   [
+    "CAT-02",
+    "Manicure & Pedicure",
+    "✨",
+    "2",
+    "SIM"
+   ],
+   [
+    "CAT-03",
+    "Blindagem & Banho de Gel",
+    "💎",
+    "3",
+    "SIM"
+   ],
+   [
+    "CAT-04",
+    "Nail Art & Decoradas",
+    "🎨",
+    "4",
+    "SIM"
+   ],
+   [
+    "CAT-05",
+    "Spa dos Pés & Mãos",
+    "🌸",
+    "5",
+    "SIM"
+   ],
+   [
+    "CAT-694",
+    "Manutenções",
+    "🤞",
+    "6",
+    "SIM"
+   ]
+  ],
+  "Catalogo": [
+   [
+    "ID",
+    "Nome",
+    "Descricao",
+    "Preco",
+    "DuracaoMin",
+    "FotoURL",
+    "Categoria",
+    "Ativo"
+   ],
+   [
+    "SRV-101",
+    "Pé e Mão Tadicional",
+    "Cutilagem de primeira qualidade e esmaltação duradoura. Francesinha e pedrarias serão cobrados 2,00 à parte.",
+    "50",
+    "120",
+    "data:image/jpeg;base64,/9j/Zm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxv",
+    "Manicure & Pedicure",
+    "SIM"
+   ],
+   [
+    "SRV-102",
+    "Pé tradicional",
+    "Cutilagem de primeira qualidade e esmaltação duradoura. Francesinha e pedrarias serão cobrados 2,00 à parte.",
+    "32",
+    "60",
+    "data:image/jpeg;base64,/9j/Zm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxv",
+    "Manicure & Pedicure",
+    "SIM"
+   ],
+   [
+    "SRV-104",
+    "Mão Tradicional",
+    "Cutilagem de primeira qualidade e esmaltação duradoura. Francesinha e pedrarias serão cobrados 2,00 à parte.",
+    "27",
+    "60",
+    "data:image/jpeg;base64,/9j/Zm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxv",
+    "Manicure & Pedicure",
+    "SIM"
+   ],
+   [
+    "SRV-6292",
+    "Alongamento em gel",
+    "Alongamento em gel, utilizando molde F1. Francesinha e pedrarias serão cobrados à parte.",
+    "100",
+    "120",
+    "data:image/jpeg;base64,/9j/Zm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxv",
+    "Alongamentos",
+    "SIM"
+   ],
+   [
+    "SRV-7600",
+    "Esmaltação em gel",
+    "Esmaltação em gel duradoura com gel protetor. Francesinha e pedrarias serão cobrados à parte.",
+    "65",
+    "60",
+    "data:image/jpeg;base64,/9j/Zm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxv",
+    "Blindagem & Banho de Gel",
+    "SIM"
+   ],
+   [
+    "SRV-8124",
+    "Blindagem ou banho de gel",
+    "Blindagem ou banho de gel protetor e duradouro. Francesinha e pedrarias serão cobrados 2,00 à parte.",
+    "65",
+    "90",
+    "",
+    "Blindagem & Banho de Gel",
+    "SIM"
+   ],
+   [
+    "SRV-7771",
+    "Manutenção de alongamento",
+    "Manutenção do alongamento. Francesinha e pedrarias serão cobrados à parte.",
+    "90",
+    "120",
+    "data:image/jpeg;base64,/9j/Zm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxvZm90by1kZS1leGVtcGxv",
+    "Manutenções",
+    "SIM"
+   ]
+  ],
+  "Agendamentos": [
+   [
+    "ID_Reserva",
+    "Data",
+    "HoraInicio",
+    "HoraFim",
+    "ClienteNome",
+    "ClienteWhatsApp",
+    "ServicoID",
+    "ServicoNome",
+    "Valor",
+    "MetodoPagamento",
+    "StatusPagamento",
+    "StatusReserva",
+    "CalendarEventID",
+    "CriadoEm"
+   ],
+   [
+    "BLQ-937180",
+    "2026-10-29",
+    "07:00",
+    "17:30",
+    "🔒 BLOQUEIO DE AGENDA / FOLGA",
+    "",
+    "BLOQUEIO",
+    "FECHADO",
+    "0",
+    "BLOQUEIO",
+    "BLOQUEADO",
+    "BLOQUEADO",
+    "GCAL-BLQ-937180",
+    "28/10/2026, 19:07:35"
+   ],
+   [
+    "AG-354517",
+    "2026-10-30",
+    "16:00",
+    "17:00",
+    "Cliente A",
+    "5511900000001",
+    "SRV-104",
+    "Pé e Mão Tradicional Completo",
+    "70",
+    "PIX_TOTAL",
+    "AGUARDANDO_VALIDACAO_PIX",
+    "CANCELADO",
+    "DELETED_GCAL-AG-354517",
+    "28/10/2026, 19:10:11"
+   ],
+   [
+    "AG-938359",
+    "2026-10-30",
+    "19:00",
+    "20:00",
+    "Cliente A",
+    "5511900000001",
+    "SRV-104",
+    "Pé e Mão Tradicional Completo",
+    "70",
+    "NO_LOCAL",
+    "PAGAR_NO_STUDIO",
+    "CANCELADO",
+    "DELETED_fad96e2684cd23eabfb08ed60a@google.com",
+    "28/10/2026, 19:10:59"
+   ],
+   [
+    "AG-780972",
+    "2026-11-13",
+    "21:00",
+    "22:00",
+    "Cliente A",
+    "5511900000001",
+    "SRV-103",
+    "Banho de Gel / Blindagem",
+    "90",
+    "NO_LOCAL",
+    "PAGAR_NO_STUDIO",
+    "CANCELADO",
+    "DELETED_2a296671f6ac91f9d2cafdabf2@google.com",
+    "28/10/2026, 19:23:52"
+   ],
+   [
+    "AG-524677",
+    "2026-10-30",
+    "19:00",
+    "20:00",
+    "Cliente B",
+    "",
+    "SRV-104",
+    "Mão Tradicional",
+    "27",
+    "NO_LOCAL",
+    "PAGO_NO_STUDIO",
+    "CONCLUIDO",
+    "6d0ed454b6340e5452ad3c84ef@google.com",
+    "30/10/2026, 20:22:16"
+   ],
+   [
+    "AG-300449",
+    "2026-11-07",
+    "17:30",
+    "19:30",
+    "Cliente C",
+    "",
+    "SRV-101",
+    "Pé e Mão Tadicional",
+    "50",
+    "NO_LOCAL",
+    "PAGAR_NO_STUDIO",
+    "CANCELADO",
+    "DELETED_7a71ba84293ffee0e410a44610@google.com",
+    "31/10/2026, 08:16:40"
+   ],
+   [
+    "AG-646568",
+    "2026-11-01",
+    "07:30",
+    "08:30",
+    "Cliente D",
+    "",
+    "SRV-102",
+    "Pé tradicional",
+    "32",
+    "NO_LOCAL",
+    "PAGAR_NO_STUDIO",
+    "CANCELADO",
+    "DELETED_76def3354a43f6517af520b7d6@google.com",
+    "31/10/2026, 11:30:13"
+   ],
+   [
+    "AG-673732",
+    "2026-11-07",
+    "17:30",
+    "18:30",
+    "Cliente E",
+    "",
+    "SRV-102",
+    "Pé tradicional",
+    "32",
+    "NO_LOCAL",
+    "PAGAR_NO_STUDIO",
+    "CONFIRMADO",
+    "11250fe77c804adb855c4c5b58@google.com",
+    "03/11/2026, 09:50:25"
+   ],
+   [
+    "AG-408518",
+    "2026-11-09",
+    "17:30",
+    "19:30",
+    "Cliente E",
+    "",
+    "SRV-101",
+    "Pé e Mão Tadicional",
+    "50",
+    "NO_LOCAL",
+    "PAGAR_NO_STUDIO",
+    "CONFIRMADO",
+    "38a0735549c31be254f78d6566@google.com",
+    "03/11/2026, 09:52:35"
+   ],
+   [
+    "AG-544018",
+    "2026-11-06",
+    "14:30",
+    "16:30",
+    "Cliente F",
+    "",
+    "SRV-101",
+    "Pé e Mão Tadicional",
+    "50",
+    "NO_LOCAL",
+    "PAGAR_NO_STUDIO",
+    "CONFIRMADO",
+    "8723a1305dda6337902681e06b@google.com",
+    "03/11/2026, 12:44:33"
+   ],
+   [
+    "AG-477870",
+    "2026-11-13",
+    "16:00",
+    "18:00",
+    "Cliente G",
+    "5511900000002",
+    "SRV-101",
+    "Pé e Mão Tadicional",
+    "50",
+    "NO_LOCAL",
+    "PAGAR_NO_STUDIO",
+    "CANCELADO",
+    "DELETED_405bf5494babef13671aabdbfa@google.com",
+    "12/11/2026, 13:49:14"
+   ]
+  ],
+  "Logs_Seguranca": [
+   [
+    "Timestamp",
+    "Evento",
+    "Detalhes"
+   ],
+   [
+    "28/10/2026, 18:57:52",
+    "CONTA_CRIADA",
+    "Planilha criada para manicure.antiga@gmail.com"
+   ]
+  ]
+ },
+ "note": "Estrutura e casos reais de um Studio do app antigo (v2.2), anonimizados."
+}

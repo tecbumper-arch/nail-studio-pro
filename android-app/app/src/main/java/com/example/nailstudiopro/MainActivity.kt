@@ -89,19 +89,23 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // Tela de consentimento da Google Agenda (quando o Google precisa perguntar à usuária)
-    private val calendarConsentLauncher = registerForActivityResult(
+    // Funções JS que recebem o resultado da autorização em andamento
+    private var authOkCallback = "onNativeAuthCode"
+    private var authErrCallback = "onNativeAuthError"
+
+    // Tela de consentimento do Google (quando o Google precisa perguntar à usuária)
+    private val consentLauncher = registerForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             try {
                 val auth = Identity.getAuthorizationClient(this).getAuthorizationResultFromIntent(result.data)
-                deliverCalendarAuth(auth)
+                deliverAuth(auth)
             } catch (e: Exception) {
-                sendJs("onNativeCalendarError", "Não foi possível concluir a permissão: ${e.message}")
+                sendJs(authErrCallback, "Não foi possível concluir a permissão: ${e.message}")
             }
         } else {
-            sendJs("onNativeCalendarError", "CANCELADO")
+            sendJs(authErrCallback, "CANCELADO")
         }
     }
 
@@ -149,37 +153,48 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // --------------------------------------------------------- GOOGLE AGENDA
-    private fun startCalendarAuthorization(webClientId: String, email: String) {
+    // ------------------------------------- AUTORIZAÇÃO (planilha, arquivos do app, agenda)
+    /**
+     * Pede à manicure as permissões da conta DELA. O código volta para o servidor, que guarda
+     * a permissão (revogável em myaccount.google.com/permissions) e cria tudo no Drive dela.
+     */
+    private fun startAuthorization(webClientId: String, email: String, scopes: List<String>, okCb: String, errCb: String) {
+        authOkCallback = okCb
+        authErrCallback = errCb
         if (webClientId.isBlank() || webClientId.contains("COLE_AQUI")) {
-            sendJs("onNativeCalendarError", "GOOGLE_CLIENT_ID não configurado.")
+            sendJs(errCb, "GOOGLE_CLIENT_ID não configurado.")
+            return
+        }
+        val wanted = scopes.map { it.trim() }.filter { it.startsWith("https://www.googleapis.com/auth/") }
+        if (wanted.isEmpty()) {
+            sendJs(errCb, "Nenhuma permissão pedida.")
             return
         }
         val builder = AuthorizationRequest.builder()
-            .setRequestedScopes(listOf(Scope(CALENDAR_SCOPE)))
-            .requestOfflineAccess(webClientId, true)
+            .setRequestedScopes(wanted.map { Scope(it) })
+            .requestOfflineAccess(webClientId, true) // true = sempre devolve refresh token ao servidor
         if (email.contains("@")) builder.setAccount(Account(email, "com.google"))
         Identity.getAuthorizationClient(this)
             .authorize(builder.build())
             .addOnSuccessListener { auth ->
                 val pending = auth.pendingIntent
                 if (auth.hasResolution() && pending != null) {
-                    calendarConsentLauncher.launch(IntentSenderRequest.Builder(pending.intentSender).build())
+                    consentLauncher.launch(IntentSenderRequest.Builder(pending.intentSender).build())
                 } else {
-                    deliverCalendarAuth(auth)
+                    deliverAuth(auth)
                 }
             }
             .addOnFailureListener { e ->
-                sendJs("onNativeCalendarError", "Falha ao pedir permissão da agenda: ${e.message}")
+                sendJs(errCb, "Falha ao pedir permissão: ${e.message}")
             }
     }
 
-    private fun deliverCalendarAuth(auth: AuthorizationResult) {
+    private fun deliverAuth(auth: AuthorizationResult) {
         val code = auth.serverAuthCode
         if (code.isNullOrBlank()) {
-            sendJs("onNativeCalendarError", "O Google não enviou o código de autorização. Tente de novo.")
+            sendJs(authErrCallback, "O Google não enviou o código de autorização. Tente de novo.")
         } else {
-            sendJs("onNativeCalendarAuthCode", code)
+            sendJs(authOkCallback, code)
         }
     }
 
@@ -201,9 +216,17 @@ class MainActivity : ComponentActivity() {
             runOnUiThread { startGoogleSignIn(webClientId) }
         }
 
+        /** Compatibilidade com o painel antigo: só a agenda. */
         @JavascriptInterface
         fun authorizeCalendar(webClientId: String, email: String) {
-            runOnUiThread { startCalendarAuthorization(webClientId, email) }
+            runOnUiThread { startAuthorization(webClientId, email, listOf(CALENDAR_SCOPE), "onNativeCalendarAuthCode", "onNativeCalendarError") }
+        }
+
+        /** Permissões separadas por espaço ou vírgula (planilhas, arquivos do app, agenda). */
+        @JavascriptInterface
+        fun authorizeScopes(webClientId: String, email: String, scopes: String) {
+            val list = scopes.split(' ', ',').filter { it.isNotBlank() }
+            runOnUiThread { startAuthorization(webClientId, email, list, "onNativeAuthCode", "onNativeAuthError") }
         }
 
         @JavascriptInterface
@@ -212,7 +235,7 @@ class MainActivity : ComponentActivity() {
         }
 
         @JavascriptInterface
-        fun appVersion(): String = "3.0.0"
+        fun appVersion(): String = "4.0.0"
     }
 
     private fun hideSystemBars() {

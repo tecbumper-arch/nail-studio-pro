@@ -1,4 +1,4 @@
-# 💅 Nail Studio Pro (v3.0 — Login Google real + Google Agenda bidirecional)
+# 💅 Nail Studio Pro (v4.0 — tudo na conta Google da manicure)
 
 App para **manicures e nail designers**: painel da profissional (web, PWA e APK Android),
 página pública de agendamento para as clientes, Pix Copia e Cola e integração oficial com
@@ -19,27 +19,31 @@ página pública de agendamento para as clientes, Pix Copia e Cola e integraçã
 ## 🏗️ Como funciona
 
 ```
- Painel (HTML/PWA/APK) ─┐                    ┌─ Planilha do Studio (Google Sheets)
-                        ├─► API Apps Script ─┼─ Google Agenda da manicure (OAuth guardado no servidor)
- Página da cliente ─────┘   (backend/Code.gs) └─ Diretório de studios (planilha mestre privada)
+ Painel (HTML/PWA/APK) ─┐                    ┌─ CONTA GOOGLE DA MANICURE (dona de tudo):
+                        │                    │    planilha, fotos (Drive) e Google Agenda
+                        ├─► API Apps Script ─┤    ← acessados com a permissão que ELA deu
+ Página da cliente ─────┘   (backend/Code.gs) └─ Diretório e-mail → planilha (planilha mestre privada)
 ```
 
 - Nenhum segredo nos HTMLs. O `config.js` só tem a URL da API e o Client ID (públicos).
 - Login: **ID Token do Google** verificado no servidor → sessão assinada (HMAC) de 30 dias.
 - Agendamentos passam por **trava (LockService)**: dois clientes nunca pegam o mesmo horário.
+- **A manicure é dona de tudo que o app cria** (planilha, pasta, fotos, eventos). A conta do servidor não aparece no
+  compartilhamento nem tem cópia; ela pode remover o acesso do app quando quiser (e reconectar depois sem perder nada).
 
 ## ✨ Funcionalidades
 
 **Primeiro acesso em 3 passos (novo)**
 - Tela de login única: **Entrar com Google** (no APK usa as contas do próprio celular). Sem perguntar iOS/Android.
-- Assistente: **1. Studio** (nome, WhatsApp, Pix) → **2. Planilha**: criar uma nova no Drive *ou* **vincular uma planilha que ela já tem**
-  (mantém os dados e cria só as abas que faltam) → **3. Google Agenda**: conectar com 1 toque (ou "agora não").
+- Assistente: **1. Studio** (nome, WhatsApp, Pix) → **2. Seus dados**: um toque autoriza o app na conta dela e a planilha é criada
+  **no Drive dela** (ou ela usa uma planilha que já tem, só colando o link) — a Google Agenda pode vir junto → **3. Agenda** (se não veio junto).
 - Quem já tem Studio e ainda não ligou a agenda recebe o convite ao entrar (no máximo 1x por semana).
-- "Quero ser a dona da planilha": transfere a propriedade da planilha para o Drive da manicure.
+- Studios da versão antiga: ao entrar, **"Seus dados agora são só seus" → Autorizar** — a planilha passa a ser acessada só pela
+  conta dela e o servidor sai do compartilhamento, sem perder agendamentos (testado com a planilha de um Studio real).
 - O link para instalar o app fica em **Meu Link**, e já detecta o aparelho (iPhone, Android ou computador).
 
 - Login com a **Conta Google real** (botão oficial no navegador; seletor nativo de contas no Android).
-- Primeiro acesso cria o Studio e a planilha automaticamente (compartilhada com a dona).
+- Primeiro acesso cria o Studio e a planilha automaticamente, na conta Google dela.
 - PIN opcional de acesso rápido (com bloqueio após 5 erros) e "Desconectar todos os aparelhos".
 
 **Google Agenda (novo motor)**
@@ -76,7 +80,7 @@ página pública de agendamento para as clientes, Pix Copia e Cola e integraçã
 
 **Fotos dos trabalhos (catálogo da manicure)**
 - Cada serviço tem até **8 fotos reais** enviadas pela manicure (câmera ou galeria do celular), com escolha da capa.
-- As fotos ficam na pasta **"Nail Studio Pro — Fotos — <Studio>"** do Google Drive (compartilhada com a manicure) e não pesam na planilha.
+- As fotos ficam no Google Drive **dela** (pasta *Nail Studio Pro / Fotos dos trabalhos*) e não pesam na planilha.
 - A cliente toca na foto do serviço e abre a **galeria** (deslizar, setas, "Quero este!").
 - O painel avisa quais serviços ainda estão **sem foto**. Enquanto não há foto, aparece a miniatura ilustrada da categoria.
 

@@ -30,9 +30,11 @@ window.google = { accounts: {
     },
     disableAutoSelect() {}, prompt() {}
   },
-  oauth2: { initCodeClient(cfg) { return { requestCode: async () => {
-    const c = await fetch('/__test/code?email=' + encodeURIComponent(window.__testEmail || 'ana@gmail.com')).then(r => r.text());
-    cfg.callback({ code: c });
+  oauth2: { initCodeClient(cfg) { window.__lastCodeCfg = cfg; return { requestCode: async () => {
+    const email = window.__testEmail || 'ana@gmail.com';
+    const c = await fetch('/__test/code?email=' + encodeURIComponent(email) + '&scope=' + encodeURIComponent(cfg.scope)).then(r => r.text());
+    const scope = await fetch('/__test/grants?email=' + encodeURIComponent(email)).then(r => r.text());
+    cfg.callback({ code: c, scope });
   } }; } }
 } };`;
 
@@ -82,13 +84,20 @@ async function shot(page, name) {
     await page.click('#wizStep1 button:has-text("Continuar")');
     await page.waitForSelector('#wizStep2:not(.hidden)');
     await page.click('#dbOptExisting');
-    await page.waitForFunction(() => document.getElementById('obServerEmail').textContent.includes('servidor@gmail.com'));
+    assert.ok(!(await page.textContent('#dbExistingBox')).includes('servidor'), 'não pede para compartilhar com o servidor');
     await shot(page, '02b-wizard-planilha-existente');
     await page.click('#dbOptNew');
     await page.check('#obTermo');
+    await page.uncheck('#obWithCal'); // agenda depois, no passo 3 (testa a autorização em duas etapas)
     await shot(page, '02c-wizard-planilha');
     await page.click('#btnOnboarding');
     await page.waitForSelector('#wizStep3:not(.hidden)');
+    assert.match(await page.evaluate(() => window.__lastCodeCfg.scope), /spreadsheets.*drive\.file/);
+    let sheets = await (await fetch(base + '/__test/sheets')).json();
+    const mine = sheets.filter(x => x.owner === 'ana@gmail.com');
+    assert.strictEqual(mine.length, 1, 'planilha criada na conta dela');
+    assert.deepStrictEqual(mine[0].editors, []);
+    assert.strictEqual(mine[0].serverCanOpen, false, 'servidor sem acesso à planilha dela');
     await shot(page, '02d-wizard-agenda');
     // 2. Conectar Google Agenda pelo assistente
     await page.click('#btnWizCal');
@@ -292,6 +301,34 @@ async function shot(page, name) {
     const bad = await ctx.newPage();
     await bad.goto(base + '/Pagina_Cliente.html?s=abcdefghijklmnopqrstuvwxyz123');
     await bad.waitForFunction(() => document.getElementById('cStudioName').textContent.includes('indisponível'));
+
+    // 12. Studio do app antigo: ao entrar, passa os dados para a conta dela (obrigatório) e segue
+    const legacyId = await (await fetch(base + '/__test/legacy?email=bia@gmail.com')).text();
+    const ctx2 = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: SHOTS ? 2 : 1, locale: 'pt-BR', timezoneId: 'America/Sao_Paulo' });
+    await ctx2.route(url => !url.href.startsWith(base), r => r.request().url().startsWith('https://accounts.google.com/gsi/client') ? r.fulfill({ contentType: 'application/javascript', body: GSI_STUB }) : r.abort());
+    await ctx2.addInitScript(() => { window.__testEmail = 'bia@gmail.com'; });
+    const lp = await ctx2.newPage();
+    lp.on('pageerror', e => errors.push('legado: ' + e.message));
+    await lp.goto(base + '/App_Manicure.html');
+    await lp.click('#fakeGoogleBtn');
+    await lp.waitForSelector('#authModeOwn:not(.hidden)');
+    await shot(lp, '15-legado-assumir-dados');
+    await lp.click('#btnOwnAccount');
+    await lp.waitForSelector('#lockScreen', { state: 'hidden' });
+    await lp.waitForFunction(() => document.getElementById('toastMsg').textContent.includes('Pronto'));
+    sheets = await (await fetch(base + '/__test/sheets')).json();
+    const leg = sheets.find(x => x.id === legacyId);
+    assert.strictEqual(leg.owner, 'bia@gmail.com');
+    assert.deepStrictEqual(leg.editors, [], 'servidor saiu da planilha antiga dela');
+    assert.strictEqual(leg.serverCanOpen, false);
+    await lp.click('.nav-btn >> nth=4');
+    await lp.waitForFunction(() => document.getElementById('sheetOwnerBox').textContent.includes('só você é dona'));
+    await lp.waitForFunction(() => document.getElementById('gcalStatusBadge').textContent.includes('Conectada'));
+    await shot(lp, '16-legado-dados-na-conta');
+    // o link antigo das clientes continua funcionando
+    const lc = await ctx2.newPage();
+    await lc.goto(base + '/Pagina_Cliente.html?s=' + legacyId);
+    await lc.waitForFunction(() => document.getElementById('cStudioName').textContent === 'Studio Antigo');
 
     assert.deepStrictEqual(errors, [], 'erros de JavaScript: ' + errors.join(' | '));
     console.log('E2E OK ✅');

@@ -20,7 +20,7 @@
  * =============================================================================
  */
 
-var API_VERSION = '3.1.0';
+var API_VERSION = '4.0.0';
 
 var TAB_CONFIG = 'Configuracoes';
 var TAB_CATS = 'Categorias';
@@ -171,7 +171,7 @@ function sincronizarAgendas() {
   var total = 0;
   for (var i = 1; i < rows.length; i++) {
     var sid = String(rows[i][3] || '').trim();
-    if (!sid || !prop_(rtKey_(sid))) continue;
+    if (!sid || !hasScope_(userTok_(sid), CALENDAR_SCOPE)) continue;
     try { total += resyncFutureBookings_(openStudio_(sid)); } catch (e) { Logger.log('Sync falhou ' + sid + ': ' + e.message); }
   }
   return total;
@@ -391,7 +391,14 @@ function readTab_(ctx, name) {
   if (!sh) return { sheet: null, rows: [] };
   var range = sh.getDataRange();
   var values = range.getValues();
-  var rows = values.map(function (r) { return r.map(function (c) { return cellToString_(c, ctx.tz); }); });
+  var hasDate = values.some(function (r) { return r.some(function (c) { return Object.prototype.toString.call(c) === '[object Date]'; }); });
+  var disp = hasDate && range.getDisplayValues ? range.getDisplayValues() : null;
+  var rows = values.map(function (r, i) {
+    return r.map(function (c, j) {
+      if (disp && Object.prototype.toString.call(c) === '[object Date]' && disp[i] && disp[i][j]) return String(disp[i][j]);
+      return cellToString_(c, ctx.sheetTz || ctx.tz);
+    });
+  });
   return { sheet: sh, rows: rows };
 }
 
@@ -467,7 +474,7 @@ function findStudioByEmail_(email) {
 }
 
 function isRegisteredSheet_(sheetId) {
-  var id = String(sheetId || '').trim();
+  var id = resolveSid_(sheetId);
   if (!/^[A-Za-z0-9_-]{20,}$/.test(id)) return false;
   var c = cache_();
   if (c.get('reg:' + id) === '1') return true;
@@ -485,17 +492,25 @@ function isRegisteredSheet_(sheetId) {
 // CONTEXTO DO STUDIO
 // =============================================================================
 function openStudio_(sheetId) {
-  var ss = SpreadsheetApp.openById(sheetId);
-  var ctx = { ss: ss, sheetId: sheetId, tz: Session.getScriptTimeZone() };
-  try { ctx.tz = ss.getSpreadsheetTimeZone() || ctx.tz; } catch (e) {}
+  var sid = resolveSid_(sheetId);
+  var opened = openSpreadsheet_(sid);
+  // tz = fuso do negócio (São Paulo por padrão); sheetTz = fuso da planilha (só p/ ler células de data antigas)
+  var ctx = { ss: opened.ss, sheetId: sid, mode: opened.mode, tz: Session.getScriptTimeZone(), sheetTz: Session.getScriptTimeZone() };
+  if (opened.mode === 'SERVIDOR') { try { ctx.sheetTz = opened.ss.getSpreadsheetTimeZone() || ctx.sheetTz; } catch (e) {} }
   ctx.cfg = readConfig_(ctx);
   if (ctx.cfg.TIMEZONE) ctx.tz = ctx.cfg.TIMEZONE;
   return ctx;
 }
 
 function openPublicStudio_(sheetId) {
-  if (!isRegisteredSheet_(sheetId)) throw new Error('Studio não encontrado. Peça o link atualizado para sua manicure.');
-  return openStudio_(String(sheetId).trim());
+  var sid = resolveSid_(sheetId);
+  if (!isRegisteredSheet_(sid)) throw new Error('Studio não encontrado. Peça o link atualizado para sua manicure.');
+  try {
+    return openStudio_(sid);
+  } catch (e) {
+    if (e.code === 'CONTA_DESCONECTADA') throw new Error('A agenda online deste Studio está temporariamente indisponível. Fale com o Studio pelo WhatsApp.');
+    throw e;
+  }
 }
 
 function readConfig_(ctx) {
@@ -571,6 +586,7 @@ function studioAdmin_(ctx) {
   s.resumoDiario = String(c.RESUMO_DIARIO || 'NAO').toUpperCase() === 'SIM';
   s.notificarEmail = String(c.NOTIFICAR_EMAIL || 'SIM').toUpperCase() !== 'NAO';
   s.planilhaDona = sheetOwnership_(ctx);
+  s.dadosNaConta = ctx.mode === 'MANICURE';
   s.linkAvaliacao = c.LINK_AVALIACAO || '';
   s.diasRetorno = Number(c.DIAS_RETORNO || 15) || 15;
   s.temPin = !!c.ADMIN_PIN_HASH;
@@ -680,6 +696,21 @@ function cleanPhotos_(list) {
 function trashRemovedPhotos_(ctx, before, after) {
   var folderId = ctx.cfg.FOTOS_PASTA_ID;
   if (!folderId) return;
+  if (ctx.mode === 'MANICURE') {
+    var token = null;
+    try { token = userAccessToken_(ctx.sheetId); } catch (e) {}
+    if (!token) return;
+    (before || []).forEach(function (u) {
+      if (after.indexOf(u) >= 0) return;
+      var id = driveIdFromUrl_(u);
+      if (!id) return;
+      try {
+        var f = gapi_(token, 'get', DRIVE_API + '/' + id + '?fields=id,parents');
+        if ((f.parents || []).indexOf(folderId) >= 0) gapi_(token, 'patch', DRIVE_API + '/' + id + '?fields=id', { trashed: true });
+      } catch (e) {}
+    });
+    return;
+  }
   (before || []).forEach(function (u) {
     if (after.indexOf(u) >= 0) return;
     var id = driveIdFromUrl_(u);
@@ -773,6 +804,11 @@ function parseTimes_(v) {
   }).sort();
 }
 
+function validPause_(a, b) {
+  a = normTime_(a); b = normTime_(b);
+  return !!a && !!b && toMin_(b) > toMin_(a);
+}
+
 function weeklySchedule_(ctx) {
   var st = studioPublic_(ctx);
   var legacyDays = String(st.diasAtendimento).split(',').map(function (x) { return Number(String(x).trim()); });
@@ -785,13 +821,14 @@ function weeklySchedule_(ctx) {
       ativo: !!r.ativo,
       inicio: normTime_(r.inicio) || st.horarioInicio,
       fim: normTime_(r.fim) || st.horarioFim,
-      almocoInicio: normTime_(r.almocoInicio),
-      almocoFim: normTime_(r.almocoFim),
+      almocoInicio: validPause_(r.almocoInicio, r.almocoFim) ? normTime_(r.almocoInicio) : '',
+      almocoFim: validPause_(r.almocoInicio, r.almocoFim) ? normTime_(r.almocoFim) : '',
       horarios: parseTimes_(r.horarios).join(', ')
     } : {
       ativo: legacyDays.indexOf(d) >= 0,
       inicio: st.horarioInicio, fim: st.horarioFim,
-      almocoInicio: st.almocoInicio, almocoFim: st.almocoFim, horarios: ''
+      almocoInicio: validPause_(st.almocoInicio, st.almocoFim) ? st.almocoInicio : '',
+      almocoFim: validPause_(st.almocoInicio, st.almocoFim) ? st.almocoFim : '', horarios: ''
     };
   }
   return out;
@@ -899,19 +936,470 @@ function openDates_(ctx, days) {
 }
 
 // =============================================================================
-// GOOGLE AGENDA (OAuth da manicure guardado SÓ no servidor)
+// CONTA DA MANICURE — ela é dona de tudo (planilha, fotos, eventos da agenda)
+// -----------------------------------------------------------------------------
+// O app trabalha com a permissão que ELA deu (OAuth). A conta Google do servidor
+// não aparece no compartilhamento da planilha nem das fotos. Ela pode revogar a
+// qualquer momento em myaccount.google.com/permissions.
+// =============================================================================
+var SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
+var DRIVE_FILE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+var SHEETS_API = 'https://sheets.googleapis.com/v4/spreadsheets/';
+var DRIVE_API = 'https://www.googleapis.com/drive/v3/files';
+
+function utokKey_(sid) { return 'UTOK_' + sid; }
+
+/** Credencial que a manicure concedeu: { rt, scopes, email, revoked } */
+function userTok_(sid) {
+  var raw = prop_(utokKey_(sid));
+  if (raw) { try { return JSON.parse(raw); } catch (e) {} }
+  var legacy = prop_('GCAL_RT_' + sid);
+  if (legacy) return { rt: legacy, scopes: CALENDAR_SCOPE, email: '', legacyCalendarOnly: true };
+  return null;
+}
+
+function saveUserTok_(sid, t) {
+  setProp_(utokKey_(sid), JSON.stringify(t));
+  setProp_('GCAL_RT_' + sid, '');
+}
+
+function scopeList_(s) { return String(s || '').split(/\s+/).filter(String); }
+function hasScope_(t, scope) { return !!t && !t.revoked && scopeList_(t.scopes).indexOf(scope) >= 0; }
+function hasDataScopes_(t) { return hasScope_(t, SHEETS_SCOPE) && hasScope_(t, DRIVE_FILE_SCOPE); }
+function isOwnerMode_(sid) { var t = userTok_(sid); return !!t && scopeList_(t.scopes).indexOf(SHEETS_SCOPE) >= 0; }
+
+/** Access token da manicure (cache ~55 min). Lança CONTA_DESCONECTADA se ela revogou e os dados dependem disso. */
+function userAccessToken_(sid) {
+  var t = userTok_(sid);
+  if (!t || t.revoked) {
+    if (t && t.revoked && scopeList_(t.scopes).indexOf(SHEETS_SCOPE) >= 0) throw codedError_('CONTA_DESCONECTADA', 'O acesso do app à conta Google da manicure foi removido. Ela precisa entrar no app e autorizar de novo.');
+    return null;
+  }
+  var c = cache_();
+  var hit = c.get('uat:' + sid);
+  if (hit) return hit;
+  var data = oauthPost_({ client_id: prop_('GOOGLE_CLIENT_ID'), client_secret: prop_('GOOGLE_CLIENT_SECRET'), refresh_token: t.rt, grant_type: 'refresh_token' });
+  if (!data.access_token) {
+    if (data.error === 'invalid_grant') {
+      t.revoked = true;
+      saveUserTok_(sid, t);
+      if (scopeList_(t.scopes).indexOf(SHEETS_SCOPE) >= 0) throw codedError_('CONTA_DESCONECTADA', 'O acesso do app à conta Google da manicure foi removido. Ela precisa entrar no app e autorizar de novo.');
+    }
+    return null;
+  }
+  c.put('uat:' + sid, data.access_token, Math.max(60, Number(data.expires_in || 3600) - 300));
+  return data.access_token;
+}
+
+/** Troca o código de autorização (pop-up do Google ou Android) pelos tokens da manicure. */
+function exchangeCode_(code, redirectUri) {
+  if (!prop_('GOOGLE_CLIENT_SECRET')) throw new Error('Servidor sem GOOGLE_CLIENT_SECRET configurado. Avise o suporte.');
+  var data = oauthPost_({ code: String(code || ''), client_id: prop_('GOOGLE_CLIENT_ID'), client_secret: prop_('GOOGLE_CLIENT_SECRET'), redirect_uri: redirectUri === '' ? '' : 'postmessage', grant_type: 'authorization_code' });
+  if (!data.access_token) throw new Error('O Google recusou a autorização (' + (data.error_description || data.error || 'erro') + '). Tente novamente.');
+  return { at: data.access_token, rt: data.refresh_token || '', scopes: data.scope || '', email: String(decodeJwtPayload_(data.id_token).email || '').toLowerCase(), expiresIn: Number(data.expires_in || 3600) };
+}
+
+function revokeToken_(tok) {
+  if (tok) UrlFetchApp.fetch('https://oauth2.googleapis.com/revoke?token=' + encodeURIComponent(tok), { method: 'post', muteHttpExceptions: true });
+}
+
+/** Escopos que o app usa de fato (openid/email não contam). */
+function appScopes_(list) { return list.filter(function (s) { return s === SHEETS_SCOPE || s === DRIVE_FILE_SCOPE || s === CALENDAR_SCOPE; }); }
+
+function semRefresh_() {
+  // O Google só entrega o refresh_token no consentimento: o app pede de novo com prompt=consent.
+  // (Não revogamos nada: revogar derrubaria o acesso que ela já deu aos próprios dados.)
+  return codedError_('SEM_REFRESH', 'Quase lá! Toque em autorizar mais uma vez para concluir.');
+}
+
+/** Junta a autorização nova com a anterior e guarda (sem perder escopos). */
+function storeGrant_(sid, ex, email) {
+  var old = userTok_(sid);
+  var usable = !!(old && !old.revoked && old.rt && !old.legacyCalendarOnly);
+  var scopes = scopeList_(ex.scopes);
+  if (usable) scopeList_(old.scopes).forEach(function (s) { if (scopes.indexOf(s) < 0) scopes.push(s); });
+  if (!ex.rt) {
+    // Sem refresh_token novo só dá para seguir se nada novo foi pedido (o token antigo já cobre tudo).
+    var had = usable ? scopeList_(old.scopes) : [];
+    var extra = appScopes_(scopeList_(ex.scopes)).filter(function (s) { return had.indexOf(s) < 0; });
+    if (!usable || extra.length) throw semRefresh_();
+  }
+  var rt = ex.rt || old.rt;
+  saveUserTok_(sid, { rt: rt, scopes: scopes.join(' '), email: email || ex.email || (old && old.email) || '' });
+  cache_().put('uat:' + sid, ex.at, Math.max(60, ex.expiresIn - 300));
+}
+
+function requireDataGrant_(ex) {
+  var s = scopeList_(ex.scopes);
+  if (s.indexOf(SHEETS_SCOPE) < 0 || s.indexOf(DRIVE_FILE_SCOPE) < 0) {
+    throw new Error('Para guardar seus dados na sua conta, marque as permissões de "Planilhas" e "arquivos do app" na tela do Google e tente de novo.');
+  }
+}
+
+// ----------------------------------------------------------- chamadas Google
+function gapi_(token, method, url, body, rawPayload) {
+  var opt = { method: method, headers: { Authorization: 'Bearer ' + token }, muteHttpExceptions: true };
+  if (rawPayload) { opt.contentType = rawPayload.contentType; opt.payload = rawPayload.bytes; }
+  else if (body !== undefined) { opt.contentType = 'application/json'; opt.payload = JSON.stringify(body); }
+  var res = UrlFetchApp.fetch(url, opt);
+  var code = res.getResponseCode();
+  var text = res.getContentText();
+  var data = {};
+  try { data = text ? JSON.parse(text) : {}; } catch (e) {}
+  if (code >= 300) {
+    var err = new Error('Google: ' + ((data.error && data.error.message) || ('HTTP ' + code)));
+    err.httpCode = code;
+    throw err;
+  }
+  return data;
+}
+
+function a1Col_(n) { var s = ''; while (n > 0) { var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
+function a1Sheet_(title) { return "'" + String(title).replace(/'/g, "''") + "'"; }
+
+// --------------------------- planilha remota (mesma interface do SpreadsheetApp)
+function RemoteSpreadsheet_(id, token) { this.id = id; this.token = token; this.meta = null; this.sheetObjs = {}; }
+RemoteSpreadsheet_.prototype._meta = function () {
+  if (!this.meta) this.meta = gapi_(this.token, 'get', SHEETS_API + this.id + '?fields=' + encodeURIComponent('properties(title,timeZone),sheets(properties(sheetId,title,index))'));
+  if (!this.meta.sheets) this.meta.sheets = [];
+  return this.meta;
+};
+RemoteSpreadsheet_.prototype._batch = function (requests) { return gapi_(this.token, 'post', SHEETS_API + this.id + ':batchUpdate', { requests: requests }); };
+RemoteSpreadsheet_.prototype.getId = function () { return this.id; };
+RemoteSpreadsheet_.prototype.getSpreadsheetTimeZone = function () { return (this._meta().properties || {}).timeZone || Session.getScriptTimeZone(); };
+RemoteSpreadsheet_.prototype.setSpreadsheetTimeZone = function (tz) { this._batch([{ updateSpreadsheetProperties: { properties: { timeZone: tz }, fields: 'timeZone' } }]); };
+RemoteSpreadsheet_.prototype._wrap = function (props) {
+  var key = String(props.sheetId);
+  if (!this.sheetObjs[key]) this.sheetObjs[key] = new RemoteSheet_(this, props);
+  return this.sheetObjs[key];
+};
+RemoteSpreadsheet_.prototype.getSheets = function () {
+  var self = this;
+  return this._meta().sheets.map(function (s) { return self._wrap(s.properties); });
+};
+RemoteSpreadsheet_.prototype.getSheetByName = function (name) {
+  var s = this._meta().sheets.filter(function (x) { return x.properties.title === name; })[0];
+  return s ? this._wrap(s.properties) : null;
+};
+RemoteSpreadsheet_.prototype.insertSheet = function (name) {
+  var r = this._batch([{ addSheet: { properties: { title: name } } }]);
+  var props = r.replies[0].addSheet.properties;
+  this._meta().sheets.push({ properties: props });
+  var sh = this._wrap(props);
+  sh._values = [];
+  return sh;
+};
+RemoteSpreadsheet_.prototype.addEditor = function () {};
+
+function RemoteSheet_(ss, props) { this.ss = ss; this.props = props; this._values = null; }
+RemoteSheet_.prototype.getName = function () { return this.props.title; };
+RemoteSheet_.prototype.setName = function (n) {
+  this.ss._batch([{ updateSheetProperties: { properties: { sheetId: this.props.sheetId, title: n }, fields: 'title' } }]);
+  this.props.title = n;
+  return this;
+};
+RemoteSheet_.prototype._load = function () {
+  if (!this._values) {
+    var d = gapi_(this.ss.token, 'get', SHEETS_API + this.ss.id + '/values/' + encodeURIComponent(a1Sheet_(this.props.title)) + '?valueRenderOption=FORMATTED_VALUE&majorDimension=ROWS');
+    this._values = (d.values || []).map(function (r) { return r.map(function (c) { return c === null || c === undefined ? '' : String(c); }); });
+  }
+  return this._values;
+};
+RemoteSheet_.prototype.getLastRow = function () {
+  var v = this._load(); var n = v.length;
+  while (n > 0 && v[n - 1].every(function (c) { return c === ''; })) n--;
+  return n;
+};
+RemoteSheet_.prototype.getLastColumn = function () { return this._load().reduce(function (w, r) { return Math.max(w, r.length); }, 0); };
+RemoteSheet_.prototype.getRange = function (r, c, nr, nc) { return new RemoteRange_(this, r, c, nr || 1, nc || 1); };
+RemoteSheet_.prototype.getDataRange = function () { return new RemoteRange_(this, 1, 1, Math.max(1, this.getLastRow()), Math.max(1, this.getLastColumn())); };
+RemoteSheet_.prototype.clearContents = function () {
+  gapi_(this.ss.token, 'post', SHEETS_API + this.ss.id + '/values/' + encodeURIComponent(a1Sheet_(this.props.title)) + ':clear', {});
+  this._values = [];
+  return this;
+};
+RemoteSheet_.prototype.deleteRows = function (r, n) {
+  this.ss._batch([{ deleteDimension: { range: { sheetId: this.props.sheetId, dimension: 'ROWS', startIndex: r - 1, endIndex: r - 1 + n } } }]);
+  if (this._values) this._values.splice(r - 1, n);
+};
+RemoteSheet_.prototype.deleteRow = function (r) { this.deleteRows(r, 1); };
+
+function RemoteRange_(sh, r, c, nr, nc) { this.sh = sh; this.r = r; this.c = c; this.nr = nr; this.nc = nc; }
+RemoteRange_.prototype.getValues = function () {
+  var v = this.sh._load(), out = [];
+  for (var i = 0; i < this.nr; i++) {
+    var row = [];
+    for (var j = 0; j < this.nc; j++) { var x = (v[this.r - 1 + i] || [])[this.c - 1 + j]; row.push(x === undefined ? '' : x); }
+    out.push(row);
+  }
+  return out;
+};
+RemoteRange_.prototype.getDisplayValues = RemoteRange_.prototype.getValues;
+RemoteRange_.prototype.getValue = function () { return this.getValues()[0][0]; };
+RemoteRange_.prototype.setNumberFormat = function () { return this; };
+RemoteRange_.prototype.setValues = function (vals) {
+  var a1 = a1Sheet_(this.sh.props.title) + '!' + a1Col_(this.c) + this.r + ':' + a1Col_(this.c + this.nc - 1) + (this.r + this.nr - 1);
+  var clean = vals.map(function (row) { return row.map(function (x) { return x === null || x === undefined ? '' : String(x); }); });
+  gapi_(this.sh.ss.token, 'put', SHEETS_API + this.sh.ss.id + '/values/' + encodeURIComponent(a1) + '?valueInputOption=RAW', { range: a1, majorDimension: 'ROWS', values: clean });
+  var v = this.sh._load();
+  for (var i = 0; i < this.nr; i++) {
+    while (v.length < this.r + i) v.push([]);
+    var row = v[this.r - 1 + i];
+    while (row.length < this.c - 1 + this.nc) row.push('');
+    for (var j = 0; j < this.nc; j++) row[this.c - 1 + j] = clean[i][j];
+  }
+  return this;
+};
+RemoteRange_.prototype.setValue = function (x) { return this.setValues([[x]]); };
+
+/** Abre a planilha do Studio: pela conta da manicure (normal) ou, em studios antigos ainda não migrados, pela conta do servidor. */
+function openSpreadsheet_(sid) {
+  if (isOwnerMode_(sid)) {
+    var tok = userAccessToken_(sid);
+    if (!tok) throw codedError_('CONTA_DESCONECTADA', 'O acesso do app à conta Google da manicure foi removido. Ela precisa entrar no app e autorizar de novo.');
+    return { ss: new RemoteSpreadsheet_(sid, tok), mode: 'MANICURE' };
+  }
+  return { ss: SpreadsheetApp.openById(sid), mode: 'SERVIDOR' };
+}
+
+// ------------------------------------------------- Drive da manicure (fotos/pasta)
+function driveCreateFolder_(token, name, parentId) {
+  var meta = { name: name, mimeType: 'application/vnd.google-apps.folder' };
+  if (parentId) meta.parents = [parentId];
+  return gapi_(token, 'post', DRIVE_API + '?fields=id', meta).id;
+}
+
+function driveMoveToFolder_(token, fileId, folderId) {
+  try { gapi_(token, 'patch', DRIVE_API + '/' + fileId + '?addParents=' + folderId + '&removeParents=root&fields=id', {}); } catch (e) {}
+}
+
+function driveUpload_(token, folderId, name, mime, bytes) {
+  var b = 'nsp' + Utilities.getUuid().replace(/-/g, '');
+  var head = '--' + b + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify({ name: name, parents: [folderId], mimeType: mime }) + '\r\n--' + b + '\r\nContent-Type: ' + mime + '\r\n\r\n';
+  var payload = Utilities.newBlob(head).getBytes().concat(bytes).concat(Utilities.newBlob('\r\n--' + b + '--').getBytes());
+  var f = gapi_(token, 'post', 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', undefined, { contentType: 'multipart/related; boundary=' + b, bytes: payload });
+  gapi_(token, 'post', DRIVE_API + '/' + f.id + '/permissions?fields=id', { role: 'reader', type: 'anyone' });
+  return f.id;
+}
+
+/** Pasta "Nail Studio Pro" no Drive da manicure (criada pelo app → dela). */
+function ownerAppFolder_(ctx, token) {
+  var id = ctx.cfg.PASTA_APP_ID;
+  if (id) {
+    try { var f = gapi_(token, 'get', DRIVE_API + '/' + id + '?fields=id,trashed'); if (!f.trashed) return id; } catch (e) {}
+  }
+  id = driveCreateFolder_(token, 'Nail Studio Pro');
+  upsertConfig_(ctx, { PASTA_APP_ID: id });
+  return id;
+}
+
+function ownerPhotoFolder_(ctx, token) {
+  var id = ctx.cfg.FOTOS_PASTA_ID;
+  if (id && ctx.cfg.FOTOS_NA_CONTA === 'SIM') {
+    try { var f = gapi_(token, 'get', DRIVE_API + '/' + id + '?fields=id,trashed'); if (!f.trashed) return id; } catch (e) {}
+  }
+  id = driveCreateFolder_(token, 'Fotos dos trabalhos', ownerAppFolder_(ctx, token));
+  upsertConfig_(ctx, { FOTOS_PASTA_ID: id, FOTOS_NA_CONTA: 'SIM' });
+  return id;
+}
+
+// -------------------------------------------------- criar Studio na conta dela
+function createOwnerStudio_(email, ex, p) {
+  var token = ex.at;
+  var studioNome = str_(p.studioNome, 60) || 'Meu Studio';
+  var tz = Session.getScriptTimeZone();
+  var created = gapi_(token, 'post', SHEETS_API.replace(/\/$/, ''), {
+    properties: { title: studioNome + ' — Nail Studio Pro', locale: 'pt_BR', timeZone: tz },
+    sheets: [TAB_CONFIG, TAB_CATS, TAB_CATALOG, TAB_BOOKINGS, TAB_LOGS].map(function (t) { return { properties: { title: t } }; })
+  });
+  var sid = created.spreadsheetId;
+  var ctx = { ss: new RemoteSpreadsheet_(sid, token), sheetId: sid, tz: tz, cfg: {}, email: email, mode: 'MANICURE' };
+  var now = nowInTz_(tz).stamp;
+  writeTable_(ctx.ss.getSheetByName(TAB_CONFIG), [['Chave', 'Valor', 'Descricao']].concat(defaultConfigRows_(email, p, now)));
+  writeTable_(ctx.ss.getSheetByName(TAB_CATS), [CATS_HEADER].concat(DEFAULT_CATS));
+  writeTable_(ctx.ss.getSheetByName(TAB_CATALOG), [CATALOG_HEADER].concat(DEFAULT_SERVICES));
+  writeTable_(ctx.ss.getSheetByName(TAB_BOOKINGS), [BOOKING_HEADER]);
+  writeTable_(ctx.ss.getSheetByName(TAB_LOGS), [['Timestamp', 'Evento', 'Detalhes'], [now, 'CONTA_CRIADA', 'Studio criado na conta Google de ' + email]]);
+  ctx.cfg = readConfig_(ctx);
+  driveMoveToFolder_(token, sid, ownerAppFolder_(ctx, token));
+  return sid;
+}
+
+/** Usa uma planilha que ela já tem (acesso pela conta dela; nada é compartilhado com o servidor). */
+function adoptOwnerSpreadsheet_(email, input, ex, p) {
+  var sid = sheetIdFromInput_(input);
+  if (!sid) throw new Error('Cole o link da sua planilha do Google (docs.google.com/spreadsheets/...).');
+  var ss = new RemoteSpreadsheet_(sid, ex.at);
+  try { ss._meta(); } catch (e) { throw new Error('Sua conta Google (' + email + ') não tem acesso a essa planilha. Confira o link.'); }
+  var rows = directoryRows_();
+  for (var i = 1; i < rows.length; i++) {
+    if (String(rows[i][3]).trim() === sid && String(rows[i][0]).trim().toLowerCase() !== email) throw new Error('Esta planilha já está ligada a outro Studio.');
+  }
+  var ctx = { ss: ss, sheetId: sid, tz: Session.getScriptTimeZone(), cfg: {}, email: email, mode: 'MANICURE' };
+  var now = nowInTz_(ctx.tz).stamp;
+  try {
+    ensureTab_(ctx, TAB_CONFIG, ['Chave', 'Valor', 'Descricao']);
+  } catch (e) {
+    if (e.httpCode === 403) throw new Error('Você só tem permissão de leitura nessa planilha. Use uma planilha em que você possa editar.');
+    throw e;
+  }
+  ctx.cfg = readConfig_(ctx);
+  var up = {};
+  defaultConfigRows_(email, p, now).forEach(function (r) { if (!ctx.cfg[r[0]]) up[r[0]] = r[1]; });
+  up.ADMIN_LOGIN_ID = email;
+  up.SETUP_CONCLUIDO = 'SIM';
+  upsertConfig_(ctx, up);
+  if (!ss.getSheetByName(TAB_CATS)) writeTable_(ensureTab_(ctx, TAB_CATS, CATS_HEADER), [CATS_HEADER].concat(DEFAULT_CATS));
+  if (!ss.getSheetByName(TAB_CATALOG)) writeTable_(ensureTab_(ctx, TAB_CATALOG, CATALOG_HEADER), [CATALOG_HEADER].concat(DEFAULT_SERVICES));
+  else ensureTab_(ctx, TAB_CATALOG, CATALOG_HEADER);
+  ensureTab_(ctx, TAB_BOOKINGS, BOOKING_HEADER);
+  ensureTab_(ctx, TAB_LOGS, ['Timestamp', 'Evento', 'Detalhes']);
+  logEvent_(ctx, 'PLANILHA_VINCULADA', 'Planilha existente vinculada por ' + email);
+  return sid;
+}
+
+function registerStudio_(email, sid, ctxCfg, prof, nome) {
+  var now = nowInTz_(Session.getScriptTimeZone()).stamp;
+  appendRow_(directorySheet_(), [email, prof || '', nome || '', sid, 'https://docs.google.com/spreadsheets/d/' + sid + '/edit', publicBaseUrl_() + '/Pagina_Cliente.html?s=' + sid, '', '', now]);
+  cache_().put('reg:' + sid, '1', 600);
+}
+
+// ------------------------------------------- migrar studio antigo para a conta dela
+function resolveSid_(sid) {
+  var s = String(sid || '').trim();
+  for (var i = 0; i < 3; i++) { var a = prop_('ALIAS_' + s); if (!a) break; s = a; }
+  return s;
+}
+
+/** Remove a conta do servidor do compartilhamento da planilha/arquivo (o servidor "sai" sozinho). */
+function serverLeaveFile_(fileId) {
+  try {
+    var me = serverEmail_().toLowerCase();
+    var tok = ScriptApp.getOAuthToken();
+    var list = gapi_(tok, 'get', DRIVE_API + '/' + fileId + '/permissions?fields=' + encodeURIComponent('permissions(id,emailAddress,role)'));
+    var mine = (list.permissions || []).filter(function (p) { return String(p.emailAddress || '').toLowerCase() === me; })[0];
+    if (!mine) return true;
+    if (mine.role === 'owner') return false;
+    gapi_(tok, 'delete', DRIVE_API + '/' + fileId + '/permissions/' + mine.id);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Studio antigo (dados acessados pela conta do servidor) → dados na conta da manicure.
+ *  - Planilha já é dela (ela aceitou a propriedade): passa a usar a permissão dela e o servidor sai do compartilhamento.
+ *  - Planilha é do servidor: copia tudo para uma planilha NOVA na conta dela, o link antigo das clientes
+ *    continua funcionando (apelido) e a planilha antiga vai para a lixeira do servidor.
+ */
+function migrateToOwner_(ctx, ex) {
+  var oldSid = ctx.sheetId;
+  var token = ex.at;
+  var ownerEmail = '';
+  try { ownerEmail = String(DriveApp.getFileById(oldSid).getOwner().getEmail()).toLowerCase(); } catch (e) {}
+  var herAccess = true;
+  try { new RemoteSpreadsheet_(oldSid, token)._meta(); } catch (e) { herAccess = false; }
+
+  if (ownerEmail && ownerEmail === ctx.email && herAccess) {
+    storeGrant_(oldSid, ex, ctx.email);
+    var left = serverLeaveFile_(oldSid);
+    var oldFolderA = ctx.cfg.FOTOS_NA_CONTA !== 'SIM' ? ctx.cfg.FOTOS_PASTA_ID : '';
+    var nctx = openStudio_(oldSid);
+    nctx.email = ctx.email;
+    movePhotosToOwner_(nctx, oldFolderA);
+    logEvent_(nctx, 'DADOS_NA_CONTA_DELA', 'Planilha já era da manicure; servidor ' + (left ? 'removido do compartilhamento' : 'NÃO conseguiu sair (remover manualmente)'));
+    return { sheetId: oldSid, copied: false, serverRemoved: left };
+  }
+
+  // Copia para uma planilha nova na conta dela
+  var oldFolderB = ctx.cfg.FOTOS_NA_CONTA !== 'SIM' ? ctx.cfg.FOTOS_PASTA_ID : '';
+  var p = { studioNome: ctx.cfg.STUDIO_NOME, profissionalNome: ctx.cfg.PROFISSIONAL_NOME, whatsapp: ctx.cfg.WHATSAPP_STUDIO, pixChave: ctx.cfg.PIX_CHAVE };
+  var newSid = createOwnerStudio_(ctx.email, ex, p);
+  var dst = new RemoteSpreadsheet_(newSid, token);
+  ctx.ss.getSheets().forEach(function (sh) {
+    var name = sh.getName();
+    var rows = readTab_(ctx, name).rows;
+    if (!rows.length) return;
+    var target = dst.getSheetByName(name) || dst.insertSheet(name);
+    writeTable_(target, rows);
+  });
+  var dctx = { ss: dst, sheetId: newSid, tz: ctx.tz, cfg: {}, email: ctx.email, mode: 'MANICURE' };
+  dctx.cfg = readConfig_(dctx);
+  upsertConfig_(dctx, { ADMIN_LOGIN_ID: ctx.email, GCAL_REFRESH_TOKEN: '', FOTOS_PASTA_ID: '', FOTOS_NA_CONTA: '' });
+  storeGrant_(newSid, ex, ctx.email);
+  // diretório aponta para a planilha nova; o ID antigo vira apelido (links das clientes continuam valendo)
+  var dir = directorySheet_();
+  var drows = dir.getDataRange().getValues();
+  for (var i = 1; i < drows.length; i++) {
+    if (String(drows[i][3]).trim() === oldSid) {
+      dir.getRange(i + 1, 4).setValue(newSid);
+      dir.getRange(i + 1, 5).setValue('https://docs.google.com/spreadsheets/d/' + newSid + '/edit');
+      dir.getRange(i + 1, 6).setValue(publicBaseUrl_() + '/Pagina_Cliente.html?s=' + newSid);
+    }
+  }
+  setProp_('ALIAS_' + oldSid, newSid);
+  setProp_('GCAL_RT_' + oldSid, '');
+  cache_().put('reg:' + newSid, '1', 600);
+  dctx = openStudio_(newSid);
+  dctx.email = ctx.email;
+  movePhotosToOwner_(dctx, oldFolderB);
+  logEvent_(dctx, 'DADOS_NA_CONTA_DELA', 'Dados copiados da planilha antiga ' + oldSid);
+  var trashed = false;
+  try { DriveApp.getFileById(oldSid).setTrashed(true); trashed = true; } catch (e) {}
+  return { sheetId: newSid, copied: true, serverRemoved: trashed };
+}
+
+/** Fotos que estavam no Drive do servidor passam para a pasta de fotos da manicure. */
+function movePhotosToOwner_(ctx, oldFolderId) {
+  var token = userAccessToken_(ctx.sheetId);
+  if (!token) return 0;
+  var moved = 0;
+  var t = readTab_(ctx, TAB_CATALOG);
+  for (var i = 1; i < t.rows.length; i++) {
+    var r = t.rows[i];
+    if (!r[0]) continue;
+    var fotos = [r[5]].concat(String(r[8] || '').split(/\s+/)).filter(String);
+    var changed = false;
+    fotos = fotos.map(function (u) {
+      var id = driveIdFromUrl_(u);
+      if (!id) return u;
+      try {
+        var f = DriveApp.getFileById(id);
+        if (String(f.getOwner().getEmail()).toLowerCase() !== serverEmail_().toLowerCase()) return u;
+        var blob = f.getBlob();
+        var newId = driveUpload_(token, ownerPhotoFolder_(ctx, token), f.getName(), blob.getContentType(), blob.getBytes());
+        f.setTrashed(true);
+        changed = true; moved++;
+        return photoUrl_(newId);
+      } catch (e) { return u; }
+    });
+    if (changed) {
+      r[5] = fotos[0] || ''; r[8] = fotos.slice(1).join(' ');
+      while (r.length < CATALOG_HEADER.length) r.push('');
+      writeRow_(t.sheet, i + 1, r);
+    }
+  }
+  if (oldFolderId) {
+    try { DriveApp.getFolderById(oldFolderId).setTrashed(true); } catch (e) {}
+  }
+  return moved;
+}
+
+// =============================================================================
+// GOOGLE AGENDA (permissão da manicure guardada SÓ no servidor)
 // =============================================================================
 function rtKey_(sheetId) { return 'GCAL_RT_' + sheetId; }
 
 function migrateLegacyRefreshToken_(ctx) {
   var legacy = ctx.cfg.GCAL_REFRESH_TOKEN;
-  if (legacy && !prop_(rtKey_(ctx.sheetId))) {
-    setProp_(rtKey_(ctx.sheetId), legacy);
-  }
+  if (legacy && !userTok_(ctx.sheetId)) setProp_(rtKey_(ctx.sheetId), legacy);
   if (legacy) upsertConfig_(ctx, { GCAL_REFRESH_TOKEN: '' });
 }
 
-function gcalConnected_(ctx) { return !!prop_(rtKey_(ctx.sheetId)); }
+function gcalConnected_(ctx) {
+  return hasScope_(userTok_(ctx.sheetId), CALENDAR_SCOPE) && String(ctx.cfg.GCAL_STATUS || '') !== 'DESCONECTADA';
+}
 
 function oauthPost_(params) {
   var res = UrlFetchApp.fetch('https://oauth2.googleapis.com/token', { method: 'post', payload: params, muteHttpExceptions: true });
@@ -922,22 +1410,17 @@ function oauthPost_(params) {
 }
 
 function calAccessToken_(ctx) {
-  var rt = prop_(rtKey_(ctx.sheetId));
-  if (!rt) return null;
-  var c = cache_();
-  var cached = c.get('gat:' + ctx.sheetId);
-  if (cached) return cached;
-  var data = oauthPost_({ client_id: prop_('GOOGLE_CLIENT_ID'), client_secret: prop_('GOOGLE_CLIENT_SECRET'), refresh_token: rt, grant_type: 'refresh_token' });
-  if (!data.access_token) {
-    if (data.error === 'invalid_grant') {
-      setProp_(rtKey_(ctx.sheetId), '');
+  if (!gcalConnected_(ctx)) return null;
+  var tok = null;
+  try { tok = userAccessToken_(ctx.sheetId); } catch (e) { tok = null; }
+  if (!tok) {
+    var t = userTok_(ctx.sheetId);
+    if (t && t.revoked) {
       try { upsertConfig_(ctx, { GCAL_STATUS: 'EXPIRADA' }); } catch (e) {}
       logEvent_(ctx, 'GCAL_EXPIRADA', 'Permissão da Google Agenda revogada/expirada. Reconectar.');
     }
-    return null;
   }
-  c.put('gat:' + ctx.sheetId, data.access_token, Math.max(60, Number(data.expires_in || 3600) - 300));
-  return data.access_token;
+  return tok;
 }
 
 function calApi_(ctx, method, path, body) {
@@ -952,7 +1435,7 @@ function calApi_(ctx, method, path, body) {
   var data = {};
   try { data = JSON.parse(text || '{}'); } catch (e) {}
   if (code >= 300) {
-    if (code === 401) cache_().remove('gat:' + ctx.sheetId);
+    if (code === 401) cache_().remove('uat:' + ctx.sheetId);
     var err = new Error('Google Agenda: ' + ((data.error && data.error.message) || ('HTTP ' + code)));
     err.httpCode = code;
     throw err;
@@ -1168,28 +1651,6 @@ function defaultConfigRows_(email, p, now) {
   ];
 }
 
-function provisionStudio_(email, p) {
-  var studioNome = str_(p.studioNome, 60) || 'Meu Studio';
-  var profissional = str_(p.profissionalNome, 60) || 'Manicure';
-  var ss = SpreadsheetApp.create(studioNome + ' - Nail Studio Pro (Banco de Dados)');
-  try { ss.setSpreadsheetTimeZone(Session.getScriptTimeZone()); } catch (e) {}
-  var first = ss.getSheets()[0];
-  first.setName(TAB_CONFIG);
-  var ctx = { ss: ss, sheetId: ss.getId(), tz: Session.getScriptTimeZone(), cfg: {} };
-  var now = nowInTz_(ctx.tz).stamp;
-  writeTable_(first, [['Chave', 'Valor', 'Descricao']].concat(defaultConfigRows_(email, p, now)));
-  writeTable_(ss.insertSheet(TAB_CATS), [CATS_HEADER].concat(DEFAULT_CATS));
-  writeTable_(ss.insertSheet(TAB_CATALOG), [CATALOG_HEADER].concat(DEFAULT_SERVICES));
-  writeTable_(ss.insertSheet(TAB_BOOKINGS), [BOOKING_HEADER]);
-  writeTable_(ss.insertSheet(TAB_LOGS), [['Timestamp', 'Evento', 'Detalhes'], [now, 'CONTA_CRIADA', 'Studio criado para ' + email]]);
-  try { ss.addEditor(email); } catch (e) {}
-
-  var sid = ss.getId();
-  appendRow_(directorySheet_(), [email, profissional, studioNome, sid, 'https://docs.google.com/spreadsheets/d/' + sid + '/edit', publicBaseUrl_() + '/Pagina_Cliente.html?s=' + sid, '', '', now]);
-  cache_().put('reg:' + sid, '1', 600);
-  return sid;
-}
-
 // -----------------------------------------------------------------------------
 // PLANILHA QUE A MANICURE JÁ TEM (vincular como banco de dados)
 // -----------------------------------------------------------------------------
@@ -1204,64 +1665,9 @@ function sheetIdFromInput_(v) {
   return /^[A-Za-z0-9_-]{20,}$/.test(t) ? t : '';
 }
 
-function userCanEdit_(fileId, email) {
-  var f = DriveApp.getFileById(fileId);
-  try { if (String(f.getOwner().getEmail()).toLowerCase() === email) return true; } catch (e) {}
-  return f.getEditors().some(function (u) { return String(u.getEmail()).toLowerCase() === email; });
-}
-
-function adoptSpreadsheet_(email, input, p) {
-  var sheetId = sheetIdFromInput_(input);
-  if (!sheetId) throw new Error('Cole o link da sua planilha do Google (docs.google.com/spreadsheets/...).');
-  var ss;
-  try { ss = SpreadsheetApp.openById(sheetId); } catch (e) {
-    var se = serverEmail_();
-    throw codedError_('SEM_ACESSO', 'O app ainda não tem acesso à sua planilha. Abra a planilha, toque em Compartilhar e adicione ' + (se || 'o e-mail do servidor') + ' como Editor. Depois toque em "Verificar de novo".', { serverEmail: se, sheetId: sheetId });
-  }
-  if (!userCanEdit_(sheetId, email)) throw new Error('Essa planilha não é da sua conta Google (' + email + '). Use uma planilha sua.');
-  var rows = directoryRows_();
-  for (var i = 1; i < rows.length; i++) {
-    if (String(rows[i][3]).trim() === sheetId && String(rows[i][0]).trim().toLowerCase() !== email) throw new Error('Esta planilha já está ligada a outro Studio.');
-  }
-  var tz = Session.getScriptTimeZone();
-  try { tz = ss.getSpreadsheetTimeZone() || tz; } catch (e) {}
-  var ctx = { ss: ss, sheetId: sheetId, tz: tz, cfg: {}, email: email };
-  var now = nowInTz_(tz).stamp;
-  ensureTab_(ctx, TAB_CONFIG, ['Chave', 'Valor', 'Descricao']);
-  ctx.cfg = readConfig_(ctx);
-  var up = {};
-  defaultConfigRows_(email, p, now).forEach(function (r) { if (!ctx.cfg[r[0]]) up[r[0]] = r[1]; });
-  up.ADMIN_LOGIN_ID = email;
-  up.SETUP_CONCLUIDO = 'SIM';
-  upsertConfig_(ctx, up);
-  // Abas que faltarem são criadas; dados existentes são mantidos
-  if (!ctx.ss.getSheetByName(TAB_CATS)) writeTable_(ensureTab_(ctx, TAB_CATS, CATS_HEADER), [CATS_HEADER].concat(DEFAULT_CATS));
-  if (!ctx.ss.getSheetByName(TAB_CATALOG)) writeTable_(ensureTab_(ctx, TAB_CATALOG, CATALOG_HEADER), [CATALOG_HEADER].concat(DEFAULT_SERVICES));
-  else ensureTab_(ctx, TAB_CATALOG, CATALOG_HEADER);
-  ensureTab_(ctx, TAB_BOOKINGS, BOOKING_HEADER);
-  ensureTab_(ctx, TAB_LOGS, ['Timestamp', 'Evento', 'Detalhes']);
-  logEvent_(ctx, 'PLANILHA_VINCULADA', 'Planilha existente vinculada por ' + email);
-  var already = findStudioByEmail_(email);
-  if (!already) {
-    appendRow_(directorySheet_(), [email, ctx.cfg.PROFISSIONAL_NOME || '', ctx.cfg.STUDIO_NOME || '', sheetId, 'https://docs.google.com/spreadsheets/d/' + sheetId + '/edit', publicBaseUrl_() + '/Pagina_Cliente.html?s=' + sheetId, '', '', now]);
-  }
-  cache_().put('reg:' + sheetId, '1', 600);
-  return sheetId;
-}
-
-/** Quem é a dona da planilha (cache 10 min): MANICURE, SERVIDOR ou PENDENTE. */
+/** MANICURE: dados acessados só com a permissão dela. SERVIDOR: studio antigo ainda não migrado. */
 function sheetOwnership_(ctx) {
-  var key = 'own:' + ctx.sheetId;
-  var hit = cache_().get(key);
-  if (hit) return hit;
-  var st = 'SERVIDOR';
-  try {
-    var owner = String(DriveApp.getFileById(ctx.sheetId).getOwner().getEmail()).toLowerCase();
-    if (ctx.email && owner === ctx.email) st = 'MANICURE';
-    else if (ctx.cfg.PLANILHA_DONA === 'PENDENTE') st = 'PENDENTE';
-  } catch (e) {}
-  cache_().put(key, st, 600);
-  return st;
+  return ctx.mode === 'MANICURE' ? 'MANICURE' : 'SERVIDOR';
 }
 
 // -----------------------------------------------------------------------------
@@ -1297,10 +1703,20 @@ function sessionFor_(email, sheetId, ctx) {
   return makeToken_({ t: 's', e: email, sid: sheetId, v: String(ctx.cfg.SESSION_VERSION || '1'), x: Date.now() + SESSION_DAYS * 86400000 });
 }
 
+function reauthToken_(email, sid) {
+  return makeToken_({ t: 'ra', e: email, sid: sid, x: Date.now() + 30 * 60000 });
+}
+
 function requireSession_(token) {
   var p = readToken_(token, 's');
   if (!p) throw new Error('SESSAO_INVALIDA');
-  var ctx = openStudio_(p.sid);
+  var ctx;
+  try {
+    ctx = openStudio_(p.sid);
+  } catch (e) {
+    if (e.code === 'CONTA_DESCONECTADA') throw codedError_('CONTA_DESCONECTADA', e.message, { reauthToken: reauthToken_(p.e, resolveSid_(p.sid)) });
+    throw e;
+  }
   if (String(ctx.cfg.SESSION_VERSION || '1') !== String(p.v)) throw new Error('SESSAO_REVOGADA');
   ctx.email = p.e;
   migrateLegacyRefreshToken_(ctx);
@@ -1322,27 +1738,71 @@ var PUBLIC_API = {
     if (!found) {
       return { needsOnboarding: true, email: user.email, name: user.name, picture: user.picture, signupToken: makeToken_({ t: 'su', e: user.email, n: user.name, x: Date.now() + 30 * 60000 }) };
     }
-    var ctx = openStudio_(found.sheetId);
+    var sid = resolveSid_(found.sheetId);
+    var ctx;
+    try {
+      ctx = openStudio_(sid);
+    } catch (e) {
+      if (e.code === 'CONTA_DESCONECTADA') return { needsReauth: true, email: user.email, name: user.name, reauthToken: reauthToken_(user.email, sid) };
+      throw e;
+    }
     logEvent_(ctx, 'LOGIN_GOOGLE', user.email);
-    return { session: sessionFor_(user.email, found.sheetId, ctx), email: user.email, name: user.name, picture: user.picture, spreadsheetId: found.sheetId };
+    return { session: sessionFor_(user.email, sid, ctx), email: user.email, name: user.name, picture: user.picture, spreadsheetId: sid, dadosNaConta: ctx.mode === 'MANICURE' };
   },
 
-  /** Cria o Studio da conta Google verificada (1º acesso). */
+  /**
+   * 1º acesso: cria o Studio NA CONTA GOOGLE DELA (ou usa uma planilha que ela já tem).
+   * Recebe o código da autorização do Google (planilha + arquivos do app [+ agenda]).
+   */
   createStudio: function (a) {
     var su = readToken_(a.signupToken, 'su');
     if (!su) throw new Error('Cadastro expirado. Toque em "Entrar com Google" novamente.');
     if (!str_(a.studioNome)) throw new Error('Informe o nome do seu Studio.');
     if (a.whatsapp && !isValidPhone_(a.whatsapp)) throw new Error('WhatsApp inválido: use DDD + número.');
+    if (!a.code) throw new Error('Autorize o app na sua conta Google para criar seus dados.');
+    var ex = exchangeCode_(a.code, a.redirectUri);
+    if (ex.email && ex.email !== su.e) { throw new Error('Você autorizou com outra conta (' + ex.email + '). Use a mesma conta do login: ' + su.e + '.'); }
+    requireDataGrant_(ex);
     return withLock_(function () {
       var existing = findStudioByEmail_(su.e);
-      var sid = existing ? existing.sheetId : (a.planilha ? adoptSpreadsheet_(su.e, a.planilha, a) : provisionStudio_(su.e, a));
-      return { session: sessionFor_(su.e, sid), email: su.e, spreadsheetId: sid, isNew: !existing, vinculada: !existing && !!a.planilha };
+      if (!existing && !ex.rt) throw semRefresh_();
+      if (existing) {
+        var ectx = openStudio_(existing.sheetId);
+        ectx.email = su.e;
+        var mig = ectx.mode === 'MANICURE' ? { sheetId: ectx.sheetId } : migrateToOwner_(ectx, ex);
+        if (ectx.mode === 'MANICURE') storeGrant_(ectx.sheetId, ex, su.e);
+        return { session: sessionFor_(su.e, mig.sheetId), email: su.e, spreadsheetId: mig.sheetId, isNew: false, calendar: scopeList_(ex.scopes).indexOf(CALENDAR_SCOPE) >= 0 };
+      }
+      var sid = a.planilha ? adoptOwnerSpreadsheet_(su.e, a.planilha, ex, a) : createOwnerStudio_(su.e, ex, a);
+      storeGrant_(sid, ex, su.e);
+      var nctx = openStudio_(sid);
+      registerStudio_(su.e, sid, nctx.cfg, nctx.cfg.PROFISSIONAL_NOME, nctx.cfg.STUDIO_NOME);
+      var hasCal = scopeList_(ex.scopes).indexOf(CALENDAR_SCOPE) >= 0;
+      if (hasCal) { upsertConfig_(nctx, { GCAL_CONNECTED_EMAIL: su.e, GCAL_STATUS: 'CONECTADA', SINCRONIZAR_AGENDA: 'SIM' }); ensureSyncTrigger_(); }
+      return { session: sessionFor_(su.e, sid, nctx), email: su.e, spreadsheetId: sid, isNew: true, vinculada: !!a.planilha, calendar: hasCal };
     });
+  },
+
+  /** Ela removeu o acesso do app (ou o Google expirou): autoriza de novo e volta de onde parou. */
+  reconnectAccount: function (a) {
+    var rt = readToken_(a.reauthToken, 'ra');
+    if (!rt) throw new Error('Tempo esgotado. Entre com o Google novamente.');
+    var ex = exchangeCode_(a.code, a.redirectUri);
+    if (ex.email && ex.email !== rt.e) { throw new Error('Use a mesma conta Google do login: ' + rt.e + '.'); }
+    requireDataGrant_(ex);
+    try { new RemoteSpreadsheet_(rt.sid, ex.at)._meta(); } catch (e) { throw new Error('Essa conta não tem mais acesso à planilha do Studio. Fale com o suporte.'); }
+    var old = userTok_(rt.sid);
+    if (old) { old.revoked = false; old.rt = ''; saveUserTok_(rt.sid, old); }
+    storeGrant_(rt.sid, ex, rt.e);
+    var ctx = openStudio_(rt.sid);
+    if (scopeList_(ex.scopes).indexOf(CALENDAR_SCOPE) >= 0) upsertConfig_(ctx, { GCAL_STATUS: 'CONECTADA', SINCRONIZAR_AGENDA: 'SIM' });
+    logEvent_(ctx, 'CONTA_RECONECTADA', rt.e);
+    return { session: sessionFor_(rt.e, rt.sid, ctx), email: rt.e, spreadsheetId: rt.sid };
   },
 
   /** Informações para o assistente de primeiro acesso. */
   getSetupInfo: function () {
-    return { serverEmail: serverEmail_(), calendarReady: !!prop_('GOOGLE_CLIENT_SECRET') };
+    return { calendarReady: !!prop_('GOOGLE_CLIENT_SECRET') };
   },
 
   /** Login alternativo: e-mail + PIN (para quem ainda não usa o botão Google). */
@@ -1506,7 +1966,8 @@ function dashboard_(ctx) {
       connected: gcalConnected_(ctx),
       email: ctx.cfg.GCAL_CONNECTED_EMAIL || '',
       status: ctx.cfg.GCAL_STATUS || '',
-      configured: !!prop_('GOOGLE_CLIENT_SECRET')
+      configured: !!prop_('GOOGLE_CLIENT_SECRET'),
+      scopes: (function () { var t = userTok_(ctx.sheetId); return t && !t.revoked ? t.scopes : ''; })()
     },
     agenda: {
       semana: weeklySchedule_(ctx),
@@ -1609,6 +2070,18 @@ var ADMIN_API = {
     var ext = m[2] === 'jpeg' ? 'jpg' : m[2];
     var base = (str_(a.nome, 40) || 'trabalho').replace(/[^\wÀ-ÿ\- ]/g, '').trim() || 'trabalho';
     var name = base + ' ' + nowInTz_(ctx.tz).stamp.replace(/[\/: ]/g, '-') + '.' + ext;
+    if (ctx.mode === 'MANICURE') {
+      var token = userAccessToken_(ctx.sheetId);
+      var fid;
+      try {
+        fid = withLock_(function () { return driveUpload_(token, ownerPhotoFolder_(ctx, token), name, m[1], bytes); });
+      } catch (e) {
+        if (/storage|quota|espa/i.test(e.message)) throw new Error('O seu Google Drive está sem espaço. Libere espaço para enviar novas fotos.');
+        throw e;
+      }
+      logEvent_(ctx, 'FOTO_ENVIADA', name);
+      return { url: photoUrl_(fid), id: fid };
+    }
     var file;
     try {
       file = withLock_(function () { return photoFolder_(ctx).createFile(Utilities.newBlob(bytes, m[1], name)); });
@@ -1811,21 +2284,13 @@ var ADMIN_API = {
 
   // ----------------------------- GOOGLE AGENDA ------------------------------
   gcalConnect: function (ctx, a) {
-    if (!prop_('GOOGLE_CLIENT_SECRET')) throw new Error('Servidor sem GOOGLE_CLIENT_SECRET configurado. Avise o suporte.');
-    var redirect = a.redirectUri === '' ? '' : 'postmessage';
-    var data = oauthPost_({ code: String(a.code || ''), client_id: prop_('GOOGLE_CLIENT_ID'), client_secret: prop_('GOOGLE_CLIENT_SECRET'), redirect_uri: redirect, grant_type: 'authorization_code' });
-    if (!data.access_token) throw new Error('Google recusou a autorização (' + (data.error_description || data.error || 'erro') + '). Tente novamente.');
-    if (String(data.scope || '').indexOf(CALENDAR_SCOPE) < 0) {
+    var ex = exchangeCode_(a.code, a.redirectUri);
+    if (scopeList_(ex.scopes).indexOf(CALENDAR_SCOPE) < 0) {
       throw new Error('Você não marcou a permissão "Ver e editar eventos" da Google Agenda. Toque em Conectar e marque a caixinha.');
     }
-    var email = String(decodeJwtPayload_(data.id_token).email || ctx.email || '').toLowerCase();
-    if (!data.refresh_token && !prop_(rtKey_(ctx.sheetId))) {
-      // O Google só entrega refresh_token no 1º consentimento: revoga e pede de novo.
-      UrlFetchApp.fetch('https://oauth2.googleapis.com/revoke?token=' + encodeURIComponent(data.access_token), { method: 'post', muteHttpExceptions: true });
-      throw new Error('Quase lá! Toque em "Conectar Google Agenda" mais uma vez para concluir.');
-    }
-    if (data.refresh_token) setProp_(rtKey_(ctx.sheetId), data.refresh_token);
-    cache_().put('gat:' + ctx.sheetId, data.access_token, Math.max(60, Number(data.expires_in || 3600) - 300));
+    if (ex.email && ctx.email && ex.email !== ctx.email) { throw new Error('Use a mesma conta Google do login (' + ctx.email + ').'); }
+    storeGrant_(ctx.sheetId, ex, ctx.email);
+    var email = ex.email || ctx.email || '';
     upsertConfig_(ctx, { GCAL_CONNECTED_EMAIL: email, GCAL_STATUS: 'CONECTADA', SINCRONIZAR_AGENDA: 'SIM', GCAL_REFRESH_TOKEN: '' });
     logEvent_(ctx, 'GCAL_CONECTADA', email);
     ensureSyncTrigger_();
@@ -1835,34 +2300,40 @@ var ADMIN_API = {
     return dash;
   },
 
-  /** Pede ao Google para transferir a planilha para a conta da manicure (ela aceita pelo e-mail/Drive). */
-  adminTransferOwnership: function (ctx) {
-    if (!ctx.email) throw new Error('Entre novamente com sua conta Google.');
-    if (sheetOwnership_(ctx) === 'MANICURE') return { status: 'JA_DONA' };
-    var token = ScriptApp.getOAuthToken();
-    var base = 'https://www.googleapis.com/drive/v3/files/' + ctx.sheetId + '/permissions';
-    var hdr = { Authorization: 'Bearer ' + token };
-    var res = UrlFetchApp.fetch(base + '?fields=permissions(id,emailAddress,role)', { headers: hdr, muteHttpExceptions: true });
-    var perms = (JSON.parse(res.getContentText() || '{}').permissions) || [];
-    var perm = perms.filter(function (p) { return String(p.emailAddress || '').toLowerCase() === ctx.email; })[0];
-    if (!perm) {
-      var c = UrlFetchApp.fetch(base + '?sendNotificationEmail=false', { method: 'post', headers: hdr, contentType: 'application/json', payload: JSON.stringify({ role: 'writer', type: 'user', emailAddress: ctx.email }), muteHttpExceptions: true });
-      perm = JSON.parse(c.getContentText() || '{}');
-      if (!perm.id) throw new Error('Não foi possível compartilhar a planilha com você.');
+  /**
+   * Studio antigo: passa a guardar e acessar tudo NA CONTA DELA e o servidor sai da planilha.
+   * Também serve para acrescentar permissões (ex.: agenda) a quem já está na conta dela.
+   */
+  adminAuthorizeOwnAccount: function (ctx, a) {
+    var ex = exchangeCode_(a.code, a.redirectUri);
+    if (ex.email && ctx.email && ex.email !== ctx.email) { throw new Error('Use a mesma conta Google do login (' + ctx.email + ').'); }
+    requireDataGrant_(ex);
+    var result = withLock_(function () {
+      if (ctx.mode === 'MANICURE') { storeGrant_(ctx.sheetId, ex, ctx.email); return { sheetId: ctx.sheetId, copied: false, serverRemoved: true }; }
+      return migrateToOwner_(ctx, ex);
+    });
+    var nctx = openStudio_(result.sheetId);
+    nctx.email = ctx.email;
+    if (scopeList_(ex.scopes).indexOf(CALENDAR_SCOPE) >= 0) {
+      upsertConfig_(nctx, { GCAL_CONNECTED_EMAIL: ctx.email, GCAL_STATUS: 'CONECTADA', SINCRONIZAR_AGENDA: 'SIM' });
+      ensureSyncTrigger_();
+      resyncFutureBookings_(nctx);
     }
-    var u = UrlFetchApp.fetch(base + '/' + perm.id, { method: 'patch', headers: hdr, contentType: 'application/json', payload: JSON.stringify({ role: 'writer', pendingOwner: true }), muteHttpExceptions: true });
-    if (u.getResponseCode() >= 300) throw new Error('O Google não permitiu a transferência agora. Tente mais tarde.');
-    upsertConfig_(ctx, { PLANILHA_DONA: 'PENDENTE' });
-    cache_().remove('own:' + ctx.sheetId);
-    logEvent_(ctx, 'PROPRIEDADE_SOLICITADA', ctx.email);
-    return { status: 'AGUARDANDO_ACEITE' };
+    var dash = dashboard_(nctx);
+    dash.session = sessionFor_(ctx.email, result.sheetId, nctx);
+    dash.migracao = result;
+    return dash;
   },
 
   gcalDisconnect: function (ctx) {
-    var rt = prop_(rtKey_(ctx.sheetId));
-    if (rt) UrlFetchApp.fetch('https://oauth2.googleapis.com/revoke?token=' + encodeURIComponent(rt), { method: 'post', muteHttpExceptions: true });
-    setProp_(rtKey_(ctx.sheetId), '');
-    cache_().remove('gat:' + ctx.sheetId);
+    // A mesma permissão guarda os dados dela: só desliga a agenda (não revoga) quando os dados estão na conta dela.
+    if (ctx.mode !== 'MANICURE') {
+      var t = userTok_(ctx.sheetId);
+      if (t && t.rt) revokeToken_(t.rt);
+      setProp_(utokKey_(ctx.sheetId), '');
+      setProp_(rtKey_(ctx.sheetId), '');
+      cache_().remove('uat:' + ctx.sheetId);
+    }
     upsertConfig_(ctx, { GCAL_CONNECTED_EMAIL: '', GCAL_STATUS: 'DESCONECTADA', GCAL_REFRESH_TOKEN: '' });
     logEvent_(ctx, 'GCAL_DESCONECTADA', ctx.email || '');
     return dashboard_(ctx);
@@ -1896,6 +2367,7 @@ var ADMIN_API = {
         var ativo = !!r.ativo;
         var ini = normTime_(r.inicio) || '09:00', fim = normTime_(r.fim) || '19:00';
         var aIni = normTime_(r.almocoInicio), aFim = normTime_(r.almocoFim);
+        if (aIni && aIni === aFim) { aIni = ''; aFim = ''; }
         var fixos = parseTimes_(r.horarios);
         if (ativo && !fixos.length && toMin_(fim) <= toMin_(ini)) throw new Error(WEEKDAY_NAMES[d] + ': o fechamento precisa ser depois da abertura.');
         if (ativo && (aIni || aFim) && (!aIni || !aFim || toMin_(aFim) <= toMin_(aIni))) throw new Error(WEEKDAY_NAMES[d] + ': confira o horário de almoço/pausa.');
@@ -1925,6 +2397,7 @@ var ADMIN_API = {
       var tipo = a.tipo === 'ESPECIAL' ? 'ESPECIAL' : 'FECHADO';
       var ini = normTime_(a.inicio), fim = normTime_(a.fim);
       var aIni = normTime_(a.almocoInicio), aFim = normTime_(a.almocoFim);
+      if (aIni && aIni === aFim) { aIni = ''; aFim = ''; }
       var fixos = parseTimes_(a.horarios);
       if (tipo === 'ESPECIAL') {
         if (!fixos.length && (!ini || !fim)) throw new Error('Informe abertura e fechamento ou os horários fixos.');

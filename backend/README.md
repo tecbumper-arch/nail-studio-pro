@@ -1,4 +1,4 @@
-# 💅 Nail Studio Pro v3 — Guia de Instalação do Servidor (Apps Script)
+# 💅 Nail Studio Pro v4 — Guia de Instalação do Servidor (Apps Script)
 
 Este guia liga o app ao Google **do jeito oficial e seguro**. Você faz isso **uma vez**
 (≈ 30 minutos). Depois, cada manicure só toca em **"Continuar com Google"**.
@@ -21,8 +21,10 @@ versão antiga. Qualquer pessoa podia usá-las para ler e alterar as planilhas d
    → Credenciais → cliente `1071006060591-tmhssin...` → **Redefinir chave secreta**
    (ou exclua esse cliente, se não usar mais).
 3. Se alguma manicure criou a própria planilha e deixou o compartilhamento como
-   **"Qualquer pessoa com o link — Editor"**, troque para **Restrito** e compartilhe só com
-   o e-mail da conta dona do servidor.
+   **"Qualquer pessoa com o link — Editor"**, troque para **Restrito**. Na v4 a planilha não precisa
+   ser compartilhada com ninguém (o app usa a permissão da própria manicure).
+4. Na planilha mestre (`Contas_Manicures`) a aba **Configuracoes** ainda guarda um
+   `GCAL_REFRESH_TOKEN` antigo em texto: apague esse valor (ele não é mais usado).
 
 > Apagar os arquivos antigos não resolve sozinho: eles continuam no histórico do Git.
 > O que protege de verdade é revogar o token e trocar o segredo (passos 1 e 2).
@@ -33,11 +35,14 @@ versão antiga. Qualquer pessoa podia usá-las para ler e alterar as planilhas d
 
 Em <https://console.cloud.google.com> (pode usar o projeto que já existe):
 
-1. **APIs e serviços → Biblioteca** → ative **Google Calendar API**.
+1. **APIs e serviços → Biblioteca** → ative **Google Calendar API**, **Google Sheets API** e **Google Drive API**
+   (o servidor usa essas APIs *com a permissão de cada manicure*, no projeto do cliente OAuth).
 2. **APIs e serviços → Tela de consentimento OAuth** (Google Auth Platform):
    - Tipo: **Externo**. Nome: *Nail Studio Pro*. E-mail de suporte: o seu.
-   - **Escopos (Acesso a dados):** `openid`, `.../auth/userinfo.email` e
-     `https://www.googleapis.com/auth/calendar.events`.
+   - **Escopos (Acesso a dados):** `openid`, `.../auth/userinfo.email`,
+     `https://www.googleapis.com/auth/spreadsheets` (planilha dela),
+     `https://www.googleapis.com/auth/drive.file` (só os arquivos que o app cria: pasta e fotos) e
+     `https://www.googleapis.com/auth/calendar.events` (agenda).
    - **Público → Publicar app ("Em produção")**.
      ⚠️ No modo **"Teste"** o Google **apaga a permissão da agenda a cada 7 dias**
      — esse é um motivo comum de "a agenda parou de sincronizar".
@@ -69,7 +74,9 @@ Em <https://console.cloud.google.com> (pode usar o projeto que já existe):
 
 ## 3. Criar o servidor no Apps Script
 
-Use **a mesma conta Google que é dona das planilhas dos studios** (a "conta mestre").
+Use a conta Google do serviço (a "conta mestre"). Na v4 ela **não guarda nem acessa** os dados das manicures:
+só o índice *e-mail → planilha* (`Contas_Manicures`) e as permissões que cada manicure deu ao app
+(nas Propriedades do script, nunca em HTML).
 
 1. Abra <https://script.google.com> → **Novo projeto** → nomeie *Nail Studio Pro API*.
 2. Apague o conteúdo de `Código.gs` e cole todo o arquivo [`Code.gs`](Code.gs).
@@ -166,24 +173,36 @@ mostra erro *"Verifique o cliente OAuth Android (SHA-1)"*.
   não é preciso rodar `setup()` manualmente.
 - E-mails de "nova reserva / cancelou" saem pela conta do servidor (limite do Google: ~100 e-mails/dia em conta Gmail).
 
-## 🔗 Vincular uma planilha que a manicure já tem
+## 🔐 Tudo na conta da manicure (v4)
 
-No primeiro acesso ela pode escolher "Usar uma planilha que já tenho". O app mostra o e-mail da **conta do servidor**
-para ela compartilhar a planilha como **Editor** (o servidor só acessa planilhas compartilhadas com ele).
-O app confere se a planilha é mesmo da conta Google dela, mantém os dados e cria apenas as abas que faltam.
+- No 1º acesso ela entra com o Google e **autoriza o app na conta dela** (planilhas + arquivos do app + agenda).
+  O servidor cria a planilha **no Drive dela, em nome dela**, dentro da pasta *Nail Studio Pro*; as fotos ficam em
+  *Nail Studio Pro / Fotos dos trabalhos*. A conta do servidor **não aparece** no compartilhamento.
+- "Usar uma planilha que já tenho": ela só cola o link — não precisa compartilhar com ninguém.
+- O app acessa os dados com a permissão dela (guardada só no servidor). Ela pode removê-la a qualquer momento em
+  <https://myaccount.google.com/permissions>: a página de agendamento pausa com o aviso *"temporariamente
+  indisponível"* e, quando ela abrir o app, aparece **Reconectar** → autoriza → volta de onde parou (nada é perdido).
+- Fotos usam o espaço do Google Drive **dela** (não o do servidor).
 
-## 👑 Planilha no nome da manicure
+## 🔁 Migração dos studios da versão antiga (sem perder agendamentos)
 
-Em Opções → Segurança, Planilha & Backup → "Quero ser a dona da planilha", o Google envia a ela um pedido de
-transferência de propriedade. Depois de aceitar, a conta do servidor continua como editora (não remova esse acesso).
+Ao entrar na v4, a manicure de um Studio antigo vê **"Seus dados agora são só seus" → Autorizar minha conta**:
+
+| Situação da planilha antiga | O que o app faz |
+|---|---|
+| Já é **dela** (ela é a dona e o servidor era editor) | Continua a **mesma planilha (mesmo ID)**; o servidor **se remove** do compartilhamento. |
+| Era **do servidor** (criada pelo app antigo) | Copia todas as abas para uma planilha nova **no Drive dela**; o link antigo das clientes continua funcionando (apelido) e a planilha antiga vai para a lixeira do servidor. |
+
+Fotos antigas que estavam no Drive do servidor são copiadas para o Drive dela; as em base64 dentro da planilha
+continuam como estão. O PIN antigo continua valendo (mesmo SHA-256). Eventos que o app antigo criou na agenda
+dela continuam ligados às reservas (reagendar/cancelar mexe neles).
+Teste com dados reais: `tests/legacy-migration.test.js` (cópia anonimizada de um Studio real em `tests/fixtures/`).
 
 ## 📸 Fotos dos serviços
 
-As fotos que a manicure envia vão para uma pasta no Google Drive da **conta do servidor**
-("Nail Studio Pro — Fotos — <Studio>"), compartilhada com o e-mail dela e com acesso
-"qualquer pessoa com o link pode ver" (necessário para aparecerem na página das clientes).
-Fotos removidas de um serviço vão para a lixeira do Drive. O espaço usado conta na cota
-de 15 GB da conta do servidor (cada foto tem ~150–300 KB → cabem ~50 mil fotos).
+Studios da v4: fotos no Drive **da manicure** (pasta *Fotos dos trabalhos*, "qualquer pessoa com o link pode ver",
+necessário para a página das clientes). Fotos removidas de um serviço vão para a lixeira do Drive dela.
+Só studios antigos ainda não migrados usam o Drive do servidor.
 
 **Você não precisa acompanhar isso:** todo dia o servidor confere o espaço e, se passar de **80%**, manda um
 e-mail para a conta do servidor (no máximo 1x por semana). Nesse caso: esvazie a lixeira do Drive ou contrate
@@ -196,7 +215,10 @@ mais espaço no Google One para essa conta. Se lotar, só o envio de novas fotos
 | Botão do Google não aparece / erro `origin_mismatch` | A origem do site não está em *Origens JavaScript autorizadas* (2.1). |
 | "Este login Google não pertence a este app" | `GOOGLE_CLIENT_ID` do `config.js` ≠ propriedade do script. |
 | Agenda 🟠 "Reconectar" | A manicure trocou a senha, removeu o acesso, ou o app está em modo **Teste** (7 dias). |
-| "Quase lá! Toque em Conectar mais uma vez" | Normal na 1ª reconexão: o Google só entrega o token permanente após novo consentimento. |
+| "Quase lá! Toque em autorizar mais uma vez" | Normal às vezes: o Google só entrega o token permanente com o consentimento completo (o 2º toque já pede assim). |
+| Página das clientes: "agenda online temporariamente indisponível" | A manicure removeu o acesso do app na conta Google dela. Ela abre o app → **Reconectar** → pronto. |
+| "Você só tem permissão de leitura nessa planilha" | Ela colou uma planilha de outra pessoa compartilhada só para ver. Use uma planilha dela. |
+| Log `DADOS_NA_CONTA_DELA … NÃO conseguiu sair` | O servidor não conseguiu se remover da planilha dela: ela remove o e-mail do servidor em *Compartilhar*. |
 | App Android: "Falha no login Google … SHA-1" | Falta cadastrar o SHA-1 da chave do APK no cliente Android. |
 | "Servidor não configurado (MASTER_SPREADSHEET_ID)" | Rode `setup()` uma vez no editor (passo 3.5) para autorizar. |
 | Action "Deploy do servidor" com aviso "não configurado" | Faltam os Secrets/Variables do [deploy automático](#-deploy-automático-pelo-github). |
@@ -205,6 +227,8 @@ mais espaço no Google One para essa conta. Se lotar, só o envio de novas fotos
 ## 🧪 Testes automatizados (desenvolvimento)
 
 ```bash
-node --test tests/backend.test.js   # 14 testes do servidor (Apps Script simulado)
-node tests/e2e.js                   # fluxo completo no Chromium (Playwright)
+node --test tests/backend.test.js tests/legacy-migration.test.js   # servidor + migração de Studio real (simulado)
+node tests/e2e.js                                                  # fluxo completo no Chromium (Playwright)
+# migração com outra planilha exportada (fica fora do repositório):
+LEGACY_FIXTURE=/caminho/planilha.json node --test tests/legacy-migration.test.js
 ```

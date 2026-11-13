@@ -6,7 +6,7 @@
   var BASE = 'assets/';
   var KEYS = ['alongamentos', 'blindagem', 'nailart', 'spa', 'manicure', 'geral'];
   var RULES = [
-    ['alongamentos', /along|fibra|acril|molde|tips?\b|postic/],
+    ['alongamentos', /along|fibra|acril|molde|tips?\b|postic|manuten/],
     ['blindagem', /blind|gel|banho|fortalec|polygel/],
     ['nailart', /art|decor|desenh|encapsul|francesinha|pedraria|adesivo/],
     ['spa', /spa|hidrat|parafina|esfolia|massag|relax/],

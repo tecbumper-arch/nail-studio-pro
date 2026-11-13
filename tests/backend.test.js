@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert');
-const { createGas, formatDate } = require('./gas-mock');
+const { createGas, formatDate, DATA_SCOPES, CAL_SCOPE } = require('./gas-mock');
 
 const CLIENT_ID = 'web-client.apps.googleusercontent.com';
 
@@ -22,12 +22,39 @@ function setupGas() {
   return gas;
 }
 
-function signUp(gas, email = 'ana@gmail.com') {
+/** 1º acesso: login + autorização (planilha e arquivos do app) na conta dela. */
+function signUp(gas, email = 'ana@gmail.com', scope = DATA_SCOPES) {
   const idToken = gas.google.issueIdToken(email, CLIENT_ID, 'Ana');
   const first = gas.ok('authGoogle', { idToken });
   assert.strictEqual(first.needsOnboarding, true);
-  const created = gas.ok('createStudio', { signupToken: first.signupToken, studioNome: 'Studio Ana', profissionalNome: 'Ana', whatsapp: '11988887777', pixChave: '11988887777' });
+  const code = gas.google.issueCode(email, { scope });
+  const created = gas.ok('createStudio', { signupToken: first.signupToken, code, redirectUri: 'postmessage', studioNome: 'Studio Ana', profissionalNome: 'Ana', whatsapp: '11988887777', pixChave: '11988887777' });
   return created;
+}
+
+/**
+ * Studio do app ANTIGO: planilha criada e acessada pela conta do servidor.
+ * owner: 'servidor' (criada pelo app) ou o e-mail dela (ela aceitou a propriedade; servidor ficou como editor).
+ */
+function legacyStudio(gas, email = 'ana@gmail.com', owner = 'servidor') {
+  const c = gas.context;
+  const ss = c.SpreadsheetApp.create('Studio Antigo');
+  ss.getSheets()[0].setName(c.TAB_CONFIG);
+  const ctx = { ss, sheetId: ss.getId(), tz: 'America/Sao_Paulo', cfg: {}, email };
+  const now = '2026-01-05 10:00:00';
+  c.writeTable_(ss.getSheetByName(c.TAB_CONFIG), [['Chave', 'Valor', 'Descricao']].concat(c.defaultConfigRows_(email, { studioNome: 'Studio Antigo', profissionalNome: 'Ana', whatsapp: '11988887777', pixChave: '11988887777' }, now)));
+  c.writeTable_(ss.insertSheet(c.TAB_CATS), [c.CATS_HEADER].concat(c.DEFAULT_CATS));
+  c.writeTable_(ss.insertSheet(c.TAB_CATALOG), [c.CATALOG_HEADER].concat(c.DEFAULT_SERVICES));
+  c.writeTable_(ss.insertSheet(c.TAB_BOOKINGS), [c.BOOKING_HEADER]);
+  c.writeTable_(ss.insertSheet(c.TAB_LOGS), [['Timestamp', 'Evento', 'Detalhes']]);
+  if (owner === 'servidor') ss.addEditor(email);
+  else { ss.owner = owner; ss.addEditor(gas.SERVER); }
+  c.registerStudio_(email, ss.getId(), {}, 'Ana', 'Studio Antigo');
+  return ss;
+}
+
+function login(gas, email = 'ana@gmail.com') {
+  return gas.ok('authGoogle', { idToken: gas.google.issueIdToken(email, CLIENT_ID) });
 }
 
 test('nenhum segredo aparece nos HTMLs públicos', () => {
@@ -46,11 +73,19 @@ test('login Google: 1º acesso cria studio, 2º acesso entra direto', () => {
   assert.ok(created.session);
   assert.strictEqual(created.isNew, true);
   const ss = gas.spreadsheets[created.spreadsheetId];
-  assert.deepStrictEqual(ss.editors, ['ana@gmail.com']);
+  // A planilha é DELA: dona, sem ninguém mais no compartilhamento, e o servidor não consegue abrir
+  assert.strictEqual(ss.owner, 'ana@gmail.com');
+  assert.deepStrictEqual(ss.editors, []);
+  assert.strictEqual(gas.serverCanOpen(ss.id), false);
+  const appFolder = gas.drive.folders[ss.parent];
+  assert.strictEqual(appFolder.name, 'Nail Studio Pro');
+  assert.strictEqual(appFolder.owner, 'ana@gmail.com');
+  assert.ok(Object.values(gas.spreadsheets).every(x => x.owner !== gas.SERVER || x.id === gas.props.MASTER_SPREADSHEET_ID), 'servidor não criou planilha de studio');
 
-  const again = gas.ok('authGoogle', { idToken: gas.google.issueIdToken('ana@gmail.com', CLIENT_ID) });
+  const again = login(gas);
   assert.ok(again.session);
   assert.strictEqual(again.spreadsheetId, created.spreadsheetId);
+  assert.strictEqual(again.dadosNaConta, true);
 
   const dash = gas.ok('getAdminDashboardData', {}, again.session);
   assert.strictEqual(dash.studio.nome, 'Studio Ana');
@@ -170,35 +205,66 @@ test('Google Agenda: conectar, evento criado/movido/apagado, compromisso pessoal
   assert.strictEqual(slots.find(x => x.horaInicio === '17:00').disponivel, true);
   assert.strictEqual(slots.find(x => x.horaInicio === '15:00').disponivel, false, 'reserva própria continua ocupando');
 
-  // teste e desconexão (revoga o token)
+  // a permissão nova SOMOU a agenda à de planilha/arquivos (não perdeu acesso aos dados)
+  assert.match(gas.props['UTOK_' + s], /spreadsheets/);
+  assert.match(gas.props['UTOK_' + s], /calendar\.events/);
+
+  // teste e desconexão: só desliga a agenda (a mesma permissão guarda os dados dela)
   gas.ok('gcalTest', {}, session);
   const off = gas.ok('gcalDisconnect', {}, session);
   assert.strictEqual(off.gcal.connected, false);
-  assert.ok(gas.google.revoked.length >= 1);
+  assert.strictEqual(gas.google.revoked.length, 0);
+  const n = gas.google.events['ana@gmail.com'].length;
+  gas.ok('createCustomerBooking', { s, servicoId: 'SRV-104', data: day, horaInicio: '17:00', clienteNome: 'Eva', clienteWhatsApp: '21944443333', metodoPagamento: 'NO_LOCAL' });
+  assert.strictEqual(gas.google.events['ana@gmail.com'].length, n, 'agenda desligada não recebe eventos');
+  assert.ok(gas.ok('getAdminDashboardData', {}, session).agendamentos.some(b => b.clienteNome === 'Eva'), 'dados continuam acessíveis');
 });
 
 test('Google Agenda: sem refresh_token pede para tocar de novo; sem permissão marcada dá erro claro', () => {
   const gas = setupGas();
   const { session } = signUp(gas);
+  const noScope = gas.call('gcalConnect', { code: gas.google.issueCode('ana@gmail.com', { scope: 'openid email' }), redirectUri: 'postmessage' }, session);
+  assert.match(noScope.error, /permissão/);
   const noRt = gas.call('gcalConnect', { code: gas.google.issueCode('ana@gmail.com', { withRefresh: false }), redirectUri: 'postmessage' }, session);
   assert.strictEqual(noRt.ok, false);
   assert.match(noRt.error, /mais uma vez/);
-  const noScope = gas.call('gcalConnect', { code: gas.google.issueCode('ana@gmail.com', { scope: 'openid email' }), redirectUri: 'postmessage' }, session);
-  assert.match(noScope.error, /permissão/);
+  assert.strictEqual(gas.google.revoked.length, 0, 'não revoga: ela continuaria sem acesso aos próprios dados');
+  assert.ok(gas.ok('getAdminDashboardData', {}, session).catalogo.length, 'dados continuam acessíveis');
+  // 2ª tentativa (o app pede com prompt=consent) → vem o refresh_token
+  const ok = gas.ok('gcalConnect', { code: gas.google.issueCode('ana@gmail.com'), redirectUri: 'postmessage' }, session);
+  assert.strictEqual(ok.gcal.connected, true);
 });
 
-test('token da agenda revogado pelo usuário vira status EXPIRADA sem quebrar reservas', () => {
+test('ela remove o acesso do app no Google: nada se perde e ela reconecta de onde parou', () => {
   const gas = setupGas();
-  const { spreadsheetId: s, session } = signUp(gas);
-  gas.ok('gcalConnect', { code: gas.google.issueCode('ana@gmail.com'), redirectUri: 'postmessage' }, session);
-  gas.google.refreshTokens = {};
-  gas.clearCache();
+  const { spreadsheetId: s, session } = signUp(gas, 'ana@gmail.com', DATA_SCOPES + ' ' + CAL_SCOPE);
   const day = nextWorkday();
   const r = gas.ok('createCustomerBooking', { s, servicoId: 'SRV-104', data: day, horaInicio: '11:00', clienteNome: 'Bia', clienteWhatsApp: '21977776666', metodoPagamento: 'NO_LOCAL' });
-  assert.ok(r.reserva.id);
-  const dash = gas.ok('getAdminDashboardData', {}, session);
-  assert.strictEqual(dash.gcal.connected, false);
-  assert.strictEqual(dash.gcal.status, 'EXPIRADA');
+
+  gas.google.revokeAll('ana@gmail.com'); // myaccount.google.com/permissions → remover acesso
+  gas.clearCache();
+
+  // página da cliente avisa (sem expor nada) em vez de quebrar
+  const pub = gas.call('getPublicBootstrapData', { s });
+  assert.strictEqual(pub.ok, false);
+  assert.match(pub.error, /temporariamente indisponível/);
+  // sessão aberta no celular dela pede para reconectar
+  const dash = gas.call('getAdminDashboardData', {}, session);
+  assert.strictEqual(dash.code, 'CONTA_DESCONECTADA');
+  assert.ok(dash.info.reauthToken);
+  // login de novo também leva à reconexão
+  const li = login(gas);
+  assert.strictEqual(li.needsReauth, true);
+  // outra conta não pode reconectar o Studio dela
+  const wrong = gas.call('reconnectAccount', { reauthToken: li.reauthToken, code: gas.google.issueCode('intrusa@gmail.com', { scope: DATA_SCOPES }), redirectUri: 'postmessage' });
+  assert.strictEqual(wrong.ok, false);
+
+  const back = gas.ok('reconnectAccount', { reauthToken: li.reauthToken, code: gas.google.issueCode('ana@gmail.com', { scope: DATA_SCOPES + ' ' + CAL_SCOPE }), redirectUri: 'postmessage' });
+  assert.strictEqual(back.spreadsheetId, s);
+  const d2 = gas.ok('getAdminDashboardData', {}, back.session);
+  assert.ok(d2.agendamentos.some(b => b.id === r.reserva.id), 'reservas preservadas');
+  assert.strictEqual(d2.gcal.connected, true);
+  assert.ok(gas.ok('getPublicBootstrapData', { s }).catalogo.length > 0);
 });
 
 test('admin: catálogo, categorias, bloqueio de férias, faltou, encaixe e feed ICS', () => {
@@ -350,9 +416,15 @@ test('fotos dos trabalhos: envio para o Drive, várias por serviço, capa e remo
   const up1 = gas.ok('adminUploadPhoto', { dataUrl: png, nome: 'Fibra' }, session);
   const up2 = gas.ok('adminUploadPhoto', { dataUrl: png, nome: 'Fibra' }, session);
   assert.match(up1.url, /^https:\/\/drive\.google\.com\/thumbnail\?id=FILE/);
-  const folder = Object.values(gas.drive.folders)[0];
-  assert.deepStrictEqual(folder.editors, ['ana@gmail.com'], 'pasta compartilhada com a manicure');
-  assert.strictEqual(gas.drive.files[up1.id].sharing, 'ANYONE_WITH_LINK', 'foto pública para a página da cliente');
+  const file = gas.drive.files[up1.id];
+  const folder = gas.drive.folders[file.parent];
+  assert.strictEqual(folder.name, 'Fotos dos trabalhos');
+  assert.strictEqual(folder.owner, 'ana@gmail.com', 'pasta no Drive dela');
+  assert.strictEqual(gas.drive.folders[folder.parent].name, 'Nail Studio Pro');
+  assert.strictEqual(file.owner, 'ana@gmail.com', 'foto no Drive dela (usa o espaço dela, não do servidor)');
+  assert.strictEqual(gas.serverCanOpen(up1.id), false);
+  assert.ok(Object.values(gas.drive.files).every(f => f.owner !== gas.SERVER), 'nada no Drive do servidor');
+  assert.strictEqual(file.sharing, 'ANYONE_WITH_LINK', 'foto pública para a página da cliente');
   assert.strictEqual(gas.call('adminUploadPhoto', { dataUrl: 'data:text/html;base64,PHNjcmlwdD4=' }, session).ok, false);
 
   let d = gas.ok('adminSaveService', { id: 'SRV-101', nome: 'Alongamento em Fibra de Vidro', preco: 160, duracaoMin: 120, categoria: 'Alongamentos', fotos: [up2.url, up1.url, 'javascript:alert(1)'] }, session);
@@ -423,38 +495,121 @@ test('primeiro acesso vinculando uma planilha que a manicure já tem', () => {
   mine.getSheets()[0].setName('Agendamentos');
   mine.getSheets()[0].data = [['ID_Reserva', 'Data'], ['AG-ANTIGA', '2026-01-10']];
   const first = gas.ok('authGoogle', { idToken: gas.google.issueIdToken('bia@gmail.com', CLIENT_ID, 'Bia') });
-  const args = { signupToken: first.signupToken, studioNome: 'Bia Nails', profissionalNome: 'Bia', whatsapp: '11977776666', planilha: 'https://docs.google.com/spreadsheets/d/' + mine.id + '/edit#gid=0' };
-  const noAccess = gas.call('createStudio', args);
-  assert.strictEqual(noAccess.code, 'SEM_ACESSO');
-  assert.strictEqual(noAccess.info.serverEmail, 'servidor@gmail.com');
-  assert.match(noAccess.error, /servidor@gmail\.com/);
-  // ela compartilha com o servidor
-  mine.editors.push('servidor@gmail.com');
-  const ok = gas.ok('createStudio', args);
+  const args = () => ({ signupToken: first.signupToken, code: gas.google.issueCode('bia@gmail.com', { scope: DATA_SCOPES }), redirectUri: 'postmessage', studioNome: 'Bia Nails', profissionalNome: 'Bia', whatsapp: '11977776666', planilha: 'https://docs.google.com/spreadsheets/d/' + mine.id + '/edit#gid=0' });
+  // sem compartilhar nada com o servidor: o app usa a permissão DELA
+  const ok = gas.ok('createStudio', args());
   assert.strictEqual(ok.spreadsheetId, mine.id);
   assert.strictEqual(ok.vinculada, true);
+  assert.deepStrictEqual(mine.editors, [], 'servidor não entra no compartilhamento');
+  assert.strictEqual(gas.serverCanOpen(mine.id), false);
   const dash = gas.ok('getAdminDashboardData', {}, ok.session);
   assert.strictEqual(dash.studio.nome, 'Bia Nails');
   assert.strictEqual(dash.studio.planilhaDona, 'MANICURE');
   assert.ok(dash.agendamentos.some(b => b.id === 'AG-ANTIGA'), 'dados existentes mantidos');
   assert.ok(mine.getSheetByName('Catalogo') && mine.getSheetByName('Configuracoes'), 'abas que faltavam foram criadas');
-  // planilha de outra pessoa não pode ser usada
+
+  // planilha de outra pessoa (sem acesso dela) não pode ser usada
   const other = gas.createUserSheet('outra@gmail.com');
-  other.editors.push('servidor@gmail.com');
   const f2 = gas.ok('authGoogle', { idToken: gas.google.issueIdToken('carla@gmail.com', CLIENT_ID) });
-  const bad = gas.call('createStudio', { signupToken: f2.signupToken, studioNome: 'X', planilha: other.id });
-  assert.match(bad.error, /não é da sua conta/);
+  const bad = gas.call('createStudio', { signupToken: f2.signupToken, code: gas.google.issueCode('carla@gmail.com', { scope: DATA_SCOPES }), redirectUri: 'postmessage', studioNome: 'X', planilha: other.id });
+  assert.match(bad.error, /não tem acesso/);
+  // só leitura também não
+  other.readers = ['carla@gmail.com'];
+  const ro = gas.call('createStudio', { signupToken: f2.signupToken, code: gas.google.issueCode('carla@gmail.com', { scope: DATA_SCOPES }), redirectUri: 'postmessage', studioNome: 'X', planilha: other.id });
+  assert.match(ro.error, /leitura/);
 });
 
-test('tornar a manicure dona da planilha criada pelo app', () => {
+test('1º acesso exige autorizar planilha/arquivos com a MESMA conta do login', () => {
   const gas = setupGas();
-  const { spreadsheetId: s, session } = signUp(gas);
-  let dash = gas.ok('getAdminDashboardData', {}, session);
-  assert.strictEqual(dash.studio.planilhaDona, 'SERVIDOR');
-  assert.strictEqual(gas.ok('adminTransferOwnership', {}, session).status, 'AGUARDANDO_ACEITE');
-  assert.strictEqual(gas.spreadsheets[s].pendingOwner, 'ana@gmail.com');
-  dash = gas.ok('getAdminDashboardData', {}, session);
-  assert.strictEqual(dash.studio.planilhaDona, 'PENDENTE');
+  const first = gas.ok('authGoogle', { idToken: gas.google.issueIdToken('ana@gmail.com', CLIENT_ID) });
+  const base = { signupToken: first.signupToken, redirectUri: 'postmessage', studioNome: 'Studio Ana' };
+  assert.match(gas.call('createStudio', base).error, /Autorize/);
+  assert.match(gas.call('createStudio', Object.assign({ code: gas.google.issueCode('ana@gmail.com', { scope: 'openid email' }) }, base)).error, /Planilhas/);
+  assert.match(gas.call('createStudio', Object.assign({ code: gas.google.issueCode('outra@gmail.com', { scope: DATA_SCOPES }) }, base)).error, /outra conta/);
+  const noRt = gas.call('createStudio', Object.assign({ code: gas.google.issueCode('ana@gmail.com', { scope: DATA_SCOPES, withRefresh: false }) }, base));
+  assert.strictEqual(noRt.code, 'SEM_REFRESH');
+  assert.strictEqual(Object.keys(gas.spreadsheets).length, 1, 'nenhuma planilha criada nas tentativas que falharam (só o diretório)');
+});
+
+test('migração: studio antigo criado pelo servidor vai para a conta dela sem perder nada', () => {
+  const gas = setupGas();
+  const old = legacyStudio(gas, 'ana@gmail.com', 'servidor');
+  const oldSid = old.id;
+  gas.props['GCAL_RT_' + oldSid] = 'rt-legado'; // token antigo da agenda (será descartado)
+  // reservas e fotos antigas (no Drive do servidor)
+  const day = nextWorkday();
+  const li = login(gas);
+  assert.strictEqual(li.dadosNaConta, false, 'antes de migrar: ainda no modo antigo');
+  const r1 = gas.ok('createCustomerBooking', { s: oldSid, servicoId: 'SRV-104', data: day, horaInicio: '09:00', clienteNome: 'Bia', clienteWhatsApp: '21977776666', metodoPagamento: 'NO_LOCAL' });
+  gas.ok('adminSaveSettings', { novoPin: '2468' }, li.session);
+  const legacyFolder = gas.context.DriveApp.createFolder('Fotos antigas');
+  const legacyFile = legacyFolder.createFile(gas.context.Utilities.newBlob(Buffer.from('jpeg-antigo').toString('latin1'), 'image/jpeg', 'unha.jpg'));
+  const oldUrl = 'https://drive.google.com/thumbnail?id=' + legacyFile.getId() + '&sz=w800';
+  gas.ok('adminSaveService', { id: 'SRV-101', nome: 'Alongamento em Fibra de Vidro', preco: 160, duracaoMin: 120, categoria: 'Alongamentos', fotos: [oldUrl] }, li.session);
+  gas.context.upsertConfig_(gas.context.openStudio_(oldSid), { FOTOS_PASTA_ID: legacyFolder.getId() });
+  const before = gas.ok('getAdminDashboardData', {}, li.session);
+  assert.strictEqual(before.studio.dadosNaConta, false);
+
+  // ela autoriza a conta dela → tudo passa para a conta dela
+  const res = gas.ok('adminAuthorizeOwnAccount', { code: gas.google.issueCode('ana@gmail.com', { scope: DATA_SCOPES }), redirectUri: 'postmessage' }, li.session);
+  assert.strictEqual(res.migracao.copied, true);
+  const newSid = res.migracao.sheetId;
+  assert.notStrictEqual(newSid, oldSid);
+  const nss = gas.spreadsheets[newSid];
+  assert.strictEqual(nss.owner, 'ana@gmail.com');
+  assert.deepStrictEqual(nss.editors, []);
+  assert.strictEqual(gas.serverCanOpen(newSid), false, 'servidor sem acesso à planilha nova');
+  assert.strictEqual(old.trashed, true, 'planilha antiga do servidor foi para a lixeira');
+  assert.ok(!gas.props['GCAL_RT_' + oldSid], 'token legado descartado');
+  assert.strictEqual(res.studio.dadosNaConta, true);
+
+  // tudo preservado
+  const after = gas.ok('getAdminDashboardData', {}, res.session);
+  assert.deepStrictEqual(after.agendamentos.map(b => [b.id, b.data, b.horaInicio, b.statusReserva]), before.agendamentos.map(b => [b.id, b.data, b.horaInicio, b.statusReserva]));
+  assert.strictEqual(after.catalogo.length, before.catalogo.length);
+  assert.strictEqual(after.studio.nome, 'Studio Antigo');
+  // foto antiga saiu do Drive do servidor e foi para o dela
+  const foto = after.catalogo.find(x => x.id === 'SRV-101').fotos[0];
+  const newFileId = foto.match(/id=([^&]+)/)[1];
+  assert.notStrictEqual(newFileId, legacyFile.getId());
+  assert.strictEqual(gas.drive.files[newFileId].owner, 'ana@gmail.com');
+  assert.deepStrictEqual(gas.drive.files[newFileId].bytes, gas.drive.files[legacyFile.getId()].bytes);
+  assert.strictEqual(gas.drive.files[legacyFile.getId()].trashed, true);
+  assert.strictEqual(gas.drive.folders[legacyFolder.getId()].trashed, true);
+
+  // link antigo das clientes continua funcionando e a reserva antiga continua ocupando o horário
+  const pub = gas.ok('getPublicBootstrapData', { s: oldSid });
+  assert.strictEqual(pub.studio.nome, 'Studio Antigo');
+  const slots = gas.ok('getAvailableSlotsForDate', { s: oldSid, date: day, serviceId: 'SRV-104' });
+  assert.strictEqual(slots.find(x => x.horaInicio === '09:00').disponivel, false);
+  gas.ok('cancelCustomerBooking', { s: oldSid, id: r1.reserva.id, phone: '21977776666' });
+  assert.ok(nss.tab('Agendamentos').some(r => r[0] === r1.reserva.id && r[11] === 'CANCELADO'), 'gravou na planilha nova (dela)');
+  // sessão antiga e PIN continuam valendo; login vai para a planilha nova
+  assert.ok(gas.ok('getAdminDashboardData', {}, li.session));
+  assert.ok(gas.ok('authPin', { email: 'ana@gmail.com', pin: '2468' }).session);
+  assert.strictEqual(login(gas).spreadsheetId, newSid);
+});
+
+test('migração: planilha que já é dela (servidor era editor) — mesmo ID, servidor sai do compartilhamento', () => {
+  const gas = setupGas();
+  const ss = legacyStudio(gas, 'ana@gmail.com', 'ana@gmail.com');
+  const sid = ss.id;
+  const li = login(gas);
+  const day = nextWorkday();
+  const r = gas.ok('createCustomerBooking', { s: sid, servicoId: 'SRV-104', data: day, horaInicio: '10:00', clienteNome: 'Bia', clienteWhatsApp: '21977776666', metodoPagamento: 'NO_LOCAL' });
+  assert.deepStrictEqual(ss.editors, [gas.SERVER]);
+
+  const res = gas.ok('adminAuthorizeOwnAccount', { code: gas.google.issueCode('ana@gmail.com', { scope: DATA_SCOPES + ' ' + CAL_SCOPE }), redirectUri: 'postmessage' }, li.session);
+  assert.deepStrictEqual(res.migracao, { sheetId: sid, copied: false, serverRemoved: true });
+  assert.deepStrictEqual(ss.editors, [], 'servidor removido do compartilhamento');
+  assert.strictEqual(gas.serverCanOpen(sid), false);
+  assert.strictEqual(ss.trashed, false);
+  assert.strictEqual(res.gcal.connected, true);
+  assert.strictEqual(gas.google.events['ana@gmail.com'].length, 1, 'reserva já existente foi para a agenda dela');
+  const d = gas.ok('getAdminDashboardData', {}, li.session);
+  assert.ok(d.agendamentos.some(b => b.id === r.reserva.id));
+  assert.strictEqual(d.studio.dadosNaConta, true);
+  assert.ok(gas.ok('getPublicBootstrapData', { s: sid }).catalogo.length);
 });
 
 test('auto-setup depois de atualização do código e alerta de espaço no Drive', () => {

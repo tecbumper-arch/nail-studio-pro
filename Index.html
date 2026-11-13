@@ -592,6 +592,28 @@
         </p>
       </div>
 
+      <!-- STUDIO ANTIGO: PASSAR OS DADOS PARA A CONTA DELA (obrigatório, 1 toque) -->
+      <div id="authModeOwn" class="hidden" style="text-align:center;">
+        <div style="width:72px; height:72px; border-radius:22px; background:#dcfce7; color:#15803d; display:flex; align-items:center; justify-content:center; font-size:2rem; margin:4px auto 12px;"><i class="fa-solid fa-hand-holding-heart"></i></div>
+        <h2 style="font-size:1.25rem; margin-bottom:6px; color:#0f172a;">Seus dados agora são só seus</h2>
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px; line-height:1.5;">Nesta versão, sua planilha, suas fotos e sua agenda ficam <strong>100% na sua conta Google</strong>. O app deixa de ter qualquer acesso próprio a elas. É só autorizar uma vez — <strong>nenhum agendamento é perdido</strong>.</p>
+        <ul class="login-perks" style="text-align:left;">
+          <li><span class="perk-ic" style="background:#dcfce7; color:#15803d;"><i class="fa-solid fa-check"></i></span><span>Na tela do Google, deixe <strong>todas as caixinhas marcadas</strong></span></li>
+          <li><span class="perk-ic" style="background:#e0e7ff; color:#3730a3;"><i class="fa-solid fa-link"></i></span><span>O link das suas clientes continua o mesmo</span></li>
+        </ul>
+        <button type="button" id="btnOwnAccount" class="btn-main" style="background:#16a34a; box-shadow:0 8px 20px rgba(22,163,74,0.25);" onclick="startOwnAccount()"><i class="fa-brands fa-google"></i> Autorizar minha conta</button>
+        <button type="button" onclick="logoutApp(true)" class="login-link">Sair</button>
+      </div>
+
+      <!-- ACESSO REMOVIDO NO GOOGLE: RECONECTAR -->
+      <div id="authModeReconnect" class="hidden" style="text-align:center;">
+        <div style="width:72px; height:72px; border-radius:22px; background:#ffedd5; color:#c2410c; display:flex; align-items:center; justify-content:center; font-size:2rem; margin:4px auto 12px;"><i class="fa-solid fa-plug-circle-exclamation"></i></div>
+        <h2 style="font-size:1.25rem; margin-bottom:6px; color:#0f172a;">Reconectar sua conta Google</h2>
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:14px; line-height:1.5;">O acesso do app à sua conta foi removido (ou o Google pediu confirmação). Seus dados continuam intactos no seu Drive — autorize de novo para voltar de onde parou. Enquanto isso, sua página de agendamento fica pausada.</p>
+        <button type="button" id="btnReconnect" class="btn-main" onclick="startReconnect()"><i class="fa-brands fa-google"></i> Autorizar de novo</button>
+        <button type="button" onclick="logoutApp(true)" class="login-link">Sair</button>
+      </div>
+
       <!-- ASSISTENTE DE PRIMEIRO ACESSO -->
       <div id="authModeOnboarding" class="hidden" style="text-align:left;">
         <div class="wiz-steps" id="wizSteps">
@@ -622,14 +644,14 @@
           <button type="button" onclick="logoutApp(true)" class="login-link">Usar outra conta</button>
         </div>
 
-        <!-- Passo 2: planilha (banco de dados) -->
+        <!-- Passo 2: dados na conta DELA -->
         <div id="wizStep2" class="hidden">
-          <h2 style="font-size:1.25rem; margin-bottom:4px; color:#0f172a;">Onde guardar seus dados?</h2>
-          <p style="font-size:0.84rem; color:var(--text-muted); margin-bottom:14px; line-height:1.45;">Clientes, serviços e agendamentos ficam numa planilha do Google que é sua — dá para abrir e conferir quando quiser.</p>
+          <h2 style="font-size:1.25rem; margin-bottom:4px; color:#0f172a;">Seus dados, na sua conta</h2>
+          <p style="font-size:0.84rem; color:var(--text-muted); margin-bottom:12px; line-height:1.45;">Clientes, serviços, agendamentos e fotos ficam no <strong>seu Google Drive</strong>, em seu nome. Só você é dona — nem o criador do app tem acesso.</p>
           <label class="db-option active" id="dbOptNew">
             <input type="radio" name="dbMode" value="NOVA" checked onchange="setDbMode('NOVA')">
             <span class="db-ic" style="background:#dcfce7; color:#15803d;"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
-            <span><strong>Criar minha planilha agora</strong> <em class="rec">Recomendado</em><br><small>Já vem com abas e um catálogo de exemplo. Aparece no seu Google Drive.</small></span>
+            <span><strong>Criar minha planilha agora</strong> <em class="rec">Recomendado</em><br><small>Fica na pasta "Nail Studio Pro" do seu Drive, com um catálogo de exemplo.</small></span>
           </label>
           <label class="db-option" id="dbOptExisting">
             <input type="radio" name="dbMode" value="EXISTENTE" onchange="setDbMode('EXISTENTE')">
@@ -637,23 +659,24 @@
             <span><strong>Usar uma planilha que já tenho</strong><br><small>Mantemos o que já existe e criamos só as abas que faltarem.</small></span>
           </label>
           <div id="dbExistingBox" class="hidden" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:16px; padding:12px; margin-bottom:12px;">
-            <div class="field" style="margin-bottom:10px;">
+            <div class="field" style="margin-bottom:8px;">
               <label>Link da sua planilha</label>
               <input type="url" id="obPlanilha" class="inp" placeholder="https://docs.google.com/spreadsheets/d/..." style="margin:0;">
             </div>
-            <div style="font-size:0.78rem; color:#334155; line-height:1.5;">
-              <strong>Antes, dê acesso ao app:</strong> abra a planilha → <em>Compartilhar</em> → adicione
-              <span id="obServerEmail" style="font-weight:800; color:var(--primary-dark); word-break:break-all;">o e-mail do app</span> como <em>Editor</em>.
-            </div>
-            <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
-              <button type="button" class="btn-sm" style="background:#0f172a; color:#fff;" onclick="copyServerEmail()"><i class="fa-regular fa-copy"></i> Copiar e-mail</button>
-              <button type="button" class="btn-sm" style="background:#e0e7ff; color:#3730a3;" onclick="openTypedSheet()"><i class="fa-solid fa-up-right-from-square"></i> Abrir planilha</button>
-            </div>
+            <div style="font-size:0.76rem; color:#334155; line-height:1.45;">Não precisa compartilhar com ninguém: o app usa a permissão que você der na próxima tela.</div>
+            <button type="button" class="btn-sm" style="background:#e0e7ff; color:#3730a3; margin-top:8px;" onclick="openTypedSheet()"><i class="fa-solid fa-up-right-from-square"></i> Abrir minhas planilhas</button>
           </div>
+          <ul class="login-perks" style="text-align:left; margin-bottom:8px;">
+            <li><span class="perk-ic" style="background:#dcfce7; color:#15803d;"><i class="fa-solid fa-check"></i></span><span>Na tela do Google, deixe <strong>todas as caixinhas marcadas</strong> (planilhas, arquivos do app e agenda)</span></li>
+            <li><span class="perk-ic" style="background:#fef3c7; color:#b45309;"><i class="fa-solid fa-shield-halved"></i></span><span>O app só mexe nos arquivos que ele mesmo cria ou que você escolher</span></li>
+          </ul>
+          <label style="display:flex; gap:8px; align-items:flex-start; font-size:0.8rem; color:#334155; margin:4px 0 8px; line-height:1.4;">
+            <input type="checkbox" id="obWithCal" checked style="margin-top:2px;"> Ligar também minha Google Agenda (cada reserva entra no meu calendário)
+          </label>
           <label style="display:flex; gap:8px; align-items:flex-start; font-size:0.78rem; color:var(--text-muted); margin:4px 0 12px; line-height:1.4;">
             <input type="checkbox" id="obTermo" style="margin-top:2px;"> Sou responsável pelos dados das minhas clientes e pelos valores cobrados.
           </label>
-          <button type="button" id="btnOnboarding" class="btn-main" onclick="submitCreateStudio()"><i class="fa-solid fa-rocket"></i> Criar meu Studio</button>
+          <button type="button" id="btnOnboarding" class="btn-main" onclick="submitCreateStudio()"><i class="fa-brands fa-google"></i> Autorizar e criar meu Studio</button>
           <button type="button" onclick="wizGo(1)" class="login-link">Voltar</button>
         </div>
 
@@ -1387,11 +1410,11 @@
     }
 
     function showAuthMode(mode) {
-      ['authModeLogin', 'authModePin', 'authModeOnboarding', 'authModeSetup'].forEach(id => {
+      ['authModeLogin', 'authModePin', 'authModeOnboarding', 'authModeSetup', 'authModeOwn', 'authModeReconnect'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('hidden');
       });
-      const map = { pin: 'authModePin', onboarding: 'authModeOnboarding', setup: 'authModeSetup' };
+      const map = { pin: 'authModePin', onboarding: 'authModeOnboarding', setup: 'authModeSetup', own: 'authModeOwn', reconnect: 'authModeReconnect' };
       document.getElementById(map[mode] || 'authModeLogin').classList.remove('hidden');
       if (mode === 'pin') {
         const inp = document.getElementById('loginUserInput');
@@ -1562,6 +1585,7 @@
       try { out = await res.json(); } catch (e) { throw new Error('Resposta inválida do servidor (verifique a implantação do Apps Script).'); }
       if (!out.ok) {
         if (out.code && String(out.code).indexOf('SESSAO_') === 0) handleSessionExpired();
+        if (out.code === 'CONTA_DESCONECTADA' && out.info && out.info.reauthToken) showReconnect(out.info.reauthToken);
         const err = new Error(out.error || 'Erro desconhecido');
         err.code = out.code || '';
         err.info = out.info || null;
@@ -1643,6 +1667,11 @@
         const r = await api('authGoogle', { idToken });
         if (r.needsOnboarding) {
           startWizard(r);
+          return;
+        }
+        if (r.needsReauth) {
+          try { localStorage.setItem('NAIL_LAST_LOGIN', r.email); } catch (e) {}
+          showReconnect(r.reauthToken, r.email);
           return;
         }
         setSession(r.session, r.email);
@@ -1735,8 +1764,7 @@
 
     async function loadSetupInfo() {
       if (setupInfo) return setupInfo;
-      try { setupInfo = await api('getSetupInfo'); } catch (e) { setupInfo = { serverEmail: '', calendarReady: true }; }
-      if (setupInfo.serverEmail) document.getElementById('obServerEmail').textContent = setupInfo.serverEmail;
+      try { setupInfo = await api('getSetupInfo'); } catch (e) { setupInfo = { calendarReady: true }; }
       return setupInfo;
     }
 
@@ -1766,14 +1794,7 @@
       document.getElementById('dbOptNew').classList.toggle('active', mode === 'NOVA');
       document.getElementById('dbOptExisting').classList.toggle('active', mode === 'EXISTENTE');
       document.getElementById('dbExistingBox').classList.toggle('hidden', mode !== 'EXISTENTE');
-      document.getElementById('btnOnboarding').innerHTML = mode === 'NOVA' ? '<i class="fa-solid fa-rocket"></i> Criar meu Studio' : '<i class="fa-solid fa-link"></i> Vincular minha planilha';
-      if (mode === 'EXISTENTE') loadSetupInfo();
-    }
-
-    function copyServerEmail() {
-      const e = (setupInfo && setupInfo.serverEmail) || '';
-      if (!e) return showToast('Carregando o e-mail do app... tente de novo.');
-      copyToClipboardUniversal(e, 'E-mail do app');
+      document.getElementById('btnOnboarding').innerHTML = mode === 'NOVA' ? '<i class="fa-brands fa-google"></i> Autorizar e criar meu Studio' : '<i class="fa-brands fa-google"></i> Autorizar e usar minha planilha';
     }
 
     function openTypedSheet() {
@@ -1797,38 +1818,43 @@
         if (!payload.planilha) return showToast('Cole o link da sua planilha.');
       }
       if (!document.getElementById('obTermo').checked) return showToast('Confirme o termo de responsabilidade.');
-      const done = busy(document.getElementById('btnOnboarding'), dbMode === 'NOVA' ? 'Criando seu Studio e a planilha...' : 'Conferindo sua planilha...');
+      const withCal = document.getElementById('obWithCal').checked;
+      const btn = document.getElementById('btnOnboarding');
+      let grant;
       try {
-        const r = await api('createStudio', payload);
+        grant = await requestGoogleGrant({ calendar: withCal, email: pendingSignup.email });
+      } catch (e) {
+        if (e.message !== 'CANCELADO') showToast(e.message, 7000);
+        return;
+      }
+      const done = busy(btn, dbMode === 'NOVA' ? 'Criando seu Studio no seu Drive...' : 'Conferindo sua planilha...');
+      try {
+        const r = await api('createStudio', Object.assign(payload, grant));
         setSession(r.session, r.email);
         pendingSignup = null;
         await refreshAdminData();
-        showToast(r.vinculada ? '✅ Planilha vinculada! Seus dados ficam nela.' : (r.isNew ? '🎉 Studio criado! A planilha está no seu Google Drive.' : '💅 Você já tinha um Studio — abrimos ele.'), 6000);
+        showToast(r.vinculada ? '✅ Planilha vinculada! Seus dados ficam nela.' : (r.isNew ? '🎉 Studio criado no seu Google Drive (pasta Nail Studio Pro).' : '💅 Você já tinha um Studio — abrimos ele.'), 6000);
         const info = await loadSetupInfo();
-        if (info.calendarReady && !(dashState.gcal && dashState.gcal.connected)) wizGo(3);
-        else finishWizard(false);
+        if (!r.calendar && info.calendarReady && !(dashState.gcal && dashState.gcal.connected)) wizGo(3);
+        else finishWizard(!!r.calendar);
       } catch (e) {
-        if (e.code === 'SEM_ACESSO') {
-          if (e.info && e.info.serverEmail) {
-            setupInfo = Object.assign(setupInfo || {}, { serverEmail: e.info.serverEmail });
-            document.getElementById('obServerEmail').textContent = e.info.serverEmail;
-          }
-          document.getElementById('dbExistingBox').style.borderColor = '#f59e0b';
-          showToast('Falta compartilhar a planilha com o app (veja as instruções) e tocar de novo.', 7000);
-          done();
-          document.getElementById('btnOnboarding').innerHTML = '<i class="fa-solid fa-rotate"></i> Já compartilhei — verificar de novo';
-          return;
-        }
-        showToast(e.message, 7000);
+        if (e.code === 'SEM_REFRESH') { forceConsent = true; showToast('Quase lá! Toque em autorizar mais uma vez para concluir.', 7000); }
+        else showToast(e.message, 7000);
       } finally {
-        if (document.getElementById('btnOnboarding').disabled) done();
-        else document.getElementById('btnOnboarding').disabled = false;
+        if (btn.disabled) done();
       }
     }
 
     /** Depois do login de quem já tem Studio: oferece a Google Agenda se ainda não ligou. */
     async function afterLogin(msg) {
-      await refreshAdminData();
+      if (!(await refreshAdminData())) return; // reconexão/erro já tratado
+      if (dashState.studio.dadosNaConta === false) {
+        // Studio do app antigo: passa tudo para a conta dela antes de seguir
+        wizardActive = true;
+        showAuthMode('own');
+        document.getElementById('lockScreen').classList.remove('hidden');
+        return;
+      }
       let dismissed = 0;
       try { dismissed = Number(localStorage.getItem('NAIL_GCAL_PROMPT_SKIP') || 0); } catch (e) {}
       const g = dashState.gcal || {};
@@ -1907,15 +1933,132 @@
         const data = await api('getAdminDashboardData');
         dashState = data;
         renderDashboard(data);
+        return true;
       } catch (e) {
-        showToast(e.message, 5000);
+        if (e.code !== 'CONTA_DESCONECTADA') showToast(e.message, 5000);
+        return false;
       }
     }
 
     // =========================================================================
     // GOOGLE AGENDA — autorização por código (token fica SÓ no servidor)
     // =========================================================================
-    const CALENDAR_SCOPE = 'openid email https://www.googleapis.com/auth/calendar.events';
+    // =========================================================================
+    // AUTORIZAÇÃO NA CONTA DELA (planilha + arquivos do app [+ agenda])
+    // O Google devolve um código; o servidor troca pelo acesso e cria/usa tudo
+    // no Drive DELA. Ela pode remover o acesso em myaccount.google.com/permissions.
+    // =========================================================================
+    const SCOPE_SHEETS = 'https://www.googleapis.com/auth/spreadsheets';
+    const SCOPE_DRIVE_FILE = 'https://www.googleapis.com/auth/drive.file';
+    const SCOPE_CALENDAR = 'https://www.googleapis.com/auth/calendar.events';
+    let forceConsent = false;   // o Google não mandou refresh_token → pede com consentimento completo
+    let nativeAuthWaiter = null;
+
+    /** Abre a tela de permissão do Google e devolve { code, redirectUri }. Chamar direto do toque no botão. */
+    function requestGoogleGrant(opts) {
+      opts = opts || {};
+      const scopes = [SCOPE_SHEETS, SCOPE_DRIVE_FILE].concat(opts.calendar ? [SCOPE_CALENDAR] : []);
+      const email = opts.email || (dashState.account && dashState.account.email) || '';
+      return new Promise((resolve, reject) => {
+        if (IS_ANDROID_APP) {
+          if (typeof window.AndroidNative.authorizeScopes !== 'function') {
+            return reject(new Error('Atualize o App Android (versão 4) para continuar — ou use o painel no navegador.'));
+          }
+          nativeAuthWaiter = { resolve: (code) => resolve({ code, redirectUri: '' }), reject };
+          window.AndroidNative.authorizeScopes(CFG.GOOGLE_CLIENT_ID || '', email, scopes.join(' '));
+          return;
+        }
+        if (!(window.google && google.accounts && google.accounts.oauth2)) {
+          return reject(new Error('Carregando Google... tente de novo em 2 segundos.'));
+        }
+        const cfg = {
+          client_id: CFG.GOOGLE_CLIENT_ID,
+          scope: 'openid email ' + scopes.join(' '),
+          ux_mode: 'popup',
+          include_granted_scopes: true,
+          callback: (resp) => {
+            if (resp.error) return reject(new Error(resp.error === 'access_denied' ? 'CANCELADO' : 'Autorização cancelada: ' + resp.error));
+            const granted = String(resp.scope || '');
+            if (granted && (granted.indexOf(SCOPE_SHEETS) < 0 || granted.indexOf(SCOPE_DRIVE_FILE) < 0)) {
+              return reject(new Error('Marque as caixinhas de "Planilhas" e "arquivos do app" na tela do Google e tente de novo.'));
+            }
+            forceConsent = false;
+            resolve({ code: resp.code, redirectUri: 'postmessage' });
+          },
+          error_callback: (err) => {
+            if (err && err.type === 'popup_failed_to_open') reject(new Error('O navegador bloqueou a janela do Google. Permita pop-ups e tente de novo.'));
+            else reject(new Error('CANCELADO'));
+          }
+        };
+        if (email) cfg.login_hint = email;
+        if (forceConsent || opts.consent) cfg.prompt = 'consent';
+        google.accounts.oauth2.initCodeClient(cfg).requestCode();
+      });
+    }
+    window.onNativeAuthCode = function (code) { const w = nativeAuthWaiter; nativeAuthWaiter = null; if (w) w.resolve(code); };
+    window.onNativeAuthError = function (msg) { const w = nativeAuthWaiter; nativeAuthWaiter = null; if (w) w.reject(new Error(msg || 'CANCELADO')); };
+
+    /** Studio do app antigo → tudo passa para a conta dela (o servidor sai da planilha). */
+    async function startOwnAccount(opts) {
+      const btn = document.getElementById('btnOwnAccount');
+      let grant;
+      try { grant = await requestGoogleGrant({ calendar: true }); }
+      catch (e) { if (e.message !== 'CANCELADO') showToast(e.message, 7000); return false; }
+      const done = busy(btn, 'Passando seus dados para a sua conta...');
+      try {
+        const d = await api('adminAuthorizeOwnAccount', grant);
+        if (d.session) setSession(d.session, (d.account && d.account.email) || '');
+        dashState = d;
+        renderDashboard(d);
+        done();
+        wizardActive = false;
+        document.getElementById('lockScreen').classList.add('hidden');
+        showAuthMode('login');
+        const m = d.migracao || {};
+        showToast(m.copied ? '🎉 Pronto! Copiamos tudo para uma planilha nova no SEU Drive. O link das clientes continua o mesmo.'
+          : '🎉 Pronto! Seus dados agora são acessados só pela sua conta Google.', 8000);
+        return true;
+      } catch (e) {
+        done();
+        if (e.code === 'SEM_REFRESH') { forceConsent = true; showToast('Quase lá! Toque em autorizar mais uma vez para concluir.', 7000); }
+        else showToast(e.message, 8000);
+        return false;
+      }
+    }
+
+    let reauthToken = '';
+    function showReconnect(tok, email) {
+      reauthToken = tok;
+      wizardActive = true;
+      if (email) pendingReauthEmail = email;
+      document.getElementById('lockScreen').classList.remove('hidden');
+      showAuthMode('reconnect');
+    }
+    let pendingReauthEmail = '';
+
+    async function startReconnect() {
+      if (!reauthToken) return showAuthMode('login');
+      let grant;
+      try { grant = await requestGoogleGrant({ calendar: true, consent: true, email: pendingReauthEmail || currentUserEmail() }); }
+      catch (e) { if (e.message !== 'CANCELADO') showToast(e.message, 7000); return; }
+      const done = busy(document.getElementById('btnReconnect'), 'Reconectando...');
+      try {
+        const r = await api('reconnectAccount', Object.assign({ reauthToken }, grant));
+        reauthToken = '';
+        setSession(r.session, r.email);
+        done();
+        wizardActive = false;
+        showAuthMode('login');
+        await afterLogin('✅ Conta reconectada! Tudo como antes.');
+      } catch (e) {
+        done();
+        showToast(e.message, 7000);
+      }
+    }
+
+    function currentUserEmail() {
+      try { return (dashState.account && dashState.account.email) || localStorage.getItem('NAIL_LAST_LOGIN') || ''; } catch (e) { return ''; }
+    }
 
     function checkGcalStatus() { renderGcalCard(dashState.gcal || {}); }
 
@@ -1953,35 +2096,15 @@
       }
     }
 
-    function connectGoogleCalendar() {
-      const email = (dashState.account && dashState.account.email) || '';
-      if (IS_ANDROID_APP) {
-        if (typeof window.AndroidNative.authorizeCalendar === 'function') {
-          showToast('Abrindo permissão da Google Agenda...');
-          window.AndroidNative.authorizeCalendar(CFG.GOOGLE_CLIENT_ID || '', email);
-          return;
-        }
-        return showToast('Atualize o App Android para conectar a agenda (ou use o painel no navegador).', 6000);
+    async function connectGoogleCalendar() {
+      if (dashState.studio && dashState.studio.dadosNaConta === false) {
+        // Studio antigo: a agenda vem junto com a passagem dos dados para a conta dela
+        return startOwnAccount();
       }
-      if (!(window.google && google.accounts && google.accounts.oauth2)) {
-        return showToast('Carregando Google... tente de novo em 2 segundos.');
-      }
-      const client = google.accounts.oauth2.initCodeClient({
-        client_id: CFG.GOOGLE_CLIENT_ID,
-        scope: CALENDAR_SCOPE,
-        ux_mode: 'popup',
-        login_hint: email || undefined,
-        select_account: !email,
-        callback: (resp) => {
-          if (resp.error) return showToast('Autorização cancelada: ' + resp.error);
-          finishCalendarConnect(resp.code, 'postmessage');
-        },
-        error_callback: (err) => {
-          if (err && err.type === 'popup_failed_to_open') showToast('O navegador bloqueou a janela do Google. Permita pop-ups e tente de novo.', 6000);
-          else if (err && err.type === 'popup_closed') showToast('Janela do Google fechada antes de concluir.');
-        }
-      });
-      client.requestCode();
+      let grant;
+      try { grant = await requestGoogleGrant({ calendar: true }); }
+      catch (e) { if (e.message !== 'CANCELADO') showToast(e.message, 7000); return; }
+      finishCalendarConnect(grant.code, grant.redirectUri);
     }
 
     window.onNativeCalendarAuthCode = function (code) { finishCalendarConnect(code, ''); };
@@ -1994,6 +2117,7 @@
         showToast('🎉 Google Agenda conectada!' + (d.synced ? ' ' + d.synced + ' reserva(s) enviada(s) para a agenda.' : ''), 6000);
         if (wizardActive) finishWizard(true);
       } catch (e) {
+        if (e.code === 'SEM_REFRESH') forceConsent = true;
         showToast(e.message, 7000);
       }
     }
@@ -2409,7 +2533,12 @@
       }
       if (session) {
         document.getElementById('lockScreen').classList.add('hidden');
-        await refreshAdminData();
+        const ok = await refreshAdminData();
+        if (ok && dashState.studio && dashState.studio.dadosNaConta === false) {
+          wizardActive = true;
+          showAuthMode('own');
+          document.getElementById('lockScreen').classList.remove('hidden');
+        }
       } else {
         initGoogleSignIn();
       }
@@ -2477,20 +2606,13 @@
     function renderSheetOwner(st) {
       const box = document.getElementById('sheetOwnerBox');
       if (!box) return;
-      const own = st.planilhaDona;
-      if (own === 'MANICURE') box.innerHTML = '<span class="badge b-ok"><i class="fa-solid fa-user-check"></i> A planilha é sua (está no seu Google Drive)</span>';
-      else if (own === 'PENDENTE') box.innerHTML = '<span class="badge b-warn"><i class="fa-regular fa-envelope"></i> Aceite a transferência no e-mail do Google ou no seu Drive</span>';
-      else box.innerHTML = '<div style="color:#64748b; margin-bottom:6px;">Hoje a planilha está guardada pelo app e compartilhada com você.</div><button type="button" class="btn-sm" style="background:#16a34a; color:#fff;" onclick="transferSheetOwnership(this)"><i class="fa-solid fa-hand-holding-heart"></i> Quero ser a dona da planilha</button>';
-    }
-
-    async function transferSheetOwnership(btn) {
-      if (!confirm('O Google vai enviar um pedido para você aceitar a propriedade da planilha. Depois de aceitar, NÃO remova o acesso do app (ele continua como editor). Continuar?')) return;
-      const done = busy(btn, 'Enviando pedido...');
-      try {
-        const r = await api('adminTransferOwnership');
-        showToast(r.status === 'JA_DONA' ? 'A planilha já é sua!' : '📧 Pedido enviado! Abra o e-mail do Google (ou o Drive) e toque em Aceitar.', 7000);
-        await refreshAdminData();
-      } catch (e) { showToast(e.message, 6000); done(); }
+      if (st.dadosNaConta) {
+        box.innerHTML = '<span class="badge b-ok"><i class="fa-solid fa-user-check"></i> Tudo na sua conta Google — só você é dona</span>' +
+          '<div style="color:#64748b; margin-top:6px; line-height:1.45;">Planilha e fotos ficam na pasta <strong>Nail Studio Pro</strong> do seu Drive. O app só usa a permissão que você deu, e você pode tirá-la quando quiser em ' +
+          '<a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener" style="font-weight:700;">myaccount.google.com/permissions</a> (a página de agendamento pausa até você autorizar de novo).</div>';
+      } else {
+        box.innerHTML = '<div style="color:#64748b; margin-bottom:6px;">Seus dados ainda são acessados pela conta do app.</div><button type="button" class="btn-sm" style="background:#16a34a; color:#fff;" onclick="startOwnAccount()"><i class="fa-solid fa-hand-holding-heart"></i> Passar tudo para a minha conta</button>';
+      }
     }
 
     function renderDashboard(data) {
