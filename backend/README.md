@@ -84,17 +84,50 @@ Use **a mesma conta Google que é dona das planilhas dos studios** (a "conta mes
    | `MASTER_SPREADSHEET_ID` | `14r4nifHaaQgDMm8OmCgRjCoScY8rOPGLMfdKnRz1a9Q` (planilha que já tem a aba `Contas_Manicures`, para manter os studios existentes). Deixe vazio para criar uma nova. |
    | `PUBLIC_BASE_URL` | `https://tecbumper-arch.github.io/nail-studio-pro` |
 
-5. No editor, escolha a função **`setup`** e clique **▶ Executar** → autorize.
-   Ela cria o segredo de sessão, confere o diretório e instala o resumo diário das 7h.
-   Veja o resultado em *Registro de execução* (função `diagnostico`).
+5. No editor, escolha a função **`setup`** e clique **▶ Executar** → autorize (o Google pede as permissões uma vez).
+   Opcional: depois disso o servidor se auto-configura sozinho; rodar aqui só serve para autorizar e ver o
+   *Registro de execução* (função `diagnostico`, que também mostra o espaço usado no Drive).
 6. **Implantar → Nova implantação → ⚙️ App da Web**
    - Executar como: **Eu**
    - Quem pode acessar: **Qualquer pessoa**
    - Copie a URL que termina em **`/exec`**.
    - (Opcional) salve essa URL na propriedade `API_URL`.
 
-> **Atualizações futuras do `Code.gs`:** use *Implantar → Gerenciar implantações → ✏️ →
-> Versão: Nova versão*. Assim a URL `/exec` não muda.
+> **Atualizações futuras:** configure o [deploy automático](#-deploy-automático-pelo-github) (uma vez) e nunca mais
+> cole código. Sem ele: *Implantar → Gerenciar implantações → ✏️ → Versão: Nova versão* (a URL `/exec` não muda).
+
+## 🚀 Deploy automático pelo GitHub
+
+Depois desta configuração única (~10 min), **toda mudança aprovada na `main` vai sozinha para o servidor**:
+o GitHub roda os testes, envia o `Code.gs`, publica uma nova versão **na mesma implantação** (URL igual) e
+"acorda" o servidor, que se auto-configura (gatilhos, segredos, diretório). Ninguém precisa abrir o Apps Script.
+
+Faça com a **conta Google do servidor** (a mesma do passo 3):
+
+1. Abra <https://script.google.com/home/usersettings> e **ative** "API do Google Apps Script".
+2. Num computador com [Node.js](https://nodejs.org) instalado, rode no terminal:
+   ```bash
+   npx @google/clasp@2.4.2 login
+   ```
+   O navegador abre: entre com a conta do servidor e toque em **Permitir**. Isso cria o arquivo
+   `.clasprc.json` na sua pasta de usuário (Windows: `C:\Users\SEU_USUARIO\.clasprc.json`;
+   Mac/Linux: `~/.clasprc.json`). Abra com o Bloco de Notas e copie **todo** o conteúdo.
+3. No GitHub: repositório → **Settings → Secrets and variables → Actions**:
+   - aba **Secrets** → *New repository secret* → nome `CLASPRC_JSON`, valor = conteúdo copiado.
+   - aba **Variables** → *New repository variable*:
+     | Nome | Onde achar |
+     |---|---|
+     | `SCRIPT_ID` | Apps Script → ⚙️ Configurações do projeto → **ID do script** |
+     | `DEPLOYMENT_ID` | Apps Script → Implantar → **Gerenciar implantações** → ID da implantação (começa com `AKfy…`) |
+     | `API_URL` | a URL `/exec` (opcional: usada para conferir a versão no fim) |
+4. Teste: GitHub → **Actions → "Deploy do servidor (Apps Script)" → Run workflow**. Deve terminar verde e mostrar
+   "Servidor respondeu versão: …".
+
+Pronto. O arquivo `.clasprc.json` é uma chave da conta do servidor: guarde só no Secret do GitHub e apague a cópia
+do computador se quiser. Para revogar: <https://myaccount.google.com/permissions> → "clasp" → Remover acesso.
+
+> O front-end (HTMLs no GitHub Pages) já atualiza sozinho a cada push na `main`. O APK Android continua
+> precisando ser gerado de novo no Android Studio quando as páginas mudam (elas vão dentro do APK).
 
 ## 4. Configurar o app
 
@@ -128,9 +161,9 @@ mostra erro *"Verifique o cliente OAuth Android (SHA-1)"*.
 
 ## 🔁 Sincronização automática e avisos
 
-- `setup()` instala dois gatilhos: **resumo diário (7h)** e **sincronização da Google Agenda a cada 15 min**
-  (`sincronizarAgendas`). O gatilho de 15 min também é instalado sozinho quando a 1ª manicure conecta a agenda.
-  **Quem já tinha o servidor instalado: rode `setup()` de novo uma vez** depois de atualizar o `Code.gs`.
+- O servidor instala sozinho dois gatilhos: **resumo diário (7h)** e **sincronização da Google Agenda a cada 15 min**
+  (`sincronizarAgendas`). Isso acontece na 1ª requisição depois de cada atualização do código (auto-setup):
+  não é preciso rodar `setup()` manualmente.
 - E-mails de "nova reserva / cancelou" saem pela conta do servidor (limite do Google: ~100 e-mails/dia em conta Gmail).
 
 ## 🔗 Vincular uma planilha que a manicure já tem
@@ -150,7 +183,11 @@ As fotos que a manicure envia vão para uma pasta no Google Drive da **conta do 
 ("Nail Studio Pro — Fotos — <Studio>"), compartilhada com o e-mail dela e com acesso
 "qualquer pessoa com o link pode ver" (necessário para aparecerem na página das clientes).
 Fotos removidas de um serviço vão para a lixeira do Drive. O espaço usado conta na cota
-de 15 GB da conta do servidor (cada foto tem ~150–300 KB).
+de 15 GB da conta do servidor (cada foto tem ~150–300 KB → cabem ~50 mil fotos).
+
+**Você não precisa acompanhar isso:** todo dia o servidor confere o espaço e, se passar de **80%**, manda um
+e-mail para a conta do servidor (no máximo 1x por semana). Nesse caso: esvazie a lixeira do Drive ou contrate
+mais espaço no Google One para essa conta. Se lotar, só o envio de novas fotos para — o resto continua funcionando.
 
 ## 🧯 Problemas comuns
 
@@ -161,7 +198,9 @@ de 15 GB da conta do servidor (cada foto tem ~150–300 KB).
 | Agenda 🟠 "Reconectar" | A manicure trocou a senha, removeu o acesso, ou o app está em modo **Teste** (7 dias). |
 | "Quase lá! Toque em Conectar mais uma vez" | Normal na 1ª reconexão: o Google só entrega o token permanente após novo consentimento. |
 | App Android: "Falha no login Google … SHA-1" | Falta cadastrar o SHA-1 da chave do APK no cliente Android. |
-| "Servidor não configurado (MASTER_SPREADSHEET_ID)" | Rode `setup()` (passo 3.5). |
+| "Servidor não configurado (MASTER_SPREADSHEET_ID)" | Rode `setup()` uma vez no editor (passo 3.5) para autorizar. |
+| Action "Deploy do servidor" com aviso "não configurado" | Faltam os Secrets/Variables do [deploy automático](#-deploy-automático-pelo-github). |
+| Action falha em "Enviar código" com "User has not enabled the Apps Script API" | Passo 1 do deploy automático. |
 
 ## 🧪 Testes automatizados (desenvolvimento)
 

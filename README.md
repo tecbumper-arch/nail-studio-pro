@@ -5,6 +5,7 @@ página pública de agendamento para as clientes, Pix Copia e Cola e integraçã
 **Google Sheets** (banco de dados) e **Google Agenda** — 24h, sem computador ligado e de graça.
 
 > 👉 **Instalação / configuração:** [`backend/README.md`](backend/README.md)
+> 🚀 **Atualizações:** depois da configuração única do [deploy automático](backend/README.md#-deploy-automático-pelo-github), cada mudança na `main` vai sozinha para o servidor e para o site.
 > (inclui os passos de segurança urgentes da versão 2.2).
 
 ---
@@ -96,6 +97,7 @@ página pública de agendamento para as clientes, Pix Copia e Cola e integraçã
 | `config.js` | URL da API + Client ID (sem segredos) |
 | `backend/` | Servidor Apps Script (`Code.gs`, `appsscript.json`) + guia |
 | `android-app/` | APK Kotlin (WebView + login Google nativo) |
+| `.github/workflows/deploy-backend.yml` | Deploy automático do servidor (testes + clasp) a cada push na `main` |
 | `scripts/sync-copies.sh` | Copia os HTMLs para `Index.html`, `200.html`, `NailApp_Sheets/` e assets do APK |
 | `design/` | Fonte vetorial dos ícones (`icons.js`), exportações do Figma e gerador de tamanhos (`build_assets.py`) |
 | `assets/` | Ícones de categoria (SVG), miniaturas de serviço, favicon e `brand.js` |

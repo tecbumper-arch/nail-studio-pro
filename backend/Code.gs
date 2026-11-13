@@ -20,7 +20,7 @@
  * =============================================================================
  */
 
-var API_VERSION = '3.0.0';
+var API_VERSION = '3.1.0';
 
 var TAB_CONFIG = 'Configuracoes';
 var TAB_CATS = 'Categorias';
@@ -99,7 +99,58 @@ function setup() {
     ScriptApp.newTrigger('enviarResumosDiarios').timeBased().everyDays(1).atHour(7).create();
   }
   ensureSyncTrigger_();
+  setProp_('SETUP_VERSION', API_VERSION);
   Logger.log(diagnostico());
+}
+
+/**
+ * Auto-configuração: na 1ª requisição depois de cada atualização do código (deploy
+ * automático pelo GitHub), refaz o setup() sozinho. Ninguém precisa rodar nada no editor.
+ */
+function ensureSetup_() {
+  if (prop_('SETUP_VERSION') === API_VERSION) return;
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(20000)) return;
+  try {
+    if (prop_('SETUP_VERSION') !== API_VERSION) setup();
+  } catch (e) {
+    Logger.log('Auto-setup falhou: ' + e.message);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// -----------------------------------------------------------------------------
+// ESPAÇO DO GOOGLE DRIVE (fotos dos trabalhos ficam no Drive da conta do servidor)
+// -----------------------------------------------------------------------------
+function storageInfo_() {
+  try {
+    var used = DriveApp.getStorageUsed();
+    var limit = DriveApp.getStorageLimit();
+    return { usedMb: Math.round(used / 1048576), limitMb: Math.round(limit / 1048576), pct: limit > 0 ? Math.round(used / limit * 100) : 0 };
+  } catch (e) {
+    return null;
+  }
+}
+
+/** Avisa a conta do servidor por e-mail quando o Drive passar de 80% (no máx. 1x por semana). */
+function checkStorage_() {
+  var info = storageInfo_();
+  if (!info || info.pct < 80) return info;
+  var last = Number(prop_('STORAGE_ALERT_AT', '0'));
+  if (Date.now() - last < 7 * 86400000) return info;
+  var to = serverEmail_();
+  if (to) {
+    MailApp.sendEmail({
+      to: to, name: 'Nail Studio Pro',
+      subject: '⚠️ Nail Studio Pro: Google Drive do servidor em ' + info.pct + '%',
+      htmlBody: '<p>O Google Drive da conta do servidor está com <b>' + info.pct + '%</b> ocupado (' + info.usedMb + ' MB de ' + info.limitMb + ' MB).</p>' +
+        '<p>As fotos dos trabalhos das manicures ficam nele. Quando lotar, novas fotos não poderão ser enviadas (o resto do app continua funcionando).</p>' +
+        '<p>Opções: esvaziar a lixeira do Drive, ou contratar mais espaço no Google One para esta conta.</p>'
+    });
+  }
+  setProp_('STORAGE_ALERT_AT', String(Date.now()));
+  return info;
 }
 
 /** Instala (uma vez) a sincronização automática da Google Agenda a cada 15 minutos. */
@@ -136,6 +187,8 @@ function diagnostico() {
   lines.push('PUBLIC_BASE_URL: ' + publicBaseUrl_());
   lines.push('SESSION_SECRET: ' + (prop_('SESSION_SECRET') ? 'OK' : 'será criado'));
   lines.push('Fuso horário: ' + Session.getScriptTimeZone());
+  var st = storageInfo_();
+  if (st) lines.push('Google Drive do servidor: ' + st.usedMb + ' MB de ' + st.limitMb + ' MB (' + st.pct + '%)');
   return lines.join('\n');
 }
 
@@ -147,12 +200,14 @@ function json_(obj) {
 }
 
 function doGet(e) {
+  ensureSetup_();
   var p = (e && e.parameter) || {};
   if (p.ics) return icsFeed_(p.ics);
   return json_({ ok: true, service: 'Nail Studio Pro API', version: API_VERSION });
 }
 
 function doPost(e) {
+  ensureSetup_();
   var req;
   try {
     req = JSON.parse((e && e.postData && e.postData.contents) || '{}');
@@ -1554,7 +1609,13 @@ var ADMIN_API = {
     var ext = m[2] === 'jpeg' ? 'jpg' : m[2];
     var base = (str_(a.nome, 40) || 'trabalho').replace(/[^\wÀ-ÿ\- ]/g, '').trim() || 'trabalho';
     var name = base + ' ' + nowInTz_(ctx.tz).stamp.replace(/[\/: ]/g, '-') + '.' + ext;
-    var file = withLock_(function () { return photoFolder_(ctx).createFile(Utilities.newBlob(bytes, m[1], name)); });
+    var file;
+    try {
+      file = withLock_(function () { return photoFolder_(ctx).createFile(Utilities.newBlob(bytes, m[1], name)); });
+    } catch (e) {
+      if (/storage|quota|espa/i.test(e.message)) throw new Error('O espaço para fotos do app está cheio no momento. Avise o suporte do Nail Studio Pro.');
+      throw e;
+    }
     try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
     logEvent_(ctx, 'FOTO_ENVIADA', name);
     return { url: photoUrl_(file.getId()), id: file.getId() };
@@ -1941,6 +2002,7 @@ function icsFeed_(token) {
 // RESUMO DIÁRIO POR E-MAIL (gatilho das 7h criado pelo setup())
 // =============================================================================
 function enviarResumosDiarios() {
+  try { checkStorage_(); } catch (e) {}
   var rows = directoryRows_();
   for (var i = 1; i < rows.length; i++) {
     var email = String(rows[i][0] || '').trim();

@@ -234,6 +234,8 @@ function createGas({ apiUrl = 'http://localhost/exec' } = {}) {
         drive.folders[id] = folder;
         return folder;
       },
+      getStorageUsed: () => drive.storageUsed || 0,
+      getStorageLimit: () => 15 * 1024 * 1024 * 1024,
       getFolderById: (id) => { if (!drive.folders[id]) throw new Error('pasta inexistente'); return drive.folders[id]; },
       getFileById: (id) => {
         if (drive.files[id]) return drive.files[id];

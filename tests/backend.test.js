@@ -456,3 +456,28 @@ test('tornar a manicure dona da planilha criada pelo app', () => {
   dash = gas.ok('getAdminDashboardData', {}, session);
   assert.strictEqual(dash.studio.planilhaDona, 'PENDENTE');
 });
+
+test('auto-setup depois de atualização do código e alerta de espaço no Drive', () => {
+  const gas = createGas();
+  gas.props.GOOGLE_CLIENT_ID = CLIENT_ID;
+  gas.props.GOOGLE_CLIENT_SECRET = 'secret';
+  // nunca rodaram setup(): a 1ª requisição configura sozinha
+  const out = JSON.parse(gas.context.doGet({ parameter: {} }).getContent());
+  assert.strictEqual(out.ok, true);
+  assert.ok(gas.props.MASTER_SPREADSHEET_ID, 'diretório criado');
+  assert.ok(gas.props.SESSION_SECRET);
+  assert.strictEqual(gas.props.SETUP_VERSION, gas.context.API_VERSION);
+  assert.ok(gas.triggers.some(t => t.fn === 'enviarResumosDiarios'));
+  assert.ok(gas.triggers.some(t => t.fn === 'sincronizarAgendas'));
+  // nova versão do código → refaz setup sem duplicar gatilhos
+  gas.props.SETUP_VERSION = '0.0.1';
+  gas.context.doGet({ parameter: {} });
+  assert.strictEqual(gas.triggers.filter(t => t.fn === 'sincronizarAgendas').length, 1);
+  // Drive em 85% → avisa a conta do servidor uma vez por semana
+  gas.drive.storageUsed = 0.85 * 15 * 1024 * 1024 * 1024;
+  gas.context.enviarResumosDiarios();
+  gas.context.enviarResumosDiarios();
+  const alerts = gas.mails.filter(m => /Google Drive do servidor/.test(m.subject));
+  assert.strictEqual(alerts.length, 1);
+  assert.strictEqual(alerts[0].to, 'servidor@gmail.com');
+});

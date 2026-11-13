@@ -1,0 +1,104 @@
+# Deploy automático do servidor (Google Apps Script)
+#
+# A cada push na main que mexa em backend/ (ou ao rodar manualmente em Actions):
+#   1. roda os testes do servidor
+#   2. envia backend/Code.gs + appsscript.json para o projeto Apps Script (clasp)
+#   3. publica uma nova versão NA MESMA implantação (a URL /exec não muda)
+#   4. chama a API uma vez: o servidor se auto-configura (gatilhos etc.)
+#
+# Configuração única: veja backend/README.md → "Deploy automático".
+name: Deploy do servidor (Apps Script)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'tests/**'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  testes:
+    name: Testes do servidor
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test tests/backend.test.js
+
+  deploy:
+    name: Publicar no Apps Script
+    needs: testes
+    runs-on: ubuntu-latest
+    env:
+      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+      SCRIPT_ID: ${{ vars.SCRIPT_ID || secrets.SCRIPT_ID }}
+      DEPLOYMENT_ID: ${{ vars.DEPLOYMENT_ID || secrets.DEPLOYMENT_ID }}
+      API_URL: ${{ vars.API_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Conferir configuração
+        id: cfg
+        run: |
+          missing=""
+          [ -z "$CLASPRC_JSON" ] && missing="$missing CLASPRC_JSON(secret)"
+          [ -z "$SCRIPT_ID" ] && missing="$missing SCRIPT_ID"
+          [ -z "$DEPLOYMENT_ID" ] && missing="$missing DEPLOYMENT_ID"
+          if [ -n "$missing" ]; then
+            echo "::warning::Deploy automático ainda não configurado. Falta:$missing — veja backend/README.md (Deploy automático)."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.cfg.outputs.ready == 'true'
+        with:
+          node-version: 22
+
+      - name: Instalar clasp
+        if: steps.cfg.outputs.ready == 'true'
+        run: npm install -g @google/clasp@2.4.2
+
+      - name: Credenciais (conta do servidor)
+        if: steps.cfg.outputs.ready == 'true'
+        run: |
+          printf '%s' "$CLASPRC_JSON" > "$HOME/.clasprc.json"
+          printf '{"scriptId":"%s","rootDir":"."}' "$SCRIPT_ID" > backend/.clasp.json
+
+      - name: Enviar código
+        if: steps.cfg.outputs.ready == 'true'
+        working-directory: backend
+        run: clasp push --force
+
+      - name: Nova versão na mesma implantação
+        if: steps.cfg.outputs.ready == 'true'
+        working-directory: backend
+        run: clasp deploy --deploymentId "$DEPLOYMENT_ID" --description "GitHub ${GITHUB_SHA::7} $(date -u +%Y-%m-%dT%H:%MZ)"
+
+      - name: Acordar o servidor (auto-configuração) e conferir versão
+        if: steps.cfg.outputs.ready == 'true' && env.API_URL != ''
+        run: |
+          expected=$(grep -oP "var API_VERSION = '\K[^']+" backend/Code.gs)
+          for i in 1 2 3 4 5; do
+            got=$(curl -fsSL "$API_URL" | grep -oP '"version":"\K[^"]+' || true)
+            echo "Servidor respondeu versão: ${got:-?} (esperada $expected)"
+            [ "$got" = "$expected" ] && exit 0
+            sleep 10
+          done
+          echo "::warning::O servidor ainda não respondeu com a versão $expected. Confira em Implantar → Gerenciar implantações."
+
+      - name: Limpar credenciais
+        if: always()
+        run: rm -f "$HOME/.clasprc.json" backend/.clasp.json
