@@ -43,6 +43,13 @@ function start(port = 0) {
         res.end(gas.google.issueCode(url.searchParams.get('email')));
         return;
       }
+      if (url.pathname === '/__test/drive') {
+        const f = gas.drive.files[url.searchParams.get('id')];
+        if (!f || f.trashed) { res.writeHead(404); res.end(); return; }
+        res.writeHead(200, { 'Content-Type': f.mime });
+        res.end(Buffer.from(f.bytes.map(b => b & 0xff)));
+        return;
+      }
       if (url.pathname === '/__test/events') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(gas.google.events));

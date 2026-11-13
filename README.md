@@ -61,6 +61,12 @@ página pública de agendamento para as clientes, Pix Copia e Cola e integraçã
   aceitar ou não "pagar no Studio", mensagem de boas-vindas e política de cancelamento.
 - Cliente: observação no agendamento, "Meus horários", 2ª via do Pix, salvar na agenda (Google e .ics).
 
+**Fotos dos trabalhos (catálogo da manicure)**
+- Cada serviço tem até **8 fotos reais** enviadas pela manicure (câmera ou galeria do celular), com escolha da capa.
+- As fotos ficam na pasta **"Nail Studio Pro — Fotos — <Studio>"** do Google Drive (compartilhada com a manicure) e não pesam na planilha.
+- A cliente toca na foto do serviço e abre a **galeria** (deslizar, setas, "Quero este!").
+- O painel avisa quais serviços ainda estão **sem foto**. Enquanto não há foto, aparece a miniatura ilustrada da categoria.
+
 **Gestão**
 - **Relatório**: faturamento dos últimos 6 meses, ticket médio, clientes novas, faltas,
   serviços que mais faturam e horário mais procurado.

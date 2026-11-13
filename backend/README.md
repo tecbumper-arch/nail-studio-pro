@@ -126,6 +126,14 @@ mostra erro *"Verifique o cliente OAuth Android (SHA-1)"*.
 3. **Opções → Conectar Google Agenda** → marque a caixinha da agenda → status 🟢 Conectada → **Testar**.
 4. Abra o link das clientes (aba **Meu Link**), agende um horário → o evento aparece na Google Agenda.
 
+## 📸 Fotos dos serviços
+
+As fotos que a manicure envia vão para uma pasta no Google Drive da **conta do servidor**
+("Nail Studio Pro — Fotos — <Studio>"), compartilhada com o e-mail dela e com acesso
+"qualquer pessoa com o link pode ver" (necessário para aparecerem na página das clientes).
+Fotos removidas de um serviço vão para a lixeira do Drive. O espaço usado conta na cota
+de 15 GB da conta do servidor (cada foto tem ~150–300 KB).
+
 ## 🧯 Problemas comuns
 
 | Sintoma | Causa / solução |

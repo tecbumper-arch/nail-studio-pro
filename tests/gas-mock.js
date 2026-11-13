@@ -72,6 +72,7 @@ class Range {
     return this;
   }
   setValue(v) { return this.setValues([[v]]); }
+  getValue() { return this.getValues()[0][0]; }
   setNumberFormat() { return this; }
 }
 class Spreadsheet {
@@ -163,6 +164,7 @@ function createGas({ apiUrl = 'http://localhost/exec' } = {}) {
   const spreadsheets = {};
   const google = new FakeGoogle();
   const mails = [];
+  const drive = { folders: {}, files: {} };
   const logs = [];
   let idSeq = 1;
   const newId = () => 'SHEET' + String(idSeq++).padStart(4, '0') + crypto.randomBytes(10).toString('hex');
@@ -185,7 +187,8 @@ function createGas({ apiUrl = 'http://localhost/exec' } = {}) {
       computeHmacSha256Signature: (v, k) => toBytes(crypto.createHmac('sha256', k).update(String(v), 'utf8').digest()),
       base64EncodeWebSafe: (v) => (Array.isArray(v) ? fromBytes(v) : Buffer.from(String(v), 'utf8')).toString('base64').replace(/\+/g, '-').replace(/\//g, '_'),
       base64DecodeWebSafe: (s) => toBytes(Buffer.from(String(s).replace(/-/g, '+').replace(/_/g, '/'), 'base64')),
-      newBlob: (bytes) => ({ getDataAsString: () => fromBytes(bytes).toString('utf8') }),
+      newBlob: (bytes, mime, name) => ({ bytes, mime, name, getDataAsString: () => fromBytes(bytes).toString('utf8') }),
+      base64Decode: (s) => toBytes(Buffer.from(String(s), 'base64')),
       getUuid: () => crypto.randomUUID()
     },
     SpreadsheetApp: {
@@ -202,14 +205,33 @@ function createGas({ apiUrl = 'http://localhost/exec' } = {}) {
       getProjectTriggers: () => [],
       newTrigger: () => { const ch = { timeBased: () => ch, everyDays: () => ch, atHour: () => ch, create: () => ({}) }; return ch; }
     },
-    MailApp: { sendEmail: (m) => mails.push(m) }
+    MailApp: { sendEmail: (m) => mails.push(m) },
+    DriveApp: {
+      Access: { ANYONE_WITH_LINK: 'ANYONE_WITH_LINK' }, Permission: { VIEW: 'VIEW' },
+      createFolder: (name) => {
+        const id = 'FOLDER' + crypto.randomBytes(12).toString('hex');
+        const folder = { id, name, editors: [], sharing: null, getId: () => id, setSharing(a) { folder.sharing = a; }, addEditor(e) { folder.editors.push(e); },
+          createFile(blob) {
+            const fid = 'FILE' + crypto.randomBytes(12).toString('hex');
+            const file = { id: fid, name: blob.name, mime: blob.mime, bytes: blob.bytes, parent: id, trashed: false, sharing: null,
+              getId: () => fid, setSharing(a) { file.sharing = a; }, setTrashed(t) { file.trashed = t; },
+              getParents: () => { let done = false; return { hasNext: () => !done, next: () => { done = true; return drive.folders[id]; } }; } };
+            drive.files[fid] = file;
+            return file;
+          } };
+        drive.folders[id] = folder;
+        return folder;
+      },
+      getFolderById: (id) => { if (!drive.folders[id]) throw new Error('pasta inexistente'); return drive.folders[id]; },
+      getFileById: (id) => { if (!drive.files[id]) throw new Error('arquivo inexistente'); return drive.files[id]; }
+    }
   };
   const context = vm.createContext(env);
   const code = fs.readFileSync(path.join(__dirname, '..', 'backend', 'Code.gs'), 'utf8');
   vm.runInContext(code, context, { filename: 'Code.gs' });
 
   const api = {
-    context, props, cache, spreadsheets, google, mails, logs,
+    context, props, cache, spreadsheets, google, mails, logs, drive,
     call(fn, args, session) { return JSON.parse(JSON.stringify(context.dispatch_({ fn, args, session }))); },
     ok(fn, args, session) { const r = api.call(fn, args, session); if (!r.ok) throw new Error(fn + ' falhou: ' + r.error); return r.data; },
     clearCache() { Object.keys(cache).forEach(k => delete cache[k]); }

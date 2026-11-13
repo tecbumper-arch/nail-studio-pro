@@ -30,7 +30,8 @@ var TAB_LOGS = 'Logs_Seguranca';
 var TAB_DIRECTORY = 'Contas_Manicures';
 
 var BOOKING_HEADER = ['ID_Reserva', 'Data', 'HoraInicio', 'HoraFim', 'ClienteNome', 'ClienteWhatsApp', 'ServicoID', 'ServicoNome', 'Valor', 'MetodoPagamento', 'StatusPagamento', 'StatusReserva', 'CalendarEventID', 'CriadoEm', 'Observacoes'];
-var CATALOG_HEADER = ['ID', 'Nome', 'Descricao', 'Preco', 'DuracaoMin', 'FotoURL', 'Categoria', 'Ativo'];
+var CATALOG_HEADER = ['ID', 'Nome', 'Descricao', 'Preco', 'DuracaoMin', 'FotoURL', 'Categoria', 'Ativo', 'FotosExtras'];
+var MAX_FOTOS = 8;
 var CATS_HEADER = ['ID_Categoria', 'Nome', 'Icone', 'Ordem', 'Ativo'];
 var DIRECTORY_HEADER = ['Email', 'Profissional', 'StudioNome', 'SheetId', 'SheetUrl', 'ClientLink', 'PinHashLegado', 'RecHashLegado', 'CriadoEm'];
 
@@ -314,7 +315,7 @@ function ensureTab_(ctx, name, header) {
     sh.getRange(1, 1, 1, header.length).setValues([header]);
   } else if (sh.getLastRow() === 0) {
     sh.getRange(1, 1, 1, header.length).setValues([header]);
-  } else if (header === BOOKING_HEADER && sh.getLastColumn() < header.length) {
+  } else if (sh.getLastColumn() < header.length && String(sh.getRange(1, 1).getValue()) === header[0]) {
     sh.getRange(1, 1, 1, header.length).setValues([header]);
   }
   return sh;
@@ -535,9 +536,73 @@ function listServices_(ctx, onlyActive) {
     if (!r[0]) continue;
     var ativo = String(r[7] || 'SIM').toUpperCase() === 'SIM';
     if (onlyActive && !ativo) continue;
-    list.push({ id: r[0], nome: r[1] || '', descricao: r[2] || '', preco: Number(String(r[3] || 0).replace(',', '.')) || 0, duracaoMin: Number(r[4] || 60) || 60, fotoUrl: r[5] || '', categoria: r[6] || 'Alongamentos', ativo: ativo });
+    var fotos = [r[5]].concat(String(r[8] || '').split(/\s+/)).filter(function (u) { return !!u; });
+    list.push({ id: r[0], nome: r[1] || '', descricao: r[2] || '', preco: Number(String(r[3] || 0).replace(',', '.')) || 0, duracaoMin: Number(r[4] || 60) || 60, fotoUrl: fotos[0] || '', fotos: fotos, categoria: r[6] || 'Alongamentos', ativo: ativo });
   }
   return list;
+}
+
+function serviceRow_(s) {
+  var fotos = s.fotos || (s.fotoUrl ? [s.fotoUrl] : []);
+  return [s.id, s.nome, s.descricao, s.preco, s.duracaoMin, fotos[0] || '', s.categoria, s.ativo ? 'SIM' : 'NAO', fotos.slice(1).join(' ')];
+}
+
+// -----------------------------------------------------------------------------
+// FOTOS DOS TRABALHOS (pasta do Studio no Google Drive)
+// -----------------------------------------------------------------------------
+function photoUrl_(id) { return 'https://drive.google.com/thumbnail?id=' + id + '&sz=w1200'; }
+
+function driveIdFromUrl_(url) {
+  var u = String(url || '');
+  var m = u.match(/drive\.google\.com\/thumbnail\?id=([A-Za-z0-9_-]{20,})/) || u.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=view&)?id=)([A-Za-z0-9_-]{20,})/);
+  return m ? m[1] : '';
+}
+
+function photoFolder_(ctx) {
+  var id = ctx.cfg.FOTOS_PASTA_ID;
+  if (id) { try { return DriveApp.getFolderById(id); } catch (e) {} }
+  var folder = DriveApp.createFolder('Nail Studio Pro — Fotos — ' + (ctx.cfg.STUDIO_NOME || ctx.sheetId));
+  try { folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
+  try { if (ctx.email) folder.addEditor(ctx.email); } catch (e) {}
+  upsertConfig_(ctx, { FOTOS_PASTA_ID: folder.getId() });
+  return folder;
+}
+
+/** Lista final de fotos de um serviço: só URLs http(s) ou 1 imagem antiga em base64. */
+function cleanPhotos_(list) {
+  var out = [], seen = {}, hasData = false;
+  (list || []).forEach(function (u) {
+    u = String(u || '').trim();
+    if (!u || seen[u]) return;
+    if (/^data:image\//.test(u)) {
+      if (hasData || u.length > 45000) return;
+      hasData = true;
+    } else if (!/^https:\/\/\S+$/.test(u)) {
+      return;
+    }
+    seen[u] = true;
+    out.push(u);
+  });
+  if (out.length > MAX_FOTOS) throw new Error('Use no máximo ' + MAX_FOTOS + ' fotos por serviço.');
+  return out;
+}
+
+/** Manda para a lixeira do Drive as fotos que saíram do catálogo (só da pasta do Studio). */
+function trashRemovedPhotos_(ctx, before, after) {
+  var folderId = ctx.cfg.FOTOS_PASTA_ID;
+  if (!folderId) return;
+  (before || []).forEach(function (u) {
+    if (after.indexOf(u) >= 0) return;
+    var id = driveIdFromUrl_(u);
+    if (!id) return;
+    try {
+      var f = DriveApp.getFileById(id);
+      var parents = f.getParents();
+      while (parents.hasNext()) {
+        if (parents.next().getId() === folderId) { f.setTrashed(true); break; }
+      }
+    } catch (e) {}
+  });
 }
 
 function bookingFromRow_(r) {
@@ -1297,7 +1362,7 @@ var ADMIN_API = {
     return writeAndReturn_(ctx, function () {
       var existing = listServices_(ctx, false);
       var rows = [CATALOG_HEADER];
-      existing.forEach(function (s) { rows.push([s.id, s.nome, s.descricao, s.preco, s.duracaoMin, s.fotoUrl, s.categoria, s.ativo ? 'SIM' : 'NAO']); });
+      existing.forEach(function (s) { rows.push(serviceRow_(s)); });
       DEFAULT_SERVICES.forEach(function (d) { if (!existing.some(function (s) { return s.id === d[0]; })) rows.push(d); });
       writeTable_(ensureTab_(ctx, TAB_CATALOG, CATALOG_HEADER), rows);
       if (!readTab_(ctx, TAB_CATS).rows.length) writeTable_(ensureTab_(ctx, TAB_CATS, CATS_HEADER), [CATS_HEADER].concat(DEFAULT_CATS));
@@ -1308,16 +1373,42 @@ var ADMIN_API = {
     return writeAndReturn_(ctx, function () {
       var nome = str_(a.nome, 80);
       if (!nome) throw new Error('Informe o nome do procedimento.');
-      var foto = String(a.fotoUrl || '');
-      if (foto.length > 45000) throw new Error('Foto muito grande. Use uma foto menor ou um link.');
-      var row = [a.id || randomId_('SRV-'), nome, str_(a.descricao, 400), Number(a.preco || 0), Math.max(10, Number(a.duracaoMin || 60)), foto, str_(a.categoria, 50) || 'Geral', a.ativo === false ? 'NAO' : 'SIM'];
+      var fotos = cleanPhotos_(Array.isArray(a.fotos) ? a.fotos : [a.fotoUrl]);
+      var svc = { id: a.id || randomId_('SRV-'), nome: nome, descricao: str_(a.descricao, 400), preco: Number(a.preco || 0), duracaoMin: Math.max(10, Number(a.duracaoMin || 60)), fotos: fotos, categoria: str_(a.categoria, 50) || 'Geral', ativo: a.ativo !== false };
+      var sh = ensureTab_(ctx, TAB_CATALOG, CATALOG_HEADER);
       var t = readTab_(ctx, TAB_CATALOG);
-      var sh = t.sheet || ensureTab_(ctx, TAB_CATALOG, CATALOG_HEADER);
-      for (var i = 1; i < t.rows.length; i++) {
-        if (a.id && t.rows[i][0] === a.id) { writeRow_(sh, i + 1, row); return; }
+      if (a.id) {
+        var old = listServices_(ctx, false).filter(function (x) { return x.id === a.id; })[0];
+        for (var i = 1; i < t.rows.length; i++) {
+          if (t.rows[i][0] === a.id) {
+            writeRow_(sh, i + 1, serviceRow_(svc));
+            if (old) {
+              // não apaga foto que ainda é usada por outro serviço (ex.: serviço duplicado)
+              var emUso = fotos.slice();
+              listServices_(ctx, false).forEach(function (x) { if (x.id !== a.id) emUso = emUso.concat(x.fotos); });
+              trashRemovedPhotos_(ctx, old.fotos, emUso);
+            }
+            return;
+          }
+        }
       }
-      appendRow_(sh, row);
+      appendRow_(sh, serviceRow_(svc));
     });
+  },
+
+  /** Recebe uma foto (data URL comprimida no celular) e guarda na pasta do Studio no Drive. */
+  adminUploadPhoto: function (ctx, a) {
+    var m = String(a.dataUrl || '').match(/^data:(image\/(jpeg|png|webp));base64,([A-Za-z0-9+\/=]+)$/);
+    if (!m) throw new Error('Envie uma imagem JPG, PNG ou WEBP.');
+    var bytes = Utilities.base64Decode(m[3]);
+    if (bytes.length > 6 * 1024 * 1024) throw new Error('Foto muito grande (máx. 6 MB).');
+    var ext = m[2] === 'jpeg' ? 'jpg' : m[2];
+    var base = (str_(a.nome, 40) || 'trabalho').replace(/[^\wÀ-ÿ\- ]/g, '').trim() || 'trabalho';
+    var name = base + ' ' + nowInTz_(ctx.tz).stamp.replace(/[\/: ]/g, '-') + '.' + ext;
+    var file = withLock_(function () { return photoFolder_(ctx).createFile(Utilities.newBlob(bytes, m[1], name)); });
+    try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
+    logEvent_(ctx, 'FOTO_ENVIADA', name);
+    return { url: photoUrl_(file.getId()), id: file.getId() };
   },
 
   adminToggleServiceActive: function (ctx, a) {

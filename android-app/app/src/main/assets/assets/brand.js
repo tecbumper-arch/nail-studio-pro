@@ -30,9 +30,14 @@
 
   /** Foto do serviço: a enviada pela manicure ou a miniatura da categoria. */
   function servicePhoto(s) {
-    var url = s && s.fotoUrl ? String(s.fotoUrl) : '';
-    if (!url || STOCK.test(url)) return thumbFor(s && s.categoria, s && s.nome);
-    return url;
+    var own = ownPhotos(s);
+    return own.length ? own[0] : thumbFor(s && s.categoria, s && s.nome);
+  }
+
+  /** Fotos reais enviadas pela manicure (ignora as fotos genéricas antigas). */
+  function ownPhotos(s) {
+    var list = (s && s.fotos && s.fotos.length) ? s.fotos : (s && s.fotoUrl ? [s.fotoUrl] : []);
+    return list.filter(function (u) { return u && !STOCK.test(String(u)); });
   }
 
   /** Atributo onerror seguro para <img>: cai na miniatura da categoria. */
@@ -47,5 +52,5 @@
       '" style="width:' + px + 'px;height:' + px + 'px;border-radius:' + Math.round(px * 0.29) + 'px;flex-shrink:0;vertical-align:middle;">';
   }
 
-  window.NailBrand = { KEYS: KEYS, categoryKey: categoryKey, thumbFor: thumbFor, iconFor: iconFor, servicePhoto: servicePhoto, fallbackAttr: fallbackAttr, iconHtml: iconHtml };
+  window.NailBrand = { KEYS: KEYS, categoryKey: categoryKey, thumbFor: thumbFor, iconFor: iconFor, servicePhoto: servicePhoto, ownPhotos: ownPhotos, fallbackAttr: fallbackAttr, iconHtml: iconHtml };
 })();

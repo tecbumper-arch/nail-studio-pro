@@ -193,6 +193,22 @@
       object-fit: cover;
       flex-shrink: 0;
     }
+    .srv-photo { position: relative; flex-shrink: 0; cursor: zoom-in; border: none; padding: 0; background: none; border-radius: 14px; }
+    .srv-photo .count { position: absolute; right: 4px; bottom: 4px; background: rgba(15,23,42,0.72); color: #fff; font-size: 0.62rem; font-weight: 800; padding: 2px 6px; border-radius: 99px; }
+
+    /* GALERIA DE FOTOS DOS TRABALHOS */
+    .gallery { position: fixed; inset: 0; background: rgba(10,4,8,0.94); z-index: 100000; display: flex; flex-direction: column; color: #fff; }
+    .gallery.hidden { display: none; }
+    .gallery-top { display: flex; justify-content: space-between; align-items: center; padding: calc(12px + env(safe-area-inset-top)) 16px 8px; gap: 10px; }
+    .gallery-top button { background: rgba(255,255,255,0.14); border: none; color: #fff; width: 40px; height: 40px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; flex-shrink: 0; }
+    .gallery-stage { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; min-height: 0; touch-action: pan-y; }
+    .gallery-stage img { max-width: 100%; max-height: 100%; object-fit: contain; user-select: none; -webkit-user-drag: none; }
+    .gallery-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(15,23,42,0.55); border: none; color: #fff; width: 44px; height: 44px; border-radius: 50%; font-size: 1.3rem; cursor: pointer; }
+    .gallery-nav.prev { left: 10px; } .gallery-nav.next { right: 10px; }
+    .gallery-dots { display: flex; justify-content: center; gap: 6px; padding: 10px; }
+    .gallery-dots span { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.35); }
+    .gallery-dots span.on { background: #fff; }
+    .gallery-bottom { padding: 0 16px calc(16px + env(safe-area-inset-bottom)); }
 
     /* Caixa da Agenda (Escolha Data e Horário) */
     .drawer-box {
@@ -541,6 +557,26 @@
   </main>
 
   <!-- MODAL QR CODE PIX DA CLIENTE -->
+  <!-- GALERIA: fotos dos trabalhos da manicure -->
+  <div id="cGallery" class="gallery hidden" role="dialog" aria-modal="true" aria-label="Fotos do serviço">
+    <div class="gallery-top">
+      <div style="min-width:0;">
+        <div id="gTitle" style="font-weight:800; font-size:1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
+        <div id="gCount" style="font-size:0.78rem; opacity:0.75;"></div>
+      </div>
+      <button type="button" onclick="closeGallery()" aria-label="Fechar">✕</button>
+    </div>
+    <div class="gallery-stage" id="gStage">
+      <img id="gImg" alt="">
+      <button type="button" class="gallery-nav prev" onclick="galleryStep(-1)" aria-label="Foto anterior">‹</button>
+      <button type="button" class="gallery-nav next" onclick="galleryStep(1)" aria-label="Próxima foto">›</button>
+    </div>
+    <div class="gallery-dots" id="gDots"></div>
+    <div class="gallery-bottom">
+      <button type="button" id="gChoose" class="btn-cta" style="width:100%;">Quero este! Escolher horário</button>
+    </div>
+  </div>
+
   <div id="cPixModal" class="sheet-modal">
     <div class="sheet-card">
       <div style="width:50px; height:50px; border-radius:50%; background:#10b981; color:#fff; display:flex; align-items:center; justify-content:center; font-size:1.4rem; margin:0 auto 10px;">
@@ -1094,9 +1130,11 @@
       }
       const list = activeCat === 'Todos' ? pubData.catalogo : pubData.catalogo.filter(s => s.categoria === activeCat);
       list.forEach(s => {
+        const own = NailBrand.ownPhotos(s);
         const isSel = selSrv && selSrv.id === s.id;
         const el = document.createElement('div');
         el.className = 'srv-card' + (isSel ? ' selected' : '');
+        el.dataset.id = s.id;
         el.onclick = () => {
           selSrv = s;
           selSlot = '';
@@ -1117,7 +1155,9 @@
           }, 80);
         };
         el.innerHTML = `
+          ${own.length ? `<button type="button" class="srv-photo" aria-label="Ver fotos de ${esc(s.nome)}" onclick="event.stopPropagation(); openGallery('${esc(s.id)}')">` : ''}
           <img class="srv-img" src="${esc(NailBrand.servicePhoto(s))}" alt="${esc(s.nome)}" loading="lazy" onerror="${NailBrand.fallbackAttr(s.categoria, s.nome)}">
+          ${own.length ? `${own.length > 1 ? `<span class="count">📷 ${own.length}</span>` : ''}</button>` : ''}
           <div style="flex:1;">
             <div style="font-size:0.68rem; font-weight:800; color:var(--primary); text-transform:uppercase; display:flex; align-items:center; gap:5px;">${NailBrand.iconHtml(s.categoria, 16)} ${esc(s.categoria)} • ${s.duracaoMin} min</div>
             <div style="font-weight:800; font-size:1rem; margin:2px 0;">${esc(s.nome)}</div>
@@ -1357,7 +1397,73 @@ Gostaria de confirmar meu horário!`;
 
     
     // Handler Nativo do Botão Voltar do Android na Página da Cliente
+    // ----------------------------------------------------------- GALERIA
+    let gal = { list: [], i: 0, srv: null };
+
+    function openGallery(srvId) {
+      const srv = (pubData.catalogo || []).find(x => x.id === srvId);
+      const fotos = srv ? NailBrand.ownPhotos(srv) : [];
+      if (!fotos.length) return;
+      gal = { list: fotos, i: 0, srv };
+      document.getElementById('gTitle').textContent = srv.nome;
+      document.getElementById('gDots').innerHTML = fotos.length > 1 ? fotos.map(() => '<span></span>').join('') : '';
+      document.querySelectorAll('#cGallery .gallery-nav').forEach(b => b.classList.toggle('hidden', fotos.length < 2));
+      showGalleryPhoto();
+      document.getElementById('cGallery').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function showGalleryPhoto() {
+      const img = document.getElementById('gImg');
+      img.onerror = () => { img.onerror = null; img.src = NailBrand.thumbFor(gal.srv.categoria, gal.srv.nome); };
+      img.src = gal.list[gal.i];
+      document.getElementById('gCount').textContent = gal.list.length > 1 ? `Foto ${gal.i + 1} de ${gal.list.length} • trabalhos do Studio` : 'Trabalho do Studio';
+      document.querySelectorAll('#gDots span').forEach((d, k) => d.classList.toggle('on', k === gal.i));
+    }
+
+    function galleryStep(d) {
+      if (gal.list.length < 2) return;
+      gal.i = (gal.i + d + gal.list.length) % gal.list.length;
+      showGalleryPhoto();
+    }
+
+    function closeGallery() {
+      document.getElementById('cGallery').classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    (function setupGallerySwipe() {
+      let x0 = null;
+      document.addEventListener('DOMContentLoaded', () => {
+        const stage = document.getElementById('gStage');
+        stage.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; }, { passive: true });
+        stage.addEventListener('touchend', e => {
+          if (x0 === null) return;
+          const dx = e.changedTouches[0].clientX - x0;
+          if (Math.abs(dx) > 40) galleryStep(dx < 0 ? 1 : -1);
+          x0 = null;
+        });
+        document.getElementById('gChoose').onclick = () => {
+          const srv = gal.srv;
+          closeGallery();
+          const card = [...document.querySelectorAll('.srv-card')].find(c => c.dataset.id === srv.id);
+          if (card) card.click();
+        };
+        document.addEventListener('keydown', e => {
+          if (document.getElementById('cGallery').classList.contains('hidden')) return;
+          if (e.key === 'Escape') closeGallery();
+          if (e.key === 'ArrowRight') galleryStep(1);
+          if (e.key === 'ArrowLeft') galleryStep(-1);
+        });
+      });
+    })();
+
     window.handleAndroidBackButton = function() {
+      const galEl = document.getElementById('cGallery');
+      if (galEl && !galEl.classList.contains('hidden')) {
+        closeGallery();
+        return 'HANDLED';
+      }
       const pixModal = document.getElementById('cPixModal');
       if (pixModal && pixModal.classList.contains('open')) {
         pixModal.classList.remove('open');

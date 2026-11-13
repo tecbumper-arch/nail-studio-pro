@@ -342,3 +342,37 @@ test('com horários fixos a pausa do almoço não bloqueia o horário escolhido'
   const sab = gas.ok('getAvailableSlotsForDate', { s, date: nextWeekday(6), serviceId: 'SRV-101' }); // 2h: 10:30–12:30
   assert.deepStrictEqual(sab.map(x => [x.horaInicio, x.disponivel]), [['10:30', true]]);
 });
+
+test('fotos dos trabalhos: envio para o Drive, várias por serviço, capa e remoção', () => {
+  const gas = setupGas();
+  const { spreadsheetId: s, session } = signUp(gas);
+  const png = 'data:image/png;base64,' + Buffer.from('fake-png-bytes').toString('base64');
+  const up1 = gas.ok('adminUploadPhoto', { dataUrl: png, nome: 'Fibra' }, session);
+  const up2 = gas.ok('adminUploadPhoto', { dataUrl: png, nome: 'Fibra' }, session);
+  assert.match(up1.url, /^https:\/\/drive\.google\.com\/thumbnail\?id=FILE/);
+  const folder = Object.values(gas.drive.folders)[0];
+  assert.deepStrictEqual(folder.editors, ['ana@gmail.com'], 'pasta compartilhada com a manicure');
+  assert.strictEqual(gas.drive.files[up1.id].sharing, 'ANYONE_WITH_LINK', 'foto pública para a página da cliente');
+  assert.strictEqual(gas.call('adminUploadPhoto', { dataUrl: 'data:text/html;base64,PHNjcmlwdD4=' }, session).ok, false);
+
+  let d = gas.ok('adminSaveService', { id: 'SRV-101', nome: 'Alongamento em Fibra de Vidro', preco: 160, duracaoMin: 120, categoria: 'Alongamentos', fotos: [up2.url, up1.url, 'javascript:alert(1)'] }, session);
+  let srv = d.catalogo.find(x => x.id === 'SRV-101');
+  assert.deepStrictEqual(srv.fotos, [up2.url, up1.url], 'ignora link inválido e mantém a ordem (capa = 1ª)');
+  assert.strictEqual(srv.fotoUrl, up2.url);
+
+  const pub = gas.ok('getPublicBootstrapData', { s });
+  assert.deepStrictEqual(pub.catalogo.find(x => x.id === 'SRV-101').fotos, [up2.url, up1.url]);
+
+  // remover uma foto manda o arquivo para a lixeira do Drive
+  d = gas.ok('adminSaveService', { id: 'SRV-101', nome: 'Alongamento em Fibra de Vidro', preco: 160, duracaoMin: 120, categoria: 'Alongamentos', fotos: [up1.url] }, session);
+  assert.deepStrictEqual(d.catalogo.find(x => x.id === 'SRV-101').fotos, [up1.url]);
+  assert.strictEqual(gas.drive.files[up2.id].trashed, true);
+  assert.strictEqual(gas.drive.files[up1.id].trashed, false);
+
+  // limite de 8 fotos
+  const many = Array.from({ length: 9 }, (_, i) => 'https://exemplo.com/f' + i + '.jpg');
+  assert.match(gas.call('adminSaveService', { nome: 'X', preco: 10, duracaoMin: 30, categoria: 'Geral', fotos: many }, session).error, /máximo 8/);
+
+  // catálogo inicial não traz fotos genéricas
+  assert.ok(d.catalogo.filter(x => x.id !== 'SRV-101').every(x => x.fotos.length === 0));
+});

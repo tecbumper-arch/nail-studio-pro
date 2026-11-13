@@ -463,6 +463,18 @@
     }
     .hidden { display: none !important; }
 
+    /* GERENCIADOR DE FOTOS DO SERVIÇO */
+    .photo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .photo-grid:empty { display: none; }
+    .photo-tile { position: relative; aspect-ratio: 1; border-radius: 14px; overflow: hidden; background: var(--primary-soft); border: 2px solid transparent; }
+    .photo-tile.cover { border-color: var(--primary); }
+    .photo-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .photo-tile .ph-btn { position: absolute; width: 26px; height: 26px; border-radius: 50%; border: none; background: rgba(15,23,42,0.68); color: #fff; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .photo-tile .ph-del { top: 4px; right: 4px; }
+    .photo-tile .ph-star { bottom: 4px; left: 4px; }
+    .photo-tile .ph-tag { position: absolute; bottom: 4px; left: 4px; background: var(--primary); color: #fff; font-size: 0.6rem; font-weight: 800; padding: 2px 6px; border-radius: 99px; }
+    .photo-tile.loading::after { content: ''; position: absolute; inset: 0; background: rgba(255,255,255,0.55) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 50 50'%3E%3Ccircle cx='25' cy='25' r='20' fill='none' stroke='%23ff1675' stroke-width='5' stroke-dasharray='90 40'%3E%3CanimateTransform attributeName='transform' type='rotate' from='0 25 25' to='360 25 25' dur='0.8s' repeatCount='indefinite'/%3E%3C/circle%3E%3C/svg%3E") center no-repeat; }
+
     /* HORÁRIOS POR DIA + AGENDA DO DIA */
     .wk-row { border: 1.5px solid var(--border); border-radius: 16px; padding: 10px 12px; margin-bottom: 8px; background: var(--bg-app); }
     .wk-row.off { opacity: 0.6; }
@@ -868,9 +880,20 @@
           <select id="srvCat" class="inp"></select>
         </div>
         <div class="field">
-          <label>Foto do Procedimento (Galeria ou Link)</label>
-          <input type="file" id="srvFile" accept="image/*" class="inp" onchange="compressPhoto(event)">
-          <input type="text" id="srvFotoUrl" class="inp" placeholder="Ou cole o link da foto (opcional)" style="margin-top:8px;">
+          <label>📸 Fotos dos seus trabalhos (até 8)</label>
+          <div style="font-size:0.76rem; color:var(--text-muted); margin:-2px 0 8px; line-height:1.4;">Mostre unhas que <strong>você</strong> fez: as clientes veem essas fotos no catálogo. A 1ª é a capa (toque ⭐ para trocar).</div>
+          <div id="srvPhotos" class="photo-grid"></div>
+          <input type="file" id="srvFile" accept="image/*" multiple class="hidden" onchange="handlePhotoFiles(event)">
+          <button type="button" id="btnAddPhotos" class="btn-sm" style="width:100%; margin-top:8px; background:var(--primary-soft); color:var(--primary-dark); border:1.5px dashed var(--primary);" onclick="document.getElementById('srvFile').click()">
+            <i class="fa-solid fa-camera"></i> Adicionar fotos (câmera ou galeria)
+          </button>
+          <details style="margin-top:8px;">
+            <summary style="font-size:0.76rem; color:var(--text-muted); cursor:pointer; font-weight:700;">Colar link de uma foto (Google Drive, site...)</summary>
+            <div style="display:flex; gap:6px; margin-top:6px;">
+              <input type="url" id="srvFotoUrl" class="inp" placeholder="https://..." style="margin:0;">
+              <button type="button" class="btn-sm" style="background:#0f172a; color:#fff;" onclick="addPhotoLink()">Adicionar</button>
+            </div>
+          </details>
         </div>
         <div class="field">
           <label>Descrição para a Cliente (Opcional)</label>
@@ -890,6 +913,7 @@
       <div style="margin-bottom:10px; font-weight:800; font-size:0.95rem; color:var(--text-muted); padding:0 4px;">
         Procedimentos no Catálogo (<span id="catCount">0</span>)
       </div>
+      <div id="photoNudge" class="hidden" style="background:#fff7ed; border:1.5px solid #fdba74; color:#9a3412; border-radius:16px; padding:12px 14px; margin-bottom:12px; font-size:0.82rem; line-height:1.45;"></div>
       <div id="catalogList"></div>
     </section>
 
@@ -2526,17 +2550,31 @@
         return;
       }
 
+      const semFoto = catalogo.filter(s => s.ativo && !NailBrand.ownPhotos(s).length);
+      const nudge = document.getElementById('photoNudge');
+      if (nudge) {
+        nudge.classList.toggle('hidden', !semFoto.length);
+        if (semFoto.length) {
+          const idx = catalogo.indexOf(semFoto[0]);
+          nudge.innerHTML = `📸 <strong>${semFoto.length} serviço(s) sem foto sua.</strong> As clientes agendam mais quando veem unhas que você fez — tire fotos dos seus melhores trabalhos e adicione aqui.
+            <button type="button" class="btn-sm" style="margin-top:8px; width:100%; background:#ea580c; color:#fff;" onclick="editSrv(dashState.catalogo[${idx}]); setTimeout(() => document.getElementById('srvPhotos').scrollIntoView({ behavior: 'smooth', block: 'center' }), 250);"><i class="fa-solid fa-camera"></i> Adicionar fotos em “${esc(semFoto[0].nome)}”</button>`;
+        }
+      }
+
       catalogo.forEach((s, i) => {
         const item = document.createElement('div');
         item.className = 'booking-item';
         if (!s.ativo) item.style.opacity = '0.65';
+        const nFotos = NailBrand.ownPhotos(s).length;
+        const fotoBadge = nFotos ? `<span class="badge b-local"><i class="fa-solid fa-camera"></i> ${nFotos} foto${nFotos > 1 ? 's' : ''}</span>` : `<span class="badge b-warn"><i class="fa-solid fa-camera"></i> Sem foto</span>`;
         item.innerHTML = `
           <div style="display:flex; align-items:center; gap:12px;">
-            <img src="${esc(NailBrand.servicePhoto(s))}" alt="" loading="lazy" style="width:56px; height:56px; border-radius:14px; object-fit:cover; background:var(--primary-soft);" onerror="${NailBrand.fallbackAttr(s.categoria, s.nome)}">
+            <img src="${esc(NailBrand.servicePhoto(s))}" alt="" loading="lazy" onclick="editSrv(dashState.catalogo[${i}])" style="width:56px; height:56px; border-radius:14px; object-fit:cover; background:var(--primary-soft); cursor:pointer;" onerror="${NailBrand.fallbackAttr(s.categoria, s.nome)}">
             <div style="flex:1;">
               <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                 <span style="font-weight:800; font-size:0.94rem;">${esc(s.nome)}</span>
                 <span class="badge ${s.ativo ? 'b-ok' : 'b-cancel'}">${s.ativo ? 'Visível' : 'Pausado'}</span>
+                ${fotoBadge}
               </div>
               <div style="font-size:0.78rem; color:var(--text-muted); display:flex; align-items:center; gap:5px; flex-wrap:wrap;">${money(s.preco)} • ${s.duracaoMin} min • ${NailBrand.iconHtml(s.categoria, 16)}<strong>${esc(s.categoria)}</strong></div>
             </div>
@@ -2735,24 +2773,108 @@
       } catch (e) { showToast(e.message, 5000); }
     }
 
-    function compressPhoto(ev) {
-      const f = ev.target.files[0];
-      if (!f) return;
-      const reader = new FileReader();
-      reader.onload = e => {
-        const img = new Image();
-        img.onload = () => {
-          const c = document.createElement('canvas');
-          const sc = Math.min(1, 320 / img.width);
-          c.width = img.width * sc;
-          c.height = img.height * sc;
-          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-          document.getElementById('srvFotoUrl').value = c.toDataURL('image/jpeg', 0.65);
-          showToast('Foto otimizada e pronta!');
+    // =========================================================================
+    // FOTOS DOS TRABALHOS (enviadas para a pasta do Studio no Google Drive)
+    // =========================================================================
+    const MAX_FOTOS = 8;
+    let srvPhotos = []; // { url } ou { preview, uploading: true, key }
+
+    function renderSrvPhotos() {
+      const grid = document.getElementById('srvPhotos');
+      grid.innerHTML = '';
+      srvPhotos.forEach((p, i) => {
+        const tile = document.createElement('div');
+        tile.className = 'photo-tile' + (i === 0 ? ' cover' : '') + (p.uploading ? ' loading' : '');
+        const img = document.createElement('img');
+        img.alt = '';
+        img.src = p.preview || p.url;
+        img.onerror = () => { img.onerror = null; img.src = NailBrand.thumbFor(document.getElementById('srvCat').value, document.getElementById('srvNome').value); };
+        tile.appendChild(img);
+        if (!p.uploading) {
+          const del = document.createElement('button');
+          del.type = 'button'; del.className = 'ph-btn ph-del'; del.setAttribute('aria-label', 'Remover foto'); del.innerHTML = '✕';
+          del.onclick = () => { srvPhotos.splice(i, 1); renderSrvPhotos(); };
+          tile.appendChild(del);
+          if (i === 0) {
+            const tag = document.createElement('span'); tag.className = 'ph-tag'; tag.textContent = 'CAPA'; tile.appendChild(tag);
+          } else {
+            const star = document.createElement('button');
+            star.type = 'button'; star.className = 'ph-btn ph-star'; star.setAttribute('aria-label', 'Usar como capa'); star.innerHTML = '⭐';
+            star.onclick = () => { srvPhotos.unshift(srvPhotos.splice(i, 1)[0]); renderSrvPhotos(); };
+            tile.appendChild(star);
+          }
+        }
+        grid.appendChild(tile);
+      });
+      const add = document.getElementById('btnAddPhotos');
+      if (add) add.classList.toggle('hidden', srvPhotos.length >= MAX_FOTOS);
+    }
+
+    function compressImage(file, maxSide, quality) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('Não foi possível ler a foto.'));
+        reader.onload = e => {
+          const img = new Image();
+          img.onerror = () => reject(new Error('Formato de foto não suportado (use JPG ou PNG).'));
+          img.onload = () => {
+            const sc = Math.min(1, maxSide / Math.max(img.width, img.height));
+            const c = document.createElement('canvas');
+            c.width = Math.round(img.width * sc);
+            c.height = Math.round(img.height * sc);
+            const g = c.getContext('2d');
+            g.fillStyle = '#fff';
+            g.fillRect(0, 0, c.width, c.height);
+            g.drawImage(img, 0, 0, c.width, c.height);
+            resolve(c.toDataURL('image/jpeg', quality));
+          };
+          img.src = e.target.result;
         };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(f);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function handlePhotoFiles(ev) {
+      const files = [...(ev.target.files || [])];
+      ev.target.value = '';
+      const room = MAX_FOTOS - srvPhotos.length;
+      if (!files.length) return;
+      if (files.length > room) showToast(`Só cabem mais ${room} foto(s) neste serviço.`);
+      const nome = document.getElementById('srvNome').value.trim() || 'trabalho';
+      await Promise.all(files.slice(0, room).map(async (file) => {
+        const key = Math.random().toString(36).slice(2);
+        let preview;
+        try {
+          preview = await compressImage(file, 1280, 0.82);
+        } catch (e) {
+          showToast(e.message);
+          return;
+        }
+        srvPhotos.push({ preview, uploading: true, key });
+        renderSrvPhotos();
+        try {
+          const r = await api('adminUploadPhoto', { dataUrl: preview, nome });
+          const it = srvPhotos.find(p => p.key === key);
+          if (it) { it.url = r.url; it.uploading = false; }
+        } catch (e) {
+          srvPhotos = srvPhotos.filter(p => p.key !== key);
+          showToast('Foto não enviada: ' + e.message, 5000);
+        }
+        renderSrvPhotos();
+      }));
+    }
+
+    function addPhotoLink() {
+      const inp = document.getElementById('srvFotoUrl');
+      let url = inp.value.trim();
+      if (!/^https:\/\//.test(url)) return showToast('Cole um link começando com https://');
+      // Link de compartilhamento do Drive → link de imagem
+      const m = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([\w-]{20,})/);
+      if (m) url = 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w1200';
+      if (srvPhotos.length >= MAX_FOTOS) return showToast('Máximo de 8 fotos.');
+      srvPhotos.push({ url });
+      inp.value = '';
+      renderSrvPhotos();
     }
 
     function openNewServiceForm() {
@@ -2776,7 +2898,8 @@
       document.getElementById('srvPreco').value = s.preco;
       setSelectValue('srvDuracao', s.duracaoMin);
       document.getElementById('srvCat').value = s.categoria;
-      document.getElementById('srvFotoUrl').value = s.fotoUrl;
+      srvPhotos = (s.fotos && s.fotos.length ? s.fotos : (s.fotoUrl ? [s.fotoUrl] : [])).map(url => ({ url }));
+      renderSrvPhotos();
       document.getElementById('srvDesc').value = s.descricao;
       document.getElementById('boxSrvForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -2790,6 +2913,8 @@
 
     function clearSrvForm() {
       ['srvId','srvNome','srvPreco','srvFotoUrl','srvDesc','srvFile'].forEach(id => document.getElementById(id).value = '');
+      srvPhotos = [];
+      renderSrvPhotos();
     }
 
     async function saveService() {
@@ -2799,7 +2924,7 @@
         preco: Number(document.getElementById('srvPreco').value || 0),
         duracaoMin: Number(document.getElementById('srvDuracao').value || 60),
         categoria: document.getElementById('srvCat').value.trim() || 'Alongamentos',
-        fotoUrl: document.getElementById('srvFotoUrl').value.trim(),
+        fotos: srvPhotos.map(p => p.url).filter(Boolean),
         descricao: document.getElementById('srvDesc').value.trim(),
         ativo: true
       };
@@ -2808,6 +2933,7 @@
         if (cur) obj.ativo = cur.ativo;
       }
       if (!obj.nome || obj.preco <= 0) return showToast('Preencha o nome e o valor do procedimento!');
+      if (srvPhotos.some(p => p.uploading)) return showToast('Aguarde as fotos terminarem de enviar...');
       const done = busy(document.getElementById('btnSaveSrv'));
       try {
         await adminCall('adminSaveService', obj, '✅ Procedimento salvo!');

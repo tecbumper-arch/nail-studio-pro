@@ -54,6 +54,10 @@ async function shot(page, name) {
     const u = r.request().url();
     if (u.startsWith('https://accounts.google.com/gsi/client')) return r.fulfill({ contentType: 'application/javascript', body: GSI_STUB });
     if (u.includes('qrcode.min.js')) return r.fulfill({ contentType: 'application/javascript', body: QR_STUB });
+    if (u.startsWith('https://drive.google.com/thumbnail')) {
+      const id = new URL(u).searchParams.get('id');
+      return fetch(base + '/__test/drive?id=' + id).then(async res => r.fulfill({ status: res.status, contentType: res.headers.get('content-type') || 'image/png', body: Buffer.from(await res.arrayBuffer()) }));
+    }
     return r.abort();
   });
   const errors = [];
@@ -243,7 +247,38 @@ async function shot(page, name) {
     const pillTexts = await c2.$$eval('.day-pill', els => els.map(e => e.textContent));
     assert.ok(pillTexts.some(t => t.startsWith('Dom') && t.endsWith(sundayDay.padStart(2, '0'))), 'domingo especial aparece para a cliente: ' + pillTexts.join(','));
 
-    // 10. Link de studio inválido mostra mensagem amigável
+    // 10. Fotos dos trabalhos: envia 2 fotos no painel e a cliente vê na galeria
+    await page.click('.nav-btn >> nth=1');
+    await page.waitForSelector('#photoNudge:not(.hidden)');
+    await page.click('#catalogList button:has-text("Editar") >> nth=0');
+    await page.waitForSelector('#boxSrvForm:not(.hidden)');
+    await page.setInputFiles('#srvFile', [path.join(__dirname, '..', 'design', 'figma-export', 'thumb-nailart.png'), path.join(__dirname, '..', 'design', 'figma-export', 'thumb-spa.png')]);
+    await page.waitForFunction(() => document.querySelectorAll('#srvPhotos .photo-tile').length === 2 && !document.querySelector('#srvPhotos .loading'));
+    await page.click('#srvPhotos .photo-tile >> nth=1 >> .ph-star');
+    await page.locator('#srvPhotos').scrollIntoViewIfNeeded();
+    await shot(page, '13-fotos-servico');
+    await page.click('#btnSaveSrv');
+    await page.waitForFunction(() => document.getElementById('catalogList').textContent.includes('2 fotos'));
+    const svcFotos = await page.evaluate(() => dashState.catalogo[0].fotos);
+    assert.strictEqual(svcFotos.length, 2);
+    assert.ok(svcFotos.every(u => u.startsWith('https://drive.google.com/thumbnail?id=')));
+
+    const c3 = await ctx.newPage();
+    c3.on('pageerror', e => errors.push('cliente3: ' + e.message));
+    await c3.goto(clientLink);
+    await c3.waitForSelector('.srv-photo .count');
+    assert.match(await c3.textContent('.srv-photo .count'), /📷 2/);
+    await c3.click('.srv-photo');
+    await c3.waitForSelector('#cGallery:not(.hidden)');
+    await c3.waitForFunction(() => { const i = document.getElementById('gImg'); return i.complete && i.naturalWidth > 0 && i.src.includes('drive.google.com'); });
+    assert.match(await c3.textContent('#gCount'), /Foto 1 de 2/);
+    await c3.click('.gallery-nav.next');
+    assert.match(await c3.textContent('#gCount'), /Foto 2 de 2/);
+    await shot(c3, '14-galeria-cliente');
+    await c3.click('#gChoose');
+    await c3.waitForSelector('#cScheduleArea:not(.hidden)');
+
+    // 11. Link de studio inválido mostra mensagem amigável
     const bad = await ctx.newPage();
     await bad.goto(base + '/Pagina_Cliente.html?s=abcdefghijklmnopqrstuvwxyz123');
     await bad.waitForFunction(() => document.getElementById('cStudioName').textContent.includes('indisponível'));
