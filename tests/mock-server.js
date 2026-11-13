@@ -11,7 +11,7 @@ const { createGas } = require('./gas-mock');
 
 const ROOT = path.join(__dirname, '..');
 const CLIENT_ID = 'test-client.apps.googleusercontent.com';
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.css': 'text/css' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.css': 'text/css', '.svg': 'image/svg+xml', '.jpg': 'image/jpeg' };
 
 function start(port = 0) {
   return new Promise((resolve) => {

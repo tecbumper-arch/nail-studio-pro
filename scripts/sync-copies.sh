@@ -15,4 +15,10 @@ for dir in NailApp_Sheets "$ASSETS"; do
   cp config.js "$dir/config.js"
   cp manifest.json "$dir/manifest.json"
 done
+# Ícones, miniaturas e brand.js (caminho relativo "assets/..." nas páginas)
+for dir in NailApp_Sheets "$ASSETS"; do
+  rm -rf "$dir/assets"
+  cp -R assets "$dir/assets"
+  cp icon-192.png icon-512.png "$dir/"
+done
 echo "✅ Cópias sincronizadas."

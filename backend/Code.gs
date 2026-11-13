@@ -506,11 +506,12 @@ var DEFAULT_CATS = [
   ['CAT-05', 'Spa dos Pés & Mãos', '🌸', '5', 'SIM']
 ];
 
+// Sem foto: o app mostra a miniatura da categoria (assets/thumbs, desenhadas no Figma)
 var DEFAULT_SERVICES = [
-  ['SRV-101', 'Alongamento em Fibra de Vidro', 'Alongamento resistente com acabamento natural, curvatura perfeita e esmaltação em gel inclusa.', '160', '120', 'https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=600&q=80', 'Alongamentos', 'SIM'],
-  ['SRV-102', 'Manutenção de Alongamento', 'Manutenção completa (até 21 dias), nivelamento, cuticulagem e nova esmaltação.', '110', '90', 'https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&w=600&q=80', 'Alongamentos', 'SIM'],
-  ['SRV-103', 'Banho de Gel / Blindagem', 'Camada protetora de gel sobre a unha natural para maior durabilidade e brilho intenso.', '90', '60', 'https://images.unsplash.com/photo-1632345031435-8727f6897d53?auto=format&fit=crop&w=600&q=80', 'Blindagem & Banho de Gel', 'SIM'],
-  ['SRV-104', 'Pé e Mão Tradicional Completo', 'Cuticulagem funda, hidratação e esmaltação tradicional completa (mãos e pés).', '70', '60', 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80', 'Manicure & Pedicure', 'SIM']
+  ['SRV-101', 'Alongamento em Fibra de Vidro', 'Alongamento resistente com acabamento natural, curvatura perfeita e esmaltação em gel inclusa.', '160', '120', '', 'Alongamentos', 'SIM'],
+  ['SRV-102', 'Manutenção de Alongamento', 'Manutenção completa (até 21 dias), nivelamento, cuticulagem e nova esmaltação.', '110', '90', '', 'Alongamentos', 'SIM'],
+  ['SRV-103', 'Banho de Gel / Blindagem', 'Camada protetora de gel sobre a unha natural para maior durabilidade e brilho intenso.', '90', '60', '', 'Blindagem & Banho de Gel', 'SIM'],
+  ['SRV-104', 'Pé e Mão Tradicional Completo', 'Cuticulagem funda, hidratação e esmaltação tradicional completa (mãos e pés).', '70', '60', '', 'Manicure & Pedicure', 'SIM']
 ];
 
 function listCategories_(ctx) {

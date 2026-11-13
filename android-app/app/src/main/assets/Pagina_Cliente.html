@@ -12,6 +12,9 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="config.js"></script>
+  <script src="assets/brand.js"></script>
+  <link rel="icon" type="image/png" sizes="64x64" href="assets/icons/favicon-64.png">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
 
   <style>
     :root, [data-theme="pink-gold"] {
@@ -142,7 +145,10 @@
       width: 100%;
     }
     .chip {
-      padding: 8px 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 14px 6px 7px;
       border-radius: 99px;
       background: var(--bg-card);
       border: 1.5px solid var(--border);
@@ -439,7 +445,7 @@
 
   <header class="hero">
     <div class="hero-inner">
-      <div class="avatar">💅</div>
+      <div class="avatar" style="overflow:hidden; padding:0;"><img src="assets/icons/apple-touch-icon.png" alt="" width="52" height="52" style="width:100%; height:100%; display:block;"></div>
       <div style="flex:1;">
         <h1 id="cStudioName" style="font-size:1.35rem; line-height:1.15;">Carregando Studio...</h1>
         <p id="cProName" style="font-size:0.82rem; opacity:0.92; margin-top:2px;">Agendamento Online • Escolha seu horário</p>
@@ -1047,8 +1053,6 @@
     }
 
     function renderChips() {
-      const iconMap = {};
-      (pubData.categorias || []).forEach(c => { iconMap[c.nome] = c.icone || '💅'; });
       const usedCats = [...new Set(pubData.catalogo.map(s => s.categoria || 'Geral'))];
       const cats = ['Todos', ...usedCats];
       const bar = document.getElementById('cChips');
@@ -1056,7 +1060,7 @@
       cats.forEach(c => {
         const b = document.createElement('button');
         b.className = 'chip' + (activeCat === c ? ' active' : '');
-        b.textContent = c === 'Todos' ? '✨ Todos' : `${iconMap[c] || '💅'} ${c}`;
+        b.innerHTML = c === 'Todos' ? NailBrand.iconHtml('geral', 20) + ' Todos' : NailBrand.iconHtml(c, 20) + ' ' + esc(c);
         b.onclick = () => { activeCat = c; renderChips(); renderCatalog(); };
         bar.appendChild(b);
       });
@@ -1113,9 +1117,9 @@
           }, 80);
         };
         el.innerHTML = `
-          <img class="srv-img" src="${esc(s.fotoUrl)}" onerror="this.src='https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=400&q=80'">
+          <img class="srv-img" src="${esc(NailBrand.servicePhoto(s))}" alt="${esc(s.nome)}" loading="lazy" onerror="${NailBrand.fallbackAttr(s.categoria, s.nome)}">
           <div style="flex:1;">
-            <div style="font-size:0.68rem; font-weight:800; color:var(--primary); text-transform:uppercase;">${esc(s.categoria)} • ${s.duracaoMin} min</div>
+            <div style="font-size:0.68rem; font-weight:800; color:var(--primary); text-transform:uppercase; display:flex; align-items:center; gap:5px;">${NailBrand.iconHtml(s.categoria, 16)} ${esc(s.categoria)} • ${s.duracaoMin} min</div>
             <div style="font-weight:800; font-size:1rem; margin:2px 0;">${esc(s.nome)}</div>
             <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:6px;">${esc(s.descricao)}</div>
             <div style="display:flex; justify-content:space-between; align-items:center;">

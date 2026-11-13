@@ -16,6 +16,9 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="config.js"></script>
+  <script src="assets/brand.js"></script>
+  <link rel="icon" type="image/png" sizes="64x64" href="assets/icons/favicon-64.png">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <style>
@@ -496,9 +499,7 @@
   <!-- ===================================================================== -->
   <div id="lockScreen" class="lock-screen">
     <div class="lock-card">
-      <div style="width:68px; height:68px; border-radius:22px; background:var(--primary-soft); color:var(--primary); display:flex; align-items:center; justify-content:center; font-size:2rem; margin:0 auto 14px; box-shadow:0 8px 20px var(--primary-glow);">
-        💅
-      </div>
+      <img src="assets/icons/apple-touch-icon.png" alt="Nail Studio Pro" width="76" height="76" style="width:76px; height:76px; border-radius:22px; display:block; margin:0 auto 14px; box-shadow:0 10px 24px var(--primary-glow);">
 
       <!-- APP AINDA NÃO CONFIGURADO (config.js sem API_URL) -->
       <div id="authModeSetup" class="hidden" style="text-align:left;">
@@ -2390,11 +2391,14 @@
 
         el.innerHTML = `
           <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">
-            <div>
+            <div style="display:flex; gap:10px; align-items:flex-start; min-width:0;">
+            ${isBlock ? '<div style="width:44px; height:44px; border-radius:12px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; color:#64748b; flex-shrink:0;"><i class="fa-solid fa-lock"></i></div>' : `<img src="${esc(bookingThumb(ag))}" alt="" loading="lazy" style="width:44px; height:44px; border-radius:12px; object-fit:cover; flex-shrink:0;" onerror="${NailBrand.fallbackAttr('', ag.servicoNome)}">`}
+            <div style="min-width:0;">
               <div style="font-weight:800; font-size:0.95rem;">${esc(ag.clienteNome)}${calIcon}</div>
               <div style="font-size:0.79rem; color:var(--text-muted);"><i class="fa-regular fa-calendar"></i> <strong>${fmtBr(ag.data)}</strong> • <strong>${esc(ag.horaInicio)} às ${esc(ag.horaFim)}</strong>${isPast && !closed && ag.statusReserva !== 'CONCLUIDO' && !isBlock ? ' • <span style="color:#b45309">já passou</span>' : ''}</div>
               <div style="font-size:0.81rem; font-weight:700; color:var(--primary-dark); margin-top:2px;">${esc(ag.servicoNome)} ${!isBlock ? '• ' + money(ag.valor) : ''}</div>
               ${ag.observacoes ? `<div style="font-size:0.76rem; color:#475569; margin-top:3px;"><i class="fa-regular fa-note-sticky"></i> ${esc(ag.observacoes)}</div>` : ''}
+            </div>
             </div>
             ${badge}
           </div>
@@ -2408,6 +2412,11 @@
         more.textContent = `Mostrando ${shown.length} de ${list.length}. Use os filtros ou a data para ver os demais.`;
         bList.appendChild(more);
       }
+    }
+
+    function bookingThumb(ag) {
+      const srv = (dashState.catalogo || []).find(x => x.id === ag.servicoId);
+      return srv ? NailBrand.servicePhoto(srv) : NailBrand.thumbFor('', ag.servicoNome);
     }
 
     function waBooking(id) {
@@ -2436,8 +2445,8 @@
         const row = document.createElement('div');
         row.style = 'display:flex; justify-content:space-between; align-items:center; padding:8px 10px; background:var(--bg-app); border:1px solid var(--border); border-radius:12px; margin-bottom:6px;';
         row.innerHTML = `
-          <div style="font-weight:800; font-size:0.86rem; min-width:0; flex:1; padding-right:8px;">
-            <span style="font-size:1.05rem; margin-right:6px;">${esc(c.icone)}</span>
+          <div style="font-weight:800; font-size:0.86rem; min-width:0; flex:1; padding-right:8px; display:flex; align-items:center; gap:8px;">
+            ${NailBrand.iconHtml(c.nome, 30)}
             <span>${esc(c.nome)}</span>
           </div>
           <div style="display:flex; gap:6px; flex-shrink:0;">
@@ -2523,13 +2532,13 @@
         if (!s.ativo) item.style.opacity = '0.65';
         item.innerHTML = `
           <div style="display:flex; align-items:center; gap:12px;">
-            <img src="${esc(s.fotoUrl)}" alt="" style="width:56px; height:56px; border-radius:14px; object-fit:cover; background:var(--primary-soft);" onerror="this.src='https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=200&q=60'">
+            <img src="${esc(NailBrand.servicePhoto(s))}" alt="" loading="lazy" style="width:56px; height:56px; border-radius:14px; object-fit:cover; background:var(--primary-soft);" onerror="${NailBrand.fallbackAttr(s.categoria, s.nome)}">
             <div style="flex:1;">
               <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                 <span style="font-weight:800; font-size:0.94rem;">${esc(s.nome)}</span>
                 <span class="badge ${s.ativo ? 'b-ok' : 'b-cancel'}">${s.ativo ? 'Visível' : 'Pausado'}</span>
               </div>
-              <div style="font-size:0.78rem; color:var(--text-muted);">${money(s.preco)} • ${s.duracaoMin} min • <strong>${esc(s.categoria)}</strong></div>
+              <div style="font-size:0.78rem; color:var(--text-muted); display:flex; align-items:center; gap:5px; flex-wrap:wrap;">${money(s.preco)} • ${s.duracaoMin} min • ${NailBrand.iconHtml(s.categoria, 16)}<strong>${esc(s.categoria)}</strong></div>
             </div>
           </div>
           <div class="btn-row">

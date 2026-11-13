@@ -79,8 +79,21 @@ página pública de agendamento para as clientes, Pix Copia e Cola e integraçã
 | `backend/` | Servidor Apps Script (`Code.gs`, `appsscript.json`) + guia |
 | `android-app/` | APK Kotlin (WebView + login Google nativo) |
 | `scripts/sync-copies.sh` | Copia os HTMLs para `Index.html`, `200.html`, `NailApp_Sheets/` e assets do APK |
+| `design/` | Fonte vetorial dos ícones (`icons.js`), exportações do Figma e gerador de tamanhos (`build_assets.py`) |
+| `assets/` | Ícones de categoria (SVG), miniaturas de serviço, favicon e `brand.js` |
 | `tests/` | Testes do servidor (Node) e ponta a ponta (Playwright) |
 | `NailApp_Sheets/` | Versão antiga (Apps Script por planilha / servidor local) — mantida só por compatibilidade |
+
+## 🎨 Ícones e miniaturas
+
+Desenhados no Figma: **[Nail Studio Pro — Ícones e Miniaturas](https://www.figma.com/design/hU0nj1Xweckn9rY6QUB1eS)**
+(componentes `app-icon`, `category/*` e `thumbnail/*`). Para regenerar depois de mudar o desenho:
+
+```bash
+# 1. exporte do Figma app-icon (1024 px) e thumbnail/* (600 px) para design/figma-export/
+python3 design/build_assets.py   # gera PWA, favicon, Apple, Android (mipmaps + ícone adaptativo) e miniaturas
+./scripts/sync-copies.sh
+```
 
 ## 🧪 Testes
 
