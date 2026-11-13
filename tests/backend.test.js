@@ -264,3 +264,81 @@ test('planilha antiga (datas/horas convertidas pelo Sheets) continua funcionando
   assert.strictEqual(old.data, day);
   assert.strictEqual(old.clienteWhatsApp, '5511944443333');
 });
+
+function nextWeekday(wd, minAhead = 2) {
+  let d = addDays(todayIso(), minAhead);
+  while (new Date(d + 'T12:00:00Z').getUTCDay() !== wd) d = addDays(d, 1);
+  return d;
+}
+
+function weekWith(overrides) {
+  const base = {};
+  for (let d = 0; d < 7; d++) base[d] = { ativo: d >= 1 && d <= 6, inicio: '09:00', fim: '19:00', almocoInicio: '12:00', almocoFim: '13:00', horarios: '' };
+  return Object.assign(base, overrides);
+}
+
+test('horário diferente por dia da semana e horários fixos', () => {
+  const gas = setupGas();
+  const { spreadsheetId: s, session } = signUp(gas);
+  const d = gas.ok('adminSaveWeeklySchedule', { semana: weekWith({
+    1: { ativo: true, inicio: '13:00', fim: '20:00', almocoInicio: '', almocoFim: '', horarios: '' },   // segunda à tarde
+    6: { ativo: true, inicio: '08:00', fim: '14:00', almocoInicio: '', almocoFim: '', horarios: '08:00, 10:30, 13:00' }, // sábado fixo
+    0: { ativo: false }
+  }) }, session);
+  assert.strictEqual(d.agenda.semana[1].inicio, '13:00');
+  const seg = gas.ok('getAvailableSlotsForDate', { s, date: nextWeekday(1), serviceId: 'SRV-104' });
+  assert.strictEqual(seg[0].horaInicio, '13:00');
+  assert.strictEqual(seg[seg.length - 1].horaInicio, '19:00');
+  const sab = gas.ok('getAvailableSlotsForDate', { s, date: nextWeekday(6), serviceId: 'SRV-104' });
+  assert.deepStrictEqual(sab.map(x => x.horaInicio), ['08:00', '10:30', '13:00']);
+  // dias abertos para a cliente refletem a semana
+  const pub = gas.ok('getPublicBootstrapData', { s });
+  assert.ok(pub.diasAbertos.every(dd => new Date(dd + 'T12:00:00Z').getUTCDay() !== 0));
+  // validação
+  const bad = gas.call('adminSaveWeeklySchedule', { semana: weekWith({ 2: { ativo: true, inicio: '18:00', fim: '10:00' } }) }, session);
+  assert.match(bad.error, /Terça/);
+});
+
+test('datas especiais: fechar feriado, abrir domingo e horário reduzido', () => {
+  const gas = setupGas();
+  const { spreadsheetId: s, session } = signUp(gas);
+  const feriado = nextWeekday(3);
+  const domingo = nextWeekday(0);
+  const reduzido = nextWeekday(5);
+  gas.ok('adminSaveSpecialDay', { data: feriado, tipo: 'FECHADO', motivo: 'Feriado' }, session);
+  gas.ok('adminSaveSpecialDay', { data: domingo, tipo: 'ESPECIAL', horarios: '10:00,14:00', motivo: 'Domingo especial' }, session);
+  let d = gas.ok('adminSaveSpecialDay', { data: reduzido, tipo: 'ESPECIAL', inicio: '09:00', fim: '12:00', motivo: 'Meio período' }, session);
+  assert.strictEqual(d.agenda.especiais.length, 3);
+
+  assert.deepStrictEqual(gas.ok('getAvailableSlotsForDate', { s, date: feriado, serviceId: 'SRV-104' }), []);
+  assert.deepStrictEqual(gas.ok('getAvailableSlotsForDate', { s, date: domingo, serviceId: 'SRV-104' }).map(x => x.horaInicio), ['10:00', '14:00']);
+  assert.deepStrictEqual(gas.ok('getAvailableSlotsForDate', { s, date: reduzido, serviceId: 'SRV-104' }).map(x => x.horaInicio), ['09:00', '10:00', '11:00']);
+
+  const pub = gas.ok('getPublicBootstrapData', { s });
+  assert.ok(pub.diasAbertos.includes(domingo));
+  assert.ok(!pub.diasAbertos.includes(feriado));
+
+  // cliente consegue reservar no domingo especial
+  const r = gas.ok('createCustomerBooking', { s, servicoId: 'SRV-104', data: domingo, horaInicio: '14:00', clienteNome: 'Bia', clienteWhatsApp: '21977776666', metodoPagamento: 'NO_LOCAL' });
+  assert.ok(r.reserva.id);
+
+  // agenda do dia mostra o que ocupa cada horário
+  const day = gas.ok('adminGetDayAgenda', { date: domingo }, session);
+  assert.strictEqual(day.rule.especial, true);
+  assert.strictEqual(day.slots.find(x => x.horaInicio === '14:00').origem, 'RESERVA');
+
+  // editar a mesma data substitui; remover volta ao padrão
+  d = gas.ok('adminSaveSpecialDay', { data: feriado, tipo: 'ESPECIAL', inicio: '15:00', fim: '17:00' }, session);
+  assert.strictEqual(d.agenda.especiais.length, 3);
+  d = gas.ok('adminDeleteSpecialDay', { data: feriado }, session);
+  assert.strictEqual(d.agenda.especiais.length, 2);
+  assert.strictEqual(gas.ok('getAvailableSlotsForDate', { s, date: feriado, serviceId: 'SRV-104' })[0].horaInicio, '09:00');
+});
+
+test('com horários fixos a pausa do almoço não bloqueia o horário escolhido', () => {
+  const gas = setupGas();
+  const { spreadsheetId: s, session } = signUp(gas);
+  gas.ok('adminSaveWeeklySchedule', { semana: weekWith({ 6: { ativo: true, inicio: '09:00', fim: '19:00', almocoInicio: '12:00', almocoFim: '13:00', horarios: '10:30' } }) }, session);
+  const sab = gas.ok('getAvailableSlotsForDate', { s, date: nextWeekday(6), serviceId: 'SRV-101' }); // 2h: 10:30–12:30
+  assert.deepStrictEqual(sab.map(x => [x.horaInicio, x.disponivel]), [['10:30', true]]);
+});

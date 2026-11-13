@@ -598,16 +598,98 @@ function isActiveStatus_(s) {
 // =============================================================================
 // DISPONIBILIDADE (com bloqueio pela Google Agenda pessoal)
 // =============================================================================
+// -----------------------------------------------------------------------------
+// HORÁRIOS POR DIA DA SEMANA + DATAS ESPECIAIS
+//  - HORARIOS_SEMANA (config, JSON): {"1":{"ativo":true,"inicio":"09:00","fim":"19:00",
+//    "almocoInicio":"12:00","almocoFim":"13:00","horarios":"09:00,11:00"}, ...}
+//    "horarios" (opcional) = horários fixos de início; se vazio usa o intervalo.
+//  - Aba Horarios_Especiais: uma linha por data (FECHADO ou ESPECIAL).
+// -----------------------------------------------------------------------------
+var TAB_SPECIAL = 'Horarios_Especiais';
+var SPECIAL_HEADER = ['Data', 'Tipo', 'Inicio', 'Fim', 'AlmocoInicio', 'AlmocoFim', 'Horarios', 'Motivo'];
+var WEEKDAY_NAMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+
+function parseTimes_(v) {
+  var seen = {};
+  return String(v || '').split(/[,;\s]+/).map(normTime_).filter(function (t) {
+    if (!t || seen[t] || toMin_(t) >= 1440) return false;
+    seen[t] = true;
+    return true;
+  }).sort();
+}
+
+function weeklySchedule_(ctx) {
+  var st = studioPublic_(ctx);
+  var legacyDays = String(st.diasAtendimento).split(',').map(function (x) { return Number(String(x).trim()); });
+  var parsed = null;
+  try { parsed = ctx.cfg.HORARIOS_SEMANA ? JSON.parse(ctx.cfg.HORARIOS_SEMANA) : null; } catch (e) { parsed = null; }
+  var out = {};
+  for (var d = 0; d < 7; d++) {
+    var r = parsed && parsed[d];
+    out[d] = r ? {
+      ativo: !!r.ativo,
+      inicio: normTime_(r.inicio) || st.horarioInicio,
+      fim: normTime_(r.fim) || st.horarioFim,
+      almocoInicio: normTime_(r.almocoInicio),
+      almocoFim: normTime_(r.almocoFim),
+      horarios: parseTimes_(r.horarios).join(', ')
+    } : {
+      ativo: legacyDays.indexOf(d) >= 0,
+      inicio: st.horarioInicio, fim: st.horarioFim,
+      almocoInicio: st.almocoInicio, almocoFim: st.almocoFim, horarios: ''
+    };
+  }
+  return out;
+}
+
+function specialDays_(ctx) {
+  var t = readTab_(ctx, TAB_SPECIAL);
+  var map = {};
+  for (var i = 1; i < t.rows.length; i++) {
+    var r = t.rows[i];
+    var data = normDate_(r[0]);
+    if (!isIsoDate_(data)) continue;
+    map[data] = {
+      data: data, tipo: String(r[1] || 'FECHADO').toUpperCase() === 'ESPECIAL' ? 'ESPECIAL' : 'FECHADO',
+      inicio: normTime_(r[2]), fim: normTime_(r[3]), almocoInicio: normTime_(r[4]), almocoFim: normTime_(r[5]),
+      horarios: parseTimes_(r[6]).join(', '), motivo: r[7] || '', _row: i + 1
+    };
+  }
+  return map;
+}
+
+/** Regra efetiva de um dia (data especial vence o padrão da semana). */
+function dayRule_(ctx, dateStr, week, specials) {
+  week = week || weeklySchedule_(ctx);
+  specials = specials || specialDays_(ctx);
+  var w = week[weekday_(dateStr)];
+  var sp = specials[dateStr];
+  if (sp && sp.tipo === 'FECHADO') return { aberto: false, especial: true, motivo: sp.motivo || 'Fechado' };
+  var base = sp ? {
+    aberto: true, especial: true, motivo: sp.motivo || '',
+    inicio: sp.inicio || w.inicio, fim: sp.fim || w.fim,
+    almocoInicio: sp.inicio || sp.fim ? sp.almocoInicio : (sp.almocoInicio || w.almocoInicio),
+    almocoFim: sp.inicio || sp.fim ? sp.almocoFim : (sp.almocoFim || w.almocoFim),
+    horarios: parseTimes_(sp.horarios)
+  } : {
+    aberto: w.ativo, especial: false, motivo: '',
+    inicio: w.inicio, fim: w.fim, almocoInicio: w.almocoInicio, almocoFim: w.almocoFim, horarios: parseTimes_(w.horarios)
+  };
+  // Com horários fixos a profissional já escolheu cada início: pausa não se aplica
+  if (base.horarios && base.horarios.length) { base.almocoInicio = ''; base.almocoFim = ''; }
+  return base;
+}
+
 function computeSlots_(ctx, dateStr, serviceId, opts) {
   opts = opts || {};
   if (!isIsoDate_(dateStr)) throw new Error('Data inválida.');
   var st = studioPublic_(ctx);
-  var allowed = String(st.diasAtendimento).split(',').map(function (x) { return Number(String(x).trim()); });
-  if (allowed.indexOf(weekday_(dateStr)) < 0) return [];
+  var rule = opts.rule || dayRule_(ctx, dateStr);
+  if (!rule.aberto) return [];
 
   var now = nowInTz_(ctx.tz);
   var diff = dayNumber_(dateStr) - dayNumber_(now.date);
-  if (diff < 0) return [];
+  if (diff < 0 && !opts.admin) return [];
   if (!opts.admin && diff > st.janelaMaxDias) return [];
 
   var duracao = st.intervaloMinutos;
@@ -617,25 +699,48 @@ function computeSlots_(ctx, dateStr, serviceId, opts) {
   var busy = [];
   var bookings = opts.bookings || listBookings_(ctx);
   bookings.forEach(function (b) {
-    if (b.data === dateStr && isActiveStatus_(b.statusReserva) && b.id !== opts.ignoreId) busy.push({ s: toMin_(b.horaInicio), e: toMin_(b.horaFim) || 1440 });
+    if (b.data === dateStr && isActiveStatus_(b.statusReserva) && b.id !== opts.ignoreId) {
+      busy.push({ s: toMin_(b.horaInicio), e: toMin_(b.horaFim) || 1440, o: b.statusReserva === 'BLOQUEADO' ? 'BLOQUEIO' : 'RESERVA' });
+    }
   });
-  if (st.almocoInicio && st.almocoFim && toMin_(st.almocoFim) > toMin_(st.almocoInicio)) busy.push({ s: toMin_(st.almocoInicio), e: toMin_(st.almocoFim) });
-
+  if (rule.almocoInicio && rule.almocoFim && toMin_(rule.almocoFim) > toMin_(rule.almocoInicio)) {
+    busy.push({ s: toMin_(rule.almocoInicio), e: toMin_(rule.almocoFim), o: 'ALMOCO' });
+  }
   if (String(ctx.cfg.BLOQUEAR_COM_GOOGLE_AGENDA || 'SIM').toUpperCase() !== 'NAO') {
-    googleBusy_(ctx, dateStr, bookings).forEach(function (x) { busy.push(x); });
+    googleBusy_(ctx, dateStr, bookings).forEach(function (x) { busy.push({ s: x.s, e: x.e, o: 'GOOGLE' }); });
   }
 
   var noticeMin = opts.admin ? 0 : Math.max(0, st.antecedenciaMinHoras * 60);
   var nowAbs = now.minutes + noticeMin;
-  var startM = toMin_(st.horarioInicio), endM = toMin_(st.horarioFim);
-  var step = Math.max(10, st.intervaloMinutos || 60);
-  var slots = [];
-  for (var t = startM; t + duracao <= endM; t += step) {
-    var past = (diff * 1440 + t) < nowAbs;
-    var col = busy.some(function (b) { return t < b.e && (t + duracao) > b.s; });
-    slots.push({ horaInicio: fromMin_(t), horaFim: fromMin_(t + duracao), disponivel: !past && !col, motivo: past ? 'PASSOU' : (col ? 'OCUPADO' : 'LIVRE') });
+  var startM = toMin_(rule.inicio), endM = toMin_(rule.fim) || 1440;
+  var starts = [];
+  if (rule.horarios && rule.horarios.length) {
+    // Horários fixos: a profissional escolheu exatamente quando começa cada atendimento
+    starts = rule.horarios.map(toMin_).filter(function (t) { return t + duracao <= 1440; });
+  } else {
+    var step = Math.max(10, st.intervaloMinutos || 60);
+    for (var t = startM; t + duracao <= endM; t += step) starts.push(t);
   }
-  return slots;
+  return starts.map(function (t) {
+    var past = (diff * 1440 + t) < nowAbs;
+    var hit = busy.filter(function (b) { return t < b.e && (t + duracao) > b.s; })[0];
+    return {
+      horaInicio: fromMin_(t), horaFim: fromMin_(t + duracao), disponivel: !past && !hit,
+      motivo: past ? 'PASSOU' : (hit ? 'OCUPADO' : 'LIVRE'), origem: hit ? hit.o : ''
+    };
+  });
+}
+
+/** Dias abertos (para a página da cliente pintar o calendário). */
+function openDates_(ctx, days) {
+  var week = weeklySchedule_(ctx), specials = specialDays_(ctx);
+  var today = nowInTz_(ctx.tz).date;
+  var out = [];
+  for (var i = 0; i <= days; i++) {
+    var d = addDays_(today, i);
+    if (dayRule_(ctx, d, week, specials).aberto) out.push(d);
+  }
+  return out;
 }
 
 // =============================================================================
@@ -997,7 +1102,8 @@ var PUBLIC_API = {
 
   getPublicBootstrapData: function (a) {
     var ctx = openPublicStudio_(a.s);
-    return { studio: studioPublic_(ctx), categorias: listCategories_(ctx).filter(function (c) { return c.ativo; }), catalogo: listServices_(ctx, true) };
+    var st = studioPublic_(ctx);
+    return { studio: st, categorias: listCategories_(ctx).filter(function (c) { return c.ativo; }), catalogo: listServices_(ctx, true), diasAbertos: openDates_(ctx, Math.min(90, st.janelaMaxDias)) };
   },
 
   getAvailableSlotsForDate: function (a) {
@@ -1131,6 +1237,14 @@ function dashboard_(ctx) {
       email: ctx.cfg.GCAL_CONNECTED_EMAIL || '',
       status: ctx.cfg.GCAL_STATUS || '',
       configured: !!prop_('GOOGLE_CLIENT_SECRET')
+    },
+    agenda: {
+      semana: weeklySchedule_(ctx),
+      especiais: (function () {
+        var since = addDays_(nowInTz_(ctx.tz).date, -7);
+        var sp = specialDays_(ctx);
+        return Object.keys(sp).filter(function (d) { return d >= since; }).sort().map(function (d) { var o = cleanBooking_(sp[d]); o.diaSemana = WEEKDAY_NAMES[weekday_(d)]; return o; });
+      })()
     },
     icsUrl: (prop_('API_URL') || ScriptApp.getService().getUrl()) + '?ics=' + icsToken_(ctx.sheetId),
     account: { email: ctx.email }
@@ -1443,6 +1557,78 @@ var ADMIN_API = {
     var dash = dashboard_(ctx);
     dash.synced = n;
     return dash;
+  },
+
+  /** Salva o horário padrão de cada dia da semana. */
+  adminSaveWeeklySchedule: function (ctx, a) {
+    return writeAndReturn_(ctx, function () {
+      var semana = a.semana || {};
+      var out = {}, dias = [], minIni = 1440, maxFim = 0;
+      for (var d = 0; d < 7; d++) {
+        var r = semana[d] || semana[String(d)] || {};
+        var ativo = !!r.ativo;
+        var ini = normTime_(r.inicio) || '09:00', fim = normTime_(r.fim) || '19:00';
+        var aIni = normTime_(r.almocoInicio), aFim = normTime_(r.almocoFim);
+        var fixos = parseTimes_(r.horarios);
+        if (ativo && !fixos.length && toMin_(fim) <= toMin_(ini)) throw new Error(WEEKDAY_NAMES[d] + ': o fechamento precisa ser depois da abertura.');
+        if (ativo && (aIni || aFim) && (!aIni || !aFim || toMin_(aFim) <= toMin_(aIni))) throw new Error(WEEKDAY_NAMES[d] + ': confira o horário de almoço/pausa.');
+        out[d] = { ativo: ativo, inicio: ini, fim: fim, almocoInicio: aIni, almocoFim: aFim, horarios: fixos.join(',') };
+        if (ativo) {
+          dias.push(d);
+          minIni = Math.min(minIni, fixos.length ? toMin_(fixos[0]) : toMin_(ini));
+          maxFim = Math.max(maxFim, toMin_(fim));
+        }
+      }
+      if (!dias.length) throw new Error('Deixe pelo menos um dia da semana aberto.');
+      upsertConfig_(ctx, {
+        HORARIOS_SEMANA: JSON.stringify(out),
+        // chaves antigas mantidas para compatibilidade
+        DIAS_ATENDIMENTO: dias.join(','),
+        HORARIO_INICIO: fromMin_(minIni),
+        HORARIO_FIM: fromMin_(maxFim || 1140)
+      });
+    });
+  },
+
+  /** Cria/edita uma data especial: FECHADO (folga/feriado) ou ESPECIAL (horário diferente, inclusive abrir num dia fechado). */
+  adminSaveSpecialDay: function (ctx, a) {
+    return writeAndReturn_(ctx, function () {
+      var data = normDate_(a.data);
+      if (!isIsoDate_(data)) throw new Error('Escolha a data.');
+      var tipo = a.tipo === 'ESPECIAL' ? 'ESPECIAL' : 'FECHADO';
+      var ini = normTime_(a.inicio), fim = normTime_(a.fim);
+      var aIni = normTime_(a.almocoInicio), aFim = normTime_(a.almocoFim);
+      var fixos = parseTimes_(a.horarios);
+      if (tipo === 'ESPECIAL') {
+        if (!fixos.length && (!ini || !fim)) throw new Error('Informe abertura e fechamento ou os horários fixos.');
+        if (!fixos.length && toMin_(fim) <= toMin_(ini)) throw new Error('O fechamento precisa ser depois da abertura.');
+        if ((aIni || aFim) && (!aIni || !aFim || toMin_(aFim) <= toMin_(aIni))) throw new Error('Confira o horário de pausa.');
+      }
+      var row = [data, tipo, tipo === 'ESPECIAL' ? ini : '', tipo === 'ESPECIAL' ? fim : '', tipo === 'ESPECIAL' ? aIni : '', tipo === 'ESPECIAL' ? aFim : '', tipo === 'ESPECIAL' ? fixos.join(',') : '', str_(a.motivo, 80)];
+      var sh = ensureTab_(ctx, TAB_SPECIAL, SPECIAL_HEADER);
+      var existing = specialDays_(ctx)[data];
+      if (existing) writeRow_(sh, existing._row, row);
+      else appendRow_(sh, row);
+      cache_().remove('gbusy:' + ctx.sheetId + ':' + data);
+    });
+  },
+
+  adminDeleteSpecialDay: function (ctx, a) {
+    return writeAndReturn_(ctx, function () {
+      var sp = specialDays_(ctx)[normDate_(a.data)];
+      if (sp) ctx.ss.getSheetByName(TAB_SPECIAL).deleteRow(sp._row);
+    });
+  },
+
+  /** Agenda de um dia: regra do dia + grade de horários com o que ocupa cada um. */
+  adminGetDayAgenda: function (ctx, a) {
+    var date = String(a.date || '');
+    if (!isIsoDate_(date)) throw new Error('Data inválida.');
+    var rule = dayRule_(ctx, date);
+    var slots = computeSlots_(ctx, date, '', { admin: true, rule: rule });
+    var cleanRule = {};
+    Object.keys(rule).forEach(function (k) { cleanRule[k] = rule[k]; });
+    return { date: date, diaSemana: WEEKDAY_NAMES[weekday_(date)], rule: cleanRule, slots: slots };
   },
 
   /** Horários livres (visão da manicure — ignora antecedência mínima). */

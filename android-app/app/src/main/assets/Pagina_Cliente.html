@@ -1140,9 +1140,9 @@
       for (let i = 0; i <= janela; i++) {
         const d = new Date(today);
         d.setDate(today.getDate() + i);
-        if (!allowedDays.includes(d.getDay())) continue; // Pula dias em que o studio está fechado!
-
         const iso = getLocalIsoDate(d);
+        // Dias abertos vêm do servidor (horário da semana + datas especiais)
+        if (Array.isArray(pubData.diasAbertos) ? !pubData.diasAbertos.includes(iso) : !allowedDays.includes(d.getDay())) continue;
         if (!firstSelected) {
           selDate = iso;
           firstSelected = true;
@@ -1158,6 +1158,9 @@
           loadSlots();
         };
         box.appendChild(p);
+      }
+      if (!box.children.length) {
+        box.innerHTML = '<div style="padding:10px; font-size:0.84rem; color:var(--text-muted);">Agenda sem datas disponíveis no momento. Fale com o Studio pelo WhatsApp.</div>';
       }
     }
 

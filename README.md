@@ -41,6 +41,14 @@ página pública de agendamento para as clientes, Pix Copia e Cola e integraçã
 - Status de conexão com aviso de "Reconectar" se o Google revogar a permissão.
 - Assinatura **.ics** para ver a agenda no iPhone/Outlook.
 
+**Horários e agenda do dia (novo)**
+- **Horário diferente para cada dia da semana** (ex.: segunda 13h–20h, sábado 8h–14h), com pausa própria.
+- **Horários fixos** por dia: a cliente só vê os horários escolhidos (ex.: sábado só 08:00, 10:30 e 13:00).
+- **Datas especiais**: fechar feriado/folga, meio período ou **abrir um dia normalmente fechado** (ex.: domingo antes do Natal).
+- **Agenda do dia**: tira de dias com quantas clientes há em cada um, linha do tempo mostrando quem está em cada horário,
+  pausa, bloqueios e compromissos da Google Agenda; toque em **+ Reservar** num horário livre para encaixar uma cliente
+  ou no 🔒 para bloquear; botões "Mudar horário deste dia", "Fechar este dia" e "Abrir este dia".
+
 **Agenda e atendimento**
 - Reagendar com sugestão de horários livres + aviso automático no WhatsApp.
 - Status **Confirmar**, **Concluir**, **Faltou** (no-show) e anotações por atendimento (cor, formato, alergias).

@@ -183,7 +183,67 @@ async function shot(page, name) {
     await page.click('#btnUnlock');
     await page.waitForSelector('#lockScreen', { state: 'hidden' });
 
-    // 9. Link de studio inválido mostra mensagem amigável
+    // 9. Horários por dia da semana + data especial + agenda do dia
+    const { formatDate } = require('./gas-mock');
+    const iso = (offset) => formatDate(new Date(Date.now() + offset * 86400000), 'America/Sao_Paulo', 'yyyy-MM-dd');
+    let sunday = null;
+    for (let i = 2; i < 10 && !sunday; i++) if (new Date(iso(i) + 'T12:00:00Z').getUTCDay() === 0) sunday = iso(i);
+    let saturday = null;
+    for (let i = 2; i < 10 && !saturday; i++) if (new Date(iso(i) + 'T12:00:00Z').getUTCDay() === 6) saturday = iso(i);
+
+    await page.click('.nav-btn >> nth=4');
+    const satRow = '#weekEditor .wk-row[data-d="6"]';
+    await page.waitForSelector(satRow);
+    await page.$eval(satRow + ' details', d => { d.open = true; });
+    await page.fill(satRow + ' .wk-fixos', '08:00, 10:30');
+    assert.match(await page.textContent(satRow + ' .wk-summary'), /Fixos: 08:00 · 10:30/);
+    await shot(page, '10-horarios-semana');
+    await page.click('#btnSaveWeek');
+    await page.waitForFunction(() => document.getElementById('toastMsg').textContent.includes('Horários da semana salvos'));
+
+    await page.fill('#spData', sunday);
+    await page.selectOption('#spTipo', 'ESPECIAL');
+    await page.fill('#spHorarios', '10:00, 15:00');
+    await page.fill('#spMotivo', 'Domingo especial');
+    await page.click('#btnSaveSpecial');
+    await page.waitForFunction(() => document.getElementById('specialDaysList').textContent.includes('Domingo especial'));
+    await page.locator('#specialDaysCard').scrollIntoViewIfNeeded();
+    await shot(page, '11-datas-especiais');
+
+    // agenda do dia: reservar tocando no horário livre do domingo
+    await page.click('.nav-btn >> nth=0');
+    await page.click('#agendaModeBar button:has-text("Agenda do dia")');
+    await page.waitForSelector('#dayStrip input[type=date]');
+    await page.fill('#dayStrip input[type=date]', sunday);
+    await page.dispatchEvent('#dayStrip input[type=date]', 'change');
+    await page.waitForFunction(() => document.getElementById('dayHeader').textContent.includes('Data especial'));
+    const times = await page.$$eval('#dayTimeline .tl-time', els => els.map(e => e.textContent));
+    assert.deepStrictEqual(times, ['10:00', '15:00']);
+    await page.click('#dayTimeline .tl-row.free >> nth=0 >> button:has-text("Reservar")');
+    await page.waitForSelector('#boxManualBooking:not(.hidden)');
+    assert.strictEqual(await page.inputValue('#manHoraInicio'), '10:00');
+    await page.fill('#manClienteNome', 'Carla Dias');
+    await page.click('#btnSaveManual');
+    await page.waitForFunction(() => document.getElementById('dayTimeline').textContent.includes('Carla Dias'));
+    await page.locator('#agendaModeBar').scrollIntoViewIfNeeded();
+    await shot(page, '12-agenda-do-dia');
+
+    // sábado com horários fixos na agenda do dia
+    await page.fill('#dayStrip input[type=date]', saturday);
+    await page.dispatchEvent('#dayStrip input[type=date]', 'change');
+    await page.waitForFunction(() => document.getElementById('dayHeader').textContent.includes('Horários fixos: 08:00 · 10:30'));
+
+    // cliente vê o domingo especial
+    const c2 = await ctx.newPage();
+    c2.on('pageerror', e => errors.push('cliente2: ' + e.message));
+    await c2.goto(clientLink);
+    await c2.waitForFunction(() => document.getElementById('cStudioName').textContent === 'Studio Ana Nails');
+    await c2.click('.srv-card >> nth=0');
+    const sundayDay = String(Number(sunday.slice(8)));
+    const pillTexts = await c2.$$eval('.day-pill', els => els.map(e => e.textContent));
+    assert.ok(pillTexts.some(t => t.startsWith('Dom') && t.endsWith(sundayDay.padStart(2, '0'))), 'domingo especial aparece para a cliente: ' + pillTexts.join(','));
+
+    // 10. Link de studio inválido mostra mensagem amigável
     const bad = await ctx.newPage();
     await bad.goto(base + '/Pagina_Cliente.html?s=abcdefghijklmnopqrstuvwxyz123');
     await bad.waitForFunction(() => document.getElementById('cStudioName').textContent.includes('indisponível'));

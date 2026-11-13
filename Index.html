@@ -459,6 +459,34 @@
       text-align: center;
     }
     .hidden { display: none !important; }
+
+    /* HORÁRIOS POR DIA + AGENDA DO DIA */
+    .wk-row { border: 1.5px solid var(--border); border-radius: 16px; padding: 10px 12px; margin-bottom: 8px; background: var(--bg-app); }
+    .wk-row.off { opacity: 0.6; }
+    .wk-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 34px; }
+    .wk-head label { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.92rem; cursor: pointer; }
+    .wk-head input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--primary); }
+    .wk-summary { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-align: right; }
+    .wk-body { margin-top: 8px; }
+    .wk-body .field { margin-bottom: 8px; }
+    .wk-body details summary { font-size: 0.78rem; font-weight: 800; color: var(--primary-dark); cursor: pointer; margin: 2px 0 8px; }
+    .day-strip-pill { min-width: 58px; flex-shrink: 0; text-align: center; padding: 8px 6px; border-radius: 14px; border: 1.5px solid var(--border); background: #fff; cursor: pointer; line-height: 1.15; }
+    .day-strip-pill .dw { font-size: 0.66rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); }
+    .day-strip-pill .dn { font-size: 1.1rem; font-weight: 800; }
+    .day-strip-pill.closed { background: #f1f5f9; color: #94a3b8; }
+    .day-strip-pill.special { border-color: #f59e0b; }
+    .day-strip-pill.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .day-strip-pill.active .dw { color: #fff; }
+    .tl-row { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 14px; margin-bottom: 6px; border: 1.5px solid var(--border); background: #fff; }
+    .tl-time { font-weight: 800; font-size: 0.9rem; width: 48px; flex-shrink: 0; }
+    .tl-info { flex: 1; min-width: 0; font-size: 0.83rem; }
+    .tl-info small { display: block; color: var(--text-muted); font-size: 0.74rem; }
+    .tl-row.free { border-style: dashed; border-color: #86efac; background: #f0fdf4; }
+    .tl-row.busy { background: var(--primary-soft); }
+    .tl-row.cont { opacity: 0.6; padding-top: 5px; padding-bottom: 5px; }
+    .tl-row.muted { background: #f8fafc; color: #64748b; }
+    .tl-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .tl-actions button { border: none; border-radius: 10px; padding: 7px 10px; font-weight: 800; font-size: 0.74rem; cursor: pointer; }
   </style>
 </head>
 <body data-theme="pink-gold">
@@ -727,6 +755,19 @@
         </div>
       </div>
 
+      <!-- Modo de visualização: lista ou agenda do dia -->
+      <div class="filter-pills" id="agendaModeBar" style="margin-bottom:8px;">
+        <button type="button" class="f-pill active" onclick="setAgendaMode('LISTA', this)">📋 Lista</button>
+        <button type="button" class="f-pill" onclick="setAgendaMode('DIA', this)">🗓️ Agenda do dia</button>
+      </div>
+
+      <div id="dayView" class="hidden">
+        <div id="dayStrip" class="filter-pills" style="gap:6px;"></div>
+        <div id="dayHeader" class="card-panel" style="padding:12px 14px; margin-bottom:10px;"></div>
+        <div id="dayTimeline"></div>
+      </div>
+
+      <div id="listView">
       <!-- Filtros da Agenda Deslizantes -->
       <div class="filter-pills" id="agendaFilterPills">
         <button class="f-pill active" onclick="setAgendaFilter('TODOS', this)">Próximos</button>
@@ -741,6 +782,7 @@
 
       <!-- Lista de Agendamentos (Cards Soltos e Espaçosos) -->
       <div id="bookingsList"></div>
+      </div>
     </section>
 
     <!-- =================================================================== -->
@@ -971,40 +1013,16 @@
 
       <!-- 4. DIAS E HORÁRIOS DE ATENDIMENTO -->
       <div class="card-panel">
-        <h2 class="section-title" style="margin-bottom:14px;"><i class="fa-regular fa-clock" style="color:var(--primary)"></i> Horários de Funcionamento</h2>
-        <div class="field">
-          <label>Dias da Semana em que você atende:</label>
-          <div class="days-check-grid">
-            <label class="day-chk"><input type="checkbox" class="chk-dia" value="1"> Segunda</label>
-            <label class="day-chk"><input type="checkbox" class="chk-dia" value="2"> Terça</label>
-            <label class="day-chk"><input type="checkbox" class="chk-dia" value="3"> Quarta</label>
-            <label class="day-chk"><input type="checkbox" class="chk-dia" value="4"> Quinta</label>
-            <label class="day-chk"><input type="checkbox" class="chk-dia" value="5"> Sexta</label>
-            <label class="day-chk"><input type="checkbox" class="chk-dia" value="6"> Sábado</label>
-            <label class="day-chk"><input type="checkbox" class="chk-dia" value="0"> Domingo</label>
-          </div>
+        <h2 class="section-title" style="margin-bottom:14px;"><i class="fa-regular fa-clock" style="color:var(--primary)"></i> Horários por dia da semana</h2>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin:-6px 0 12px; line-height:1.45;">
+          Cada dia pode ter seu horário. Em <strong>"Pausa e horários fixos"</strong> você define almoço ou escolhe exatamente em quais horários aceita clientes (ex.: só 08:00, 10:30 e 13:00 no sábado).
+        </p>
+        <div id="weekEditor"></div>
+        <div style="display:flex; gap:8px; margin:4px 0 16px; flex-wrap:wrap;">
+          <button type="button" class="btn-sm" style="flex:1; background:#f1f5f9; color:#334155;" onclick="copyMondayToWeekdays()"><i class="fa-regular fa-copy"></i> Copiar segunda p/ ter–sex</button>
+          <button type="button" id="btnSaveWeek" class="btn-sm" style="flex:1; background:var(--primary); color:#fff;" onclick="saveWeekSchedule()"><i class="fa-solid fa-floppy-disk"></i> Salvar horários da semana</button>
         </div>
-        <div class="form-row-2">
-          <div class="field">
-            <label>Abertura do Studio</label>
-            <input type="time" id="cfgInicio" class="inp">
-          </div>
-          <div class="field">
-            <label>Fechamento do Studio</label>
-            <input type="time" id="cfgFim" class="inp">
-          </div>
-        </div>
-        <div class="form-row-2">
-          <div class="field">
-            <label>Início do Almoço</label>
-            <input type="time" id="cfgAlmocoInicio" class="inp">
-          </div>
-          <div class="field">
-            <label>Fim do Almoço</label>
-            <input type="time" id="cfgAlmocoFim" class="inp">
-          </div>
-        </div>
-
+        <h3 style="font-size:0.92rem; margin-bottom:10px;">Regras de agendamento</h3>
         <div class="form-row-2">
           <div class="field">
             <label>Intervalo entre horários</label>
@@ -1057,6 +1075,48 @@
         <button id="btnSaveCfg" class="btn-main" style="margin-top:8px;" onclick="saveSettings(this)">
           <i class="fa-solid fa-floppy-disk"></i> Salvar Minhas Configurações
         </button>
+      </div>
+
+      <!-- 4.1 DATAS ESPECIAIS -->
+      <div class="card-panel" id="specialDaysCard">
+        <h2 class="section-title" style="margin-bottom:6px;"><i class="fa-solid fa-calendar-day" style="color:var(--primary)"></i> Datas especiais</h2>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px; line-height:1.45;">
+          Feriado, folga, meio período ou abrir num dia que normalmente é fechado (ex.: domingo antes do Natal). A data especial vale só para aquele dia.
+        </p>
+        <div class="form-row-2">
+          <div class="field">
+            <label>Data *</label>
+            <input type="date" id="spData" class="inp">
+          </div>
+          <div class="field">
+            <label>Neste dia</label>
+            <select id="spTipo" class="inp" onchange="onSpTipoChange()">
+              <option value="FECHADO">🚫 Fechado</option>
+              <option value="ESPECIAL">⏰ Horário diferente</option>
+            </select>
+          </div>
+        </div>
+        <div id="spTimes" class="hidden">
+          <div class="form-row-2">
+            <div class="field"><label>Abre</label><input type="time" id="spInicio" class="inp"></div>
+            <div class="field"><label>Fecha</label><input type="time" id="spFim" class="inp"></div>
+          </div>
+          <div class="form-row-2">
+            <div class="field"><label>Pausa início</label><input type="time" id="spAlmocoInicio" class="inp"></div>
+            <div class="field"><label>Pausa fim</label><input type="time" id="spAlmocoFim" class="inp"></div>
+          </div>
+          <div class="field">
+            <label>Horários fixos (opcional)</label>
+            <input type="text" id="spHorarios" class="inp" placeholder="Ex: 09:00, 11:00, 14:30">
+            <div style="font-size:0.72rem; color:var(--text-muted); margin-top:4px;">Se preencher, as clientes só veem esses horários neste dia.</div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Motivo (aparece só para você)</label>
+          <input type="text" id="spMotivo" class="inp" maxlength="80" placeholder="Ex: Feriado, curso, consulta médica">
+        </div>
+        <button type="button" id="btnSaveSpecial" class="btn-main" onclick="saveSpecialDay()"><i class="fa-solid fa-check"></i> Salvar data especial</button>
+        <div id="specialDaysList" style="margin-top:14px;"></div>
       </div>
 
       <!-- 5. AUTOMAÇÕES & MENSAGENS -->
@@ -2230,6 +2290,9 @@
       renderCrmClients(data.agendamentos || [], data.studio.nome);
       populateConfigForm(data.studio);
       renderGcalCard(data.gcal || {});
+      renderWeekEditor((data.agenda && data.agenda.semana) || {});
+      renderSpecialDays((data.agenda && data.agenda.especiais) || []);
+      if (agendaMode === 'DIA') scheduleDayReload();
       const acc = document.getElementById('cfgAccountEmail');
       if (acc) acc.textContent = (data.account && data.account.email) || data.studio.loginId || '—';
       const gcalAlert = document.getElementById('gcalHomeAlert');
@@ -2584,10 +2647,6 @@
       document.getElementById('cfgNome').value = st.nome || '';
       document.getElementById('cfgProfissional').value = st.profissional || '';
       document.getElementById('cfgWhatsapp').value = st.whatsapp || '';
-      document.getElementById('cfgInicio').value = st.horarioInicio || '09:00';
-      document.getElementById('cfgFim').value = st.horarioFim || '19:00';
-      document.getElementById('cfgAlmocoInicio').value = st.almocoInicio || '';
-      document.getElementById('cfgAlmocoFim').value = st.almocoFim || '';
       document.getElementById('cfgTema').value = st.temaCor || 'pink-gold';
       document.getElementById('cfgInstagram').value = st.instagram || '';
       document.getElementById('cfgEndereco').value = st.endereco || '';
@@ -2604,9 +2663,6 @@
       document.getElementById('cfgPolitica').value = st.politicaCancelamento || '';
       const pinSt = document.getElementById('cfgPinStatus');
       if (pinSt) pinSt.textContent = st.temPin ? '✅ PIN já cadastrado.' : 'Você ainda não tem PIN (opcional).';
-
-      const dias = String(st.diasAtendimento || '1,2,3,4,5,6').split(',').map(x => x.trim());
-      document.querySelectorAll('.chk-dia').forEach(chk => { chk.checked = dias.includes(chk.value); });
     }
 
     function onManTipoChange(v) {
@@ -2762,7 +2818,6 @@
     }
 
     async function saveSettings(btnEl) {
-      const checkedDays = [...document.querySelectorAll('.chk-dia:checked')].map(c => c.value).join(',');
       const cfg = {
         pixChave: document.getElementById('cfgPixChave').value.trim(),
         pixRecebedor: document.getElementById('cfgPixRecebedor').value.trim(),
@@ -2770,11 +2825,6 @@
         nome: document.getElementById('cfgNome').value.trim(),
         profissional: document.getElementById('cfgProfissional').value.trim(),
         whatsapp: document.getElementById('cfgWhatsapp').value.trim(),
-        horarioInicio: document.getElementById('cfgInicio').value,
-        horarioFim: document.getElementById('cfgFim').value,
-        almocoInicio: document.getElementById('cfgAlmocoInicio').value,
-        almocoFim: document.getElementById('cfgAlmocoFim').value,
-        diasAtendimento: checkedDays,
         temaCor: document.getElementById('cfgTema').value,
         instagram: document.getElementById('cfgInstagram').value.trim(),
         endereco: document.getElementById('cfgEndereco').value.trim(),
@@ -2791,10 +2841,8 @@
         politicaCancelamento: document.getElementById('cfgPolitica').value.trim(),
         novoPin: document.getElementById('cfgNovoPin').value.trim()
       };
-      if (!checkedDays) return showToast('Marque pelo menos um dia de atendimento.');
       if (cfg.whatsapp && !isValidBrPhone(cfg.whatsapp)) return showToast('WhatsApp inválido: use DDD + número, ex: (11) 99999-9999');
       if (cfg.novoPin && !/^\d{4,8}$/.test(cfg.novoPin)) return showToast('O PIN deve ter de 4 a 8 números.');
-      if (cfg.horarioFim <= cfg.horarioInicio) return showToast('O fechamento precisa ser depois da abertura.');
       const btn = (btnEl && btnEl.tagName) ? btnEl : document.getElementById('btnSaveCfg');
       const done = busy(btn, 'Salvando...');
       try {
@@ -2850,7 +2898,9 @@
       if (!confirm('Fechar a agenda pelo resto de hoje?')) return;
       const now = new Date();
       const curH = String(now.getHours()).padStart(2, '0') + ':' + (now.getMinutes() < 30 ? '00' : '30');
-      const fimH = (dashState.studio && dashState.studio.horarioFim) || '19:00';
+      const sem = (dashState.agenda && dashState.agenda.semana) || {};
+      const hoje = sem[new Date().getDay()] || {};
+      const fimH = hoje.fim || (dashState.studio && dashState.studio.horarioFim) || '19:00';
       if (curH >= fimH) return showToast('O expediente de hoje já terminou.');
       try {
         await adminCall('adminCreateManualBookingOrBlock', { tipo: 'BLOQUEIO', data: getLocalIsoDate(), horaInicio: curH, horaFim: fimH, motivo: 'Agenda fechada hoje' }, '✅ Restante do dia bloqueado!');
@@ -2876,6 +2926,419 @@
       if (!brCode) return showToast('Chave Pix inválida.');
       copyToClipboardUniversal(brCode, 'Pix de teste (R$ 50,00)');
       alert('✅ Código Pix Copia e Cola de teste gerado e copiado!\n\nChave: ' + cleanPixKey(key) + '\nTitular: ' + holder + '\n\nCole no app do seu banco para conferir (não precisa pagar).');
+    }
+
+
+    // =========================================================================
+    // HORÁRIOS POR DIA DA SEMANA
+    // =========================================================================
+    const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
+    const WEEK_NAMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    const WEEK_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    let weekEditorDirty = false;
+
+    function weekSummary(r) {
+      if (!r.ativo) return 'Fechado';
+      if (r.horarios && String(r.horarios).trim()) return 'Fixos: ' + String(r.horarios).split(/[,;\s]+/).filter(Boolean).join(' · ');
+      return r.inicio + '–' + r.fim + (r.almocoInicio && r.almocoFim ? ` • pausa ${r.almocoInicio}–${r.almocoFim}` : '');
+    }
+
+    function renderWeekEditor(semana) {
+      const box = document.getElementById('weekEditor');
+      if (!box || weekEditorDirty) return;
+      box.innerHTML = '';
+      WEEK_ORDER.forEach(d => {
+        const r = Object.assign({ ativo: false, inicio: '09:00', fim: '19:00', almocoInicio: '', almocoFim: '', horarios: '' }, semana[d] || {});
+        const row = document.createElement('div');
+        row.className = 'wk-row' + (r.ativo ? '' : ' off');
+        row.dataset.d = d;
+        const hasExtra = !!(r.almocoInicio || r.horarios);
+        row.innerHTML = `
+          <div class="wk-head">
+            <label><input type="checkbox" class="wk-ativo" ${r.ativo ? 'checked' : ''}> ${WEEK_NAMES[d]}</label>
+            <span class="wk-summary">${esc(weekSummary(r))}</span>
+          </div>
+          <div class="wk-body ${r.ativo ? '' : 'hidden'}">
+            <div class="form-row-2">
+              <div class="field"><label>Abre</label><input type="time" class="inp wk-ini" value="${esc(r.inicio)}"></div>
+              <div class="field"><label>Fecha</label><input type="time" class="inp wk-fim" value="${esc(r.fim)}"></div>
+            </div>
+            <details ${hasExtra ? 'open' : ''}>
+              <summary>☕ Pausa e horários fixos</summary>
+              <div class="form-row-2">
+                <div class="field"><label>Pausa início</label><input type="time" class="inp wk-aini" value="${esc(r.almocoInicio)}"></div>
+                <div class="field"><label>Pausa fim</label><input type="time" class="inp wk-afim" value="${esc(r.almocoFim)}"></div>
+              </div>
+              <div class="field">
+                <label>Só aceitar nestes horários (opcional)</label>
+                <input type="text" class="inp wk-fixos" placeholder="Ex: 08:00, 10:30, 13:00" value="${esc(r.horarios)}">
+                <div style="font-size:0.72rem; color:var(--text-muted); margin-top:4px;">Preenchido: as clientes só veem esses horários (abre/fecha e pausa deixam de valer neste dia).</div>
+              </div>
+            </details>
+          </div>`;
+        const chk = row.querySelector('.wk-ativo');
+        chk.onchange = () => {
+          row.classList.toggle('off', !chk.checked);
+          row.querySelector('.wk-body').classList.toggle('hidden', !chk.checked);
+          weekEditorDirty = true;
+          refreshWeekSummary(row);
+        };
+        row.querySelectorAll('input:not(.wk-ativo)').forEach(inp => inp.addEventListener('input', () => { weekEditorDirty = true; refreshWeekSummary(row); }));
+        box.appendChild(row);
+      });
+    }
+
+    function readWeekRow(row) {
+      return {
+        ativo: row.querySelector('.wk-ativo').checked,
+        inicio: row.querySelector('.wk-ini').value,
+        fim: row.querySelector('.wk-fim').value,
+        almocoInicio: row.querySelector('.wk-aini').value,
+        almocoFim: row.querySelector('.wk-afim').value,
+        horarios: row.querySelector('.wk-fixos').value.trim()
+      };
+    }
+
+    function refreshWeekSummary(row) {
+      row.querySelector('.wk-summary').textContent = weekSummary(readWeekRow(row));
+    }
+
+    function collectWeek() {
+      const out = {};
+      document.querySelectorAll('#weekEditor .wk-row').forEach(row => { out[row.dataset.d] = readWeekRow(row); });
+      return out;
+    }
+
+    function copyMondayToWeekdays() {
+      const mon = document.querySelector('#weekEditor .wk-row[data-d="1"]');
+      if (!mon) return;
+      const src = readWeekRow(mon);
+      [2, 3, 4, 5].forEach(d => {
+        const row = document.querySelector(`#weekEditor .wk-row[data-d="${d}"]`);
+        row.querySelector('.wk-ativo').checked = src.ativo;
+        row.querySelector('.wk-ini').value = src.inicio;
+        row.querySelector('.wk-fim').value = src.fim;
+        row.querySelector('.wk-aini').value = src.almocoInicio;
+        row.querySelector('.wk-afim').value = src.almocoFim;
+        row.querySelector('.wk-fixos').value = src.horarios;
+        row.classList.toggle('off', !src.ativo);
+        row.querySelector('.wk-body').classList.toggle('hidden', !src.ativo);
+        refreshWeekSummary(row);
+      });
+      weekEditorDirty = true;
+      showToast('Copiado! Toque em "Salvar horários da semana".');
+    }
+
+    async function saveWeekSchedule() {
+      const semana = collectWeek();
+      if (!Object.values(semana).some(r => r.ativo)) return showToast('Deixe pelo menos um dia aberto.');
+      const done = busy(document.getElementById('btnSaveWeek'), 'Salvando...');
+      try {
+        weekEditorDirty = false;
+        await adminCall('adminSaveWeeklySchedule', { semana }, '✅ Horários da semana salvos! A página das clientes já mostra os novos horários.');
+      } catch (e) {
+        weekEditorDirty = true;
+        showToast(e.message, 6000);
+      } finally {
+        done();
+      }
+    }
+
+    // =========================================================================
+    // DATAS ESPECIAIS
+    // =========================================================================
+    function onSpTipoChange() {
+      const especial = document.getElementById('spTipo').value === 'ESPECIAL';
+      document.getElementById('spTimes').classList.toggle('hidden', !especial);
+      if (especial && !document.getElementById('spInicio').value && !document.getElementById('spHorarios').value) {
+        const date = document.getElementById('spData').value;
+        const sem = (dashState.agenda && dashState.agenda.semana) || {};
+        const w = date ? sem[new Date(date + 'T12:00:00').getDay()] : null;
+        document.getElementById('spInicio').value = (w && w.ativo && w.inicio) || '09:00';
+        document.getElementById('spFim').value = (w && w.ativo && w.fim) || '18:00';
+      }
+    }
+
+    function describeSpecial(sp) {
+      if (sp.tipo === 'FECHADO') return '🚫 Fechado';
+      if (sp.horarios) return '⏰ Horários: ' + sp.horarios;
+      return `⏰ ${sp.inicio}–${sp.fim}` + (sp.almocoInicio && sp.almocoFim ? ` • pausa ${sp.almocoInicio}–${sp.almocoFim}` : '');
+    }
+
+    function renderSpecialDays(list) {
+      const box = document.getElementById('specialDaysList');
+      if (!box) return;
+      const today = getLocalIsoDate();
+      const items = list.filter(sp => sp.data >= today);
+      if (!items.length) {
+        box.innerHTML = '<div style="font-size:0.8rem; color:var(--text-muted); text-align:center; padding:8px;">Nenhuma data especial programada.</div>';
+        return;
+      }
+      box.innerHTML = '';
+      items.forEach(sp => {
+        const row = document.createElement('div');
+        row.className = 'booking-item';
+        row.style.padding = '10px 12px';
+        row.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+            <div style="min-width:0;">
+              <div style="font-weight:800; font-size:0.88rem;">${esc(sp.diaSemana || '')}, ${fmtBr(sp.data)}</div>
+              <div style="font-size:0.78rem; color:var(--text-muted);">${esc(describeSpecial(sp))}${sp.motivo ? ' • ' + esc(sp.motivo) : ''}</div>
+            </div>
+            <div style="display:flex; gap:6px; flex-shrink:0;">
+              <button class="btn-sm" style="background:var(--primary-soft); color:var(--primary-dark);" data-act="edit"><i class="fa-solid fa-pen"></i></button>
+              <button class="btn-sm" style="background:#fee2e2; color:#b91c1c;" data-act="del"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>`;
+        row.querySelector('[data-act="edit"]').onclick = () => openSpecialDayForm(sp.data, sp.tipo, sp);
+        row.querySelector('[data-act="del"]').onclick = () => deleteSpecialDay(sp.data);
+        box.appendChild(row);
+      });
+    }
+
+    function openSpecialDayForm(date, tipo, sp) {
+      const sem = ((dashState.agenda && dashState.agenda.semana) || {})[new Date(date + 'T12:00:00').getDay()] || {};
+      document.getElementById('spData').value = date || '';
+      document.getElementById('spTipo').value = tipo || 'FECHADO';
+      document.getElementById('spInicio').value = (sp && sp.inicio) || sem.inicio || '09:00';
+      document.getElementById('spFim').value = (sp && sp.fim) || sem.fim || '18:00';
+      document.getElementById('spAlmocoInicio').value = (sp && sp.almocoInicio) || '';
+      document.getElementById('spAlmocoFim').value = (sp && sp.almocoFim) || '';
+      document.getElementById('spHorarios').value = (sp && sp.horarios) || '';
+      document.getElementById('spMotivo').value = (sp && sp.motivo) || '';
+      onSpTipoChange();
+      switchTab('tabConfig', document.querySelectorAll('.nav-btn')[4]);
+      setTimeout(() => document.getElementById('specialDaysCard').scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+    }
+
+    async function saveSpecialDay() {
+      const p = {
+        data: document.getElementById('spData').value,
+        tipo: document.getElementById('spTipo').value,
+        inicio: document.getElementById('spInicio').value,
+        fim: document.getElementById('spFim').value,
+        almocoInicio: document.getElementById('spAlmocoInicio').value,
+        almocoFim: document.getElementById('spAlmocoFim').value,
+        horarios: document.getElementById('spHorarios').value.trim(),
+        motivo: document.getElementById('spMotivo').value.trim()
+      };
+      if (!p.data) return showToast('Escolha a data.');
+      if (p.tipo === 'FECHADO') {
+        const n = (dashState.agendamentos || []).filter(a => a.data === p.data && ['RESERVADO', 'CONFIRMADO'].includes(a.statusReserva)).length;
+        if (n && !confirm(`Já existem ${n} reserva(s) em ${fmtBr(p.data)}. Elas NÃO serão canceladas automaticamente — avise as clientes. Fechar o dia mesmo assim?`)) return;
+      }
+      const done = busy(document.getElementById('btnSaveSpecial'), 'Salvando...');
+      try {
+        await adminCall('adminSaveSpecialDay', p, p.tipo === 'FECHADO' ? '🚫 Dia fechado para agendamentos.' : '⏰ Horário especial salvo!');
+        ['spData', 'spMotivo', 'spHorarios'].forEach(id => document.getElementById(id).value = '');
+      } catch (e) {
+        showToast(e.message, 6000);
+      } finally {
+        done();
+      }
+    }
+
+    async function deleteSpecialDay(date) {
+      if (!confirm('Remover a data especial de ' + fmtBr(date) + '? O dia volta ao horário normal da semana.')) return;
+      try { await adminCall('adminDeleteSpecialDay', { data: date }, 'Data especial removida.'); } catch (e) { showToast(e.message); }
+    }
+
+    // =========================================================================
+    // AGENDA DO DIA (toque no horário livre para reservar ou bloquear)
+    // =========================================================================
+    let agendaMode = 'LISTA';
+    let dayViewDate = '';
+    let dayReloadTimer = null;
+
+    function setAgendaMode(mode, btn) {
+      agendaMode = mode;
+      document.querySelectorAll('#agendaModeBar .f-pill').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      document.getElementById('dayView').classList.toggle('hidden', mode !== 'DIA');
+      document.getElementById('listView').classList.toggle('hidden', mode === 'DIA');
+      if (mode === 'DIA') {
+        if (!dayViewDate) dayViewDate = getLocalIsoDate();
+        renderDayStrip();
+        loadDayView();
+      }
+    }
+
+    function scheduleDayReload() {
+      clearTimeout(dayReloadTimer);
+      dayReloadTimer = setTimeout(() => { renderDayStrip(); loadDayView(); }, 150);
+    }
+
+    function dayIsOpenLocally(iso) {
+      const sp = ((dashState.agenda && dashState.agenda.especiais) || []).find(x => x.data === iso);
+      if (sp) return { open: sp.tipo !== 'FECHADO', special: true };
+      const w = ((dashState.agenda && dashState.agenda.semana) || {})[new Date(iso + 'T12:00:00').getDay()];
+      return { open: !!(w && w.ativo), special: false };
+    }
+
+    function renderDayStrip() {
+      const strip = document.getElementById('dayStrip');
+      strip.innerHTML = '';
+      const start = new Date();
+      for (let i = 0; i < 21; i++) {
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        const iso = getLocalIsoDate(d);
+        const st = dayIsOpenLocally(iso);
+        const count = (dashState.agendamentos || []).filter(a => a.data === iso && ['RESERVADO', 'CONFIRMADO', 'CONCLUIDO'].includes(a.statusReserva)).length;
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'day-strip-pill' + (st.open ? '' : ' closed') + (st.special ? ' special' : '') + (iso === dayViewDate ? ' active' : '');
+        b.innerHTML = `<div class="dw">${i === 0 ? 'Hoje' : WEEK_SHORT[d.getDay()]}</div><div class="dn">${String(d.getDate()).padStart(2, '0')}</div><div class="dw">${count ? count + '💅' : (st.open ? '·' : 'fech.')}</div>`;
+        b.onclick = () => { dayViewDate = iso; renderDayStrip(); loadDayView(); };
+        strip.appendChild(b);
+      }
+      const pick = document.createElement('input');
+      pick.type = 'date';
+      pick.value = dayViewDate;
+      pick.style.cssText = 'min-height:58px; padding:6px 10px; border-radius:14px; border:1.5px solid var(--border); background:#fff; flex-shrink:0;';
+      pick.onchange = () => { if (pick.value) { dayViewDate = pick.value; renderDayStrip(); loadDayView(); } };
+      strip.appendChild(pick);
+      const active = strip.querySelector('.active');
+      if (active) active.scrollIntoView({ inline: 'center', block: 'nearest' });
+    }
+
+    let lastDayData = null;
+    async function loadDayView() {
+      const date = dayViewDate;
+      const head = document.getElementById('dayHeader');
+      const tl = document.getElementById('dayTimeline');
+      tl.innerHTML = '<div style="text-align:center; padding:16px; color:var(--text-muted); font-size:0.85rem;"><i class="fa-solid fa-spinner fa-spin"></i> Montando sua agenda...</div>';
+      let data;
+      try {
+        data = await api('adminGetDayAgenda', { date });
+      } catch (e) {
+        tl.innerHTML = '<div style="color:#b91c1c; font-size:0.85rem; padding:10px;">' + esc(e.message) + '</div>';
+        return;
+      }
+      if (date !== dayViewDate) return;
+      lastDayData = data;
+      const r = data.rule;
+      const dayBookings = (dashState.agendamentos || []).filter(a => a.data === date && !['CANCELADO', 'FALTOU'].includes(a.statusReserva))
+        .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
+      const total = dayBookings.filter(a => a.statusReserva !== 'BLOQUEADO').reduce((s, a) => s + Number(a.valor || 0), 0);
+      const nClientes = dayBookings.filter(a => a.statusReserva !== 'BLOQUEADO').length;
+      const isPast = date < getLocalIsoDate();
+
+      let hoursTxt = '';
+      if (r.aberto) {
+        hoursTxt = r.horarios && r.horarios.length ? 'Horários fixos: ' + r.horarios.join(' · ') : `${r.inicio} às ${r.fim}`;
+        if (r.almocoInicio && r.almocoFim) hoursTxt += ` • pausa ${r.almocoInicio}–${r.almocoFim}`;
+      }
+      const actions = [];
+      if (!isPast) {
+        if (r.especial) actions.push(`<button class="btn-sm" style="background:#fff7ed; color:#9a3412;" onclick="deleteSpecialDay('${date}')"><i class="fa-solid fa-rotate-left"></i> Voltar ao normal</button>`);
+        if (r.aberto) {
+          actions.push(`<button class="btn-sm" style="background:#e0e7ff; color:#3730a3;" onclick="openSpecialDayForm('${date}','ESPECIAL', lastDayData && lastDayData.rule.especial ? specialFor('${date}') : null)"><i class="fa-solid fa-clock"></i> Mudar horário deste dia</button>`);
+          actions.push(`<button class="btn-sm" style="background:#fee2e2; color:#b91c1c;" onclick="closeDayQuick('${date}')"><i class="fa-solid fa-ban"></i> Fechar este dia</button>`);
+        } else {
+          actions.push(`<button class="btn-sm" style="background:#dcfce7; color:#166534;" onclick="openSpecialDayForm('${date}','ESPECIAL')"><i class="fa-solid fa-door-open"></i> Abrir este dia</button>`);
+        }
+      }
+      head.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">
+          <div>
+            <div style="font-weight:800; font-size:1rem;">${esc(data.diaSemana)}, ${fmtBr(date)} ${r.especial ? '<span class="badge b-warn" style="margin-left:4px;">Data especial</span>' : ''}</div>
+            <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">${r.aberto ? esc(hoursTxt) : '🚫 Fechado' + (r.motivo ? ' — ' + esc(r.motivo) : '')}</div>
+            ${r.aberto && r.motivo ? `<div style="font-size:0.76rem; color:#b45309;">${esc(r.motivo)}</div>` : ''}
+          </div>
+          <div style="text-align:right; font-size:0.78rem; font-weight:800; color:var(--primary-dark);">${nClientes} cliente(s)<br>${money(total)}</div>
+        </div>
+        ${actions.length ? `<div class="btn-row" style="margin-top:10px;">${actions.join('')}</div>` : ''}`;
+
+      tl.innerHTML = '';
+      if (!r.aberto && !dayBookings.length) {
+        tl.innerHTML = '<div style="text-align:center; padding:18px; color:var(--text-muted); font-size:0.85rem;">Dia fechado. As clientes não veem este dia na página de agendamento.</div>';
+        return;
+      }
+      const shown = new Set();
+      const rows = [];
+      data.slots.forEach(sl => {
+        const sMin = toMin(sl.horaInicio), eMin = toMin(sl.horaFim);
+        const hit = dayBookings.filter(b => toMin(b.horaInicio) < eMin && (toMin(b.horaFim) || 1440) > sMin);
+        rows.push({ t: sl.horaInicio, slot: sl, hit });
+      });
+      // reservas fora da grade (ex.: encaixe 14:15) também aparecem
+      dayBookings.forEach(b => {
+        if (!rows.some(x => x.hit.includes(b))) rows.push({ t: b.horaInicio, slot: null, hit: [b] });
+      });
+      rows.sort((a, b) => a.t.localeCompare(b.t));
+
+      rows.forEach(({ t, slot, hit }) => {
+        const el = document.createElement('div');
+        const fresh = hit.filter(b => !shown.has(b.id));
+        if (hit.length) {
+          if (!fresh.length) {
+            el.className = 'tl-row busy cont';
+            el.innerHTML = `<div class="tl-time">${t}</div><div class="tl-info">↳ ${esc(hit[0].statusReserva === 'BLOQUEADO' ? 'bloqueado' : hit[0].clienteNome)}</div>`;
+          } else {
+            const b = fresh[0];
+            fresh.forEach(x => shown.add(x.id));
+            const isBlock = b.statusReserva === 'BLOQUEADO';
+            el.className = 'tl-row ' + (isBlock ? 'muted' : 'busy');
+            const id = String(b.id).replace(/[^\w-]/g, '');
+            el.innerHTML = `<div class="tl-time">${esc(b.horaInicio)}</div>
+              <div class="tl-info"><strong>${isBlock ? '🔒 ' + esc(b.servicoNome) : esc(b.clienteNome)}</strong>
+                <small>${isBlock ? esc(b.horaInicio) + '–' + esc(b.horaFim) : esc(b.servicoNome) + ' • ' + esc(b.horaInicio) + '–' + esc(b.horaFim) + ' • ' + money(b.valor)}${fresh.length > 1 ? ' • +' + (fresh.length - 1) + ' encaixe(s)' : ''}</small></div>
+              <div class="tl-actions">
+                ${isBlock ? `<button style="background:#fee2e2;color:#b91c1c" onclick="bookingAction('${id}','CANCELAR_RESERVA')">Liberar</button>`
+                  : `${b.clienteWhatsApp ? `<button style="background:#25d366;color:#fff" onclick="waBooking('${id}')" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></button>` : ''}<button style="background:#e0e7ff;color:#3730a3" onclick="openReschedule('${id}')">Mover</button>`}
+              </div>`;
+          }
+        } else if (slot && slot.motivo === 'PASSOU') {
+          el.className = 'tl-row muted';
+          el.innerHTML = `<div class="tl-time">${t}</div><div class="tl-info">Livre <small>já passou</small></div>`;
+        } else if (slot && !slot.disponivel) {
+          const label = { ALMOCO: '☕ Pausa', GOOGLE: '📅 Compromisso na sua Google Agenda', BLOQUEIO: '🔒 Bloqueado', RESERVA: 'Ocupado' }[slot.origem] || 'Ocupado';
+          el.className = 'tl-row muted';
+          el.innerHTML = `<div class="tl-time">${t}</div><div class="tl-info">${label}</div>`;
+        } else {
+          el.className = 'tl-row free';
+          el.innerHTML = `<div class="tl-time">${t}</div><div class="tl-info" style="color:#166534; font-weight:700;">Livre</div>
+            <div class="tl-actions">
+              <button style="background:var(--primary);color:#fff" onclick="reserveFromDay('${date}','${t}')">+ Reservar</button>
+              <button style="background:#f1f5f9;color:#334155" onclick="blockFromDay('${date}','${t}')" aria-label="Bloquear"><i class="fa-solid fa-lock"></i></button>
+            </div>`;
+        }
+        tl.appendChild(el);
+      });
+    }
+
+    function specialFor(date) {
+      return ((dashState.agenda && dashState.agenda.especiais) || []).find(x => x.data === date) || null;
+    }
+
+    function reserveFromDay(date, time) {
+      const box = document.getElementById('boxManualBooking');
+      document.getElementById('manTipo').value = 'ENCAIXE';
+      onManTipoChange('ENCAIXE');
+      document.getElementById('manData').value = date;
+      document.getElementById('manHoraInicio').value = time;
+      box.classList.remove('hidden');
+      box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setTimeout(() => document.getElementById('manClienteNome').focus(), 350);
+    }
+
+    async function blockFromDay(date, time) {
+      const step = Number((dashState.studio && dashState.studio.intervaloMinutos) || 60);
+      const fim = fromMin(Math.min(1439, toMin(time) + step));
+      const motivo = prompt(`Bloquear ${time}–${fim} de ${fmtBr(date)}? Motivo (opcional):`, '');
+      if (motivo === null) return;
+      try {
+        await adminCall('adminCreateManualBookingOrBlock', { tipo: 'BLOQUEIO', data: date, horaInicio: time, horaFim: fim, motivo: motivo || 'Horário bloqueado' }, '🔒 Horário bloqueado.');
+      } catch (e) { showToast(e.message); }
+    }
+
+    async function closeDayQuick(date) {
+      const n = (dashState.agendamentos || []).filter(a => a.data === date && ['RESERVADO', 'CONFIRMADO'].includes(a.statusReserva)).length;
+      const motivo = prompt((n ? `⚠️ Há ${n} reserva(s) neste dia (não serão canceladas).\n` : '') + `Fechar ${fmtBr(date)} para agendamentos? Motivo (opcional):`, '');
+      if (motivo === null) return;
+      try {
+        await adminCall('adminSaveSpecialDay', { data: date, tipo: 'FECHADO', motivo: motivo || 'Folga' }, '🚫 Dia fechado.');
+      } catch (e) { showToast(e.message); }
     }
 
     // =========================================================================
