@@ -139,6 +139,34 @@ Google Sheets / Drive / Calendar APIs
 4. Depois que o Worker estiver no ar: **revogar** o refresh token e o client secret
    antigos (vazados no histórico do Git).
 
+## Decisões fechadas após revisão (2026-11-18)
+
+Respondidas pela dona:
+
+- **Recuperar PIN e criar conta exigem login Google verificado.** A recuperação por
+  WhatsApp ou "palavra de segurança" é removida (ambas são públicas ou adivinháveis).
+  No APK, esses fluxos abrem o navegador do sistema (Google bloqueia OAuth em WebView)
+  e voltam ao app com a sessão.
+- **Só uma manicure usa o app hoje.** Os links antigos do GitHub Pages viram
+  redirecionamento para o Worker; o surge.sh fica como está (ninguém sabe publicar lá) e
+  a manicure recebe o link novo diretamente. O APK v2.2 instalado pode quebrar após a
+  revogação; ela instala o novo.
+- **Status da tela de consentimento OAuth é desconhecido.** O README de deploy inclui
+  o passo de conferir e publicar como "Em produção"; enquanto estiver "Em teste", a
+  conexão da Agenda expira a cada 7 dias.
+
+Chamadas do construtor (a dona pode corrigir):
+
+- O APK passa a carregar as páginas do Worker (sem cópias nos assets); sem CORS.
+- Limite de tentativas de PIN com Workers KV (grátis): bloqueio temporário após 5
+  erros em 15 min por e-mail.
+- "Usar planilha existente" recusa IDs já presentes em `Contas_Manicures` e a planilha
+  mestre.
+- Conta criada via Google não recebe PIN padrão; até definir um PIN, só entra por
+  Google. Login por e-mail+PIN recusa o PIN `123456` legado.
+- Mesmo cliente OAuth; só o secret e o refresh token são trocados, preservando os
+  `GCAL_REFRESH_TOKEN` já salvos.
+
 ## Riscos conhecidos (aceitos por ora)
 
 - A busca "Meus Horários" por número de WhatsApp continua mostrando e permitindo
