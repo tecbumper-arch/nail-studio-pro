@@ -1,11 +1,12 @@
 // Funções públicas da página da cliente (sem login). Portadas de Pagina_Cliente.html rpc().
 import { UserError } from '../errors.js';
-import { normalizeBrPhone, toMin, fromMin, newId, saoPauloNow } from '../util.js';
+import { normalizeBrPhone, toMin, fromMin, newId, saoPauloNow, sanitizeCell } from '../util.js';
 import { buildPixBrCode } from '../pix.js';
 import {
   loadStudio, publicStudio, assertKnownStudio, readCategorias, readCatalogo, readAgendamentos, syncCalendar,
 } from '../studio.js';
 
+const PAYMENT_METHODS = ['NO_LOCAL', 'PIX_TOTAL', 'PIX_SINAL_50'];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function currentNow(ctx) {
@@ -86,7 +87,12 @@ export const publicHandlers = {
     const studio = await known(ctx);
     p = p || {};
     const metodo = String(p.metodoPagamento || '');
-    if (!p.data || !p.horaInicio || !p.servicoId || !p.clienteNome || !metodo) throw new UserError('Dados da reserva incompletos.');
+    if (!p.data || !p.horaInicio || !p.servicoId) throw new UserError('Dados da reserva incompletos.');
+    if (!PAYMENT_METHODS.includes(metodo)) throw new UserError('Forma de pagamento inválida.');
+    const nome = String(p.clienteNome || '').trim();
+    if (nome.length < 2 || nome.length > 80) throw new UserError('Informe seu nome (2 a 80 caracteres).');
+    const phoneLocal = normalizeBrPhone(p.clienteWhatsApp);
+    if (phoneLocal.length < 10 || phoneLocal.length > 11) throw new UserError('Informe um WhatsApp válido com DDD.');
 
     const catalogo = await readCatalogo(ctx.g, ctx.sid);
     const srv = catalogo.find((s) => s.id === p.servicoId);
@@ -107,14 +113,14 @@ export const publicHandlers = {
     try {
       const sync = await syncCalendar(ctx, 'CREATE', {
         id, data: p.data, horaInicio: p.horaInicio, horaFim: slot.horaFim,
-        clienteNome: p.clienteNome, clienteWhatsApp: phone,
+        clienteNome: nome, clienteWhatsApp: phone,
         servicoNome: srv.nome, valor: srv.preco, metodoPagamento: metodo,
       });
       if (sync && sync.eventId) calendarEventId = sync.eventId;
     } catch (e) {}
 
     await ctx.g.appendRow(ctx.sid, 'Agendamentos', [
-      id, p.data, p.horaInicio, slot.horaFim, p.clienteNome, phone,
+      id, p.data, p.horaInicio, slot.horaFim, sanitizeCell(nome), phone,
       srv.id, srv.nome, srv.preco, metodo, statusPag, 'RESERVADO', calendarEventId, nowStr,
     ]);
 
@@ -123,7 +129,7 @@ export const publicHandlers = {
       success: true,
       reserva: {
         id, data: p.data, horaInicio: p.horaInicio, horaFim: slot.horaFim,
-        clienteNome: p.clienteNome, servicoNome: srv.nome,
+        clienteNome: nome, servicoNome: srv.nome,
         valorTotal: srv.preco, valorCobradoAgora,
         metodoPagamento: metodo, statusPagamento: statusPag,
         pixCopiaECola: pixFor(studio, valorCobradoAgora, id), whatsappStudio: studio.whatsapp,

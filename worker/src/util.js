@@ -37,3 +37,9 @@ export function saoPauloNow(now = new Date()) {
   const p = Object.fromEntries(parts.map((x) => [x.type, x.value]));
   return { isoDate: `${p.year}-${p.month}-${p.day}`, minutes: Number(p.hour) * 60 + Number(p.minute) };
 }
+
+// Evita que texto vindo de clientes seja interpretado como fórmula (USER_ENTERED).
+export function sanitizeCell(value) {
+  if (typeof value !== 'string') return value;
+  return /^[=+\-@\t\r]/.test(value) ? "'" + value : value;
+}
