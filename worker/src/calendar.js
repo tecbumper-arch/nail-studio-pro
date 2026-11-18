@@ -5,6 +5,9 @@
 import { UserError } from './errors.js';
 import { loadStudio } from './studio.js';
 import { saoPauloNow, fromMin } from './util.js';
+import { signToken } from './session.js';
+
+const CALSTART_TTL = 60;
 
 const TZ = 'America/Sao_Paulo';
 const HOOK_PREFIX = 'https://script.google.com/';
@@ -91,6 +94,12 @@ export async function syncCalendar(ctx, action, booking = null, eventId = null) 
 }
 
 export const calendarHandlers = {
+  // Token curto só para abrir /api/oauth/start?intent=calendar&t=... (o de sessão nunca vai na URL).
+  async adminGetCalendarConnectToken(ctx) {
+    const token = await signToken({ kind: 'calstart', sid: ctx.session.sid }, ctx.env.SESSION_SECRET, CALSTART_TTL);
+    return { token };
+  },
+
   async adminGetGcalStatus(ctx) {
     const cfg = await readConfig(ctx, ctx.session.sid);
     const mode = cfg.refreshToken ? 'oauth' : isHook(cfg.webhookUrl) ? 'webhook' : '';

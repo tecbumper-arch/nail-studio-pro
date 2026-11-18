@@ -4,6 +4,7 @@ import { createGoogle, resetGoogleTokenCache } from '../src/google.js';
 import { publicHandlers as pub } from '../src/handlers/public.js';
 import { adminHandlers as adm } from '../src/handlers/admin.js';
 import { calendarHandlers as cal, syncCalendar } from '../src/calendar.js';
+import { verifyToken } from '../src/session.js';
 
 const SID = 'studio-1';
 const MASTER = 'master-1';
@@ -110,6 +111,22 @@ describe('calendar sync', () => {
 });
 
 describe('calendar handlers', () => {
+  it('adminGetCalendarConnectToken returns a 60 s calstart token for the session studio only', async () => {
+    setup([]);
+    const ctx = { ...admCtx(), env: { SESSION_SECRET: 'cal-secret' } };
+    const { token, ...rest } = await cal.adminGetCalendarConnectToken(ctx, { sid: 'studio-OTHER' });
+    expect(rest).toEqual({});
+    const p = await verifyToken(token, 'cal-secret');
+    expect(p).toMatchObject({ kind: 'calstart', sid: SID });
+    expect(Object.keys(p).sort()).toEqual(['exp', 'kind', 'sid']);
+    const ttl = p.exp - Math.floor(Date.now() / 1000);
+    expect(ttl).toBeLessThanOrEqual(60);
+    expect(ttl).toBeGreaterThan(55);
+    expect(await verifyToken(token, 'cal-secret', Date.now() + 61 * 1000)).toBeNull();
+    // nada é lido nem gravado no Google
+    expect(fake.calls).toHaveLength(0);
+  });
+
   it('status never returns the refresh token', async () => {
     setup([...OAUTH, ['GCAL_WEBHOOK_URL', 'https://script.google.com/macros/s/abc/exec', '']]);
     const st = await cal.adminGetGcalStatus(admCtx());

@@ -1,8 +1,10 @@
 // OAuth Google no servidor: login, criar conta, recuperar PIN e conectar a Agenda.
-// GET /api/oauth/start?intent=login|onboard|recover|calendar&app=0|1[&t=<token studio>]
+// GET /api/oauth/start?intent=login|onboard|recover|calendar&app=0|1[&t=<token calstart>]
 // GET /api/oauth/callback?code=...&state=...
 // O `state` é assinado (kind 'state', 10 min) e carrega um nonce que também vai num cookie
 // HttpOnly: o callback só é aceito no mesmo navegador que iniciou o fluxo.
+// Tokens nunca vão na query: a Agenda usa um token 'calstart' de 60 s (adminGetCalendarConnectToken)
+// e o resultado para a web volta no fragmento (#...), que não é enviado ao servidor nem aos logs.
 import { signToken, verifyToken } from './session.js';
 import { UserError } from './errors.js';
 import { findAccountByEmail, issueStudioSession } from './handlers/auth.js';
@@ -53,11 +55,11 @@ function plain(status, text) {
   return new Response(text, { status, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } });
 }
 
-// Volta para a página (web) ou para o app; todos os valores são codificados.
+// Volta para a página (web, no fragmento) ou para o app (query do deep link); valores codificados.
 function finish(origin, app, params) {
   const qs = Object.entries(params).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
-  const base = app ? 'nailstudiopro://auth' : `${origin}/App_Manicure.html`;
-  return redirect(`${base}?${qs}`, `${COOKIE}=; ${COOKIE_ATTRS}; Max-Age=0`);
+  const location = app ? `nailstudiopro://auth?${qs}` : `${origin}/App_Manicure.html#${qs}`;
+  return redirect(location, `${COOKIE}=; ${COOKIE_ATTRS}; Max-Age=0`);
 }
 
 const fail = (origin, app, msg) => finish(origin, app, { google_auth: 'error', msg });
@@ -76,14 +78,16 @@ export async function handleOAuthStart(request, env) {
   auth.searchParams.set('response_type', 'code');
 
   if (intent === 'calendar') {
-    // O navegador não manda Authorization num redirecionamento: o token de studio vem em ?t=.
-    const session = await verifyToken(url.searchParams.get('t'), env.SESSION_SECRET);
-    if (!session || session.kind !== 'studio' || !session.sid) return plain(401, 'Sessão expirada. Entre novamente.');
-    state.sid = session.sid;
+    // O navegador não manda Authorization num redirecionamento: em ?t= só vale o token
+    // 'calstart' de 60 s (nunca o token de sessão de 30 dias).
+    const cal = await verifyToken(url.searchParams.get('t'), env.SESSION_SECRET);
+    if (!cal || cal.kind !== 'calstart' || typeof cal.sid !== 'string' || !cal.sid) {
+      return plain(401, 'Sessão expirada. Entre novamente.');
+    }
+    state.sid = cal.sid;
     auth.searchParams.set('scope', SCOPES.calendar);
     auth.searchParams.set('access_type', 'offline');
     auth.searchParams.set('prompt', 'consent');
-    if (session.email) auth.searchParams.set('login_hint', session.email);
   } else {
     auth.searchParams.set('scope', SCOPES.basic);
     auth.searchParams.set('prompt', 'select_account');

@@ -43,6 +43,8 @@ function setup(opts = {}, fetchWrap) {
 }
 
 const studioToken = (sid = SID, email = 'ana@x.com') => signToken({ kind: 'studio', sid, email }, SECRET, 3600);
+// Token curto (60 s) de adminGetCalendarConnectToken: o único aceito em ?t= do start da Agenda.
+const calToken = (sid = SID, now) => signToken({ kind: 'calstart', sid }, SECRET, 60, now);
 const start = (qs) => handleOAuthStart(new Request(`${ORIGIN}/api/oauth/start?${qs}`), env);
 const cookieOf = (res) => (res.headers.get('Set-Cookie') || '').split(';')[0];
 
@@ -55,11 +57,14 @@ async function flow(qs, { code = 'abc', cookie, state: forcedState } = {}) {
   return handleOAuthCallback(req, env, g);
 }
 
+// Web: resultado no fragmento (#...), nunca na query. App: nailstudiopro://auth?...
 function dest(res) {
   expect(res.status).toBe(302);
   const loc = res.headers.get('Location');
   const u = new URL(loc);
-  return { loc, u, p: Object.fromEntries(u.searchParams) };
+  if (loc.startsWith('nailstudiopro:')) return { loc, u, p: Object.fromEntries(u.searchParams) };
+  expect(u.search).toBe('');
+  return { loc, u, p: Object.fromEntries(new URLSearchParams(u.hash.slice(1))) };
 }
 
 describe('handleOAuthStart', () => {
@@ -105,8 +110,8 @@ describe('handleOAuthStart', () => {
     expect((await start('')).status).toBe(400);
   });
 
-  it('calendar start with a studio token asks for offline calendar access and puts the sid in the state', async () => {
-    const res = await start(`intent=calendar&app=0&t=${await studioToken()}`);
+  it('calendar start with a calstart token asks for offline calendar access and puts the sid in the state', async () => {
+    const res = await start(`intent=calendar&app=0&t=${await calToken()}`);
     expect(res.status).toBe(302);
     const u = new URL(res.headers.get('Location'));
     expect(u.searchParams.get('scope')).toBe('openid email https://www.googleapis.com/auth/calendar.events');
@@ -116,11 +121,14 @@ describe('handleOAuthStart', () => {
     expect(state).toMatchObject({ kind: 'state', intent: 'calendar', app: false, sid: SID });
   });
 
-  it('calendar start without a valid studio token is 401', async () => {
-    const pending = await signToken({ kind: 'pending', email: 'n@x.com', name: 'N' }, SECRET, 600);
+  it('calendar start without a valid calstart token is 401 (studio token is refused)', async () => {
+    const studio = await studioToken();
+    const pending = await signToken({ kind: 'pending', email: 'n@x.com', name: 'N', sid: SID }, SECRET, 600);
     const st = await signToken({ kind: 'state', intent: 'calendar', app: false, sid: SID }, SECRET, 600);
-    const tampered = (await studioToken()).slice(0, -2) + 'xx';
-    for (const t of ['', `&t=${pending}`, `&t=${st}`, `&t=${tampered}`, '&t=garbage']) {
+    const expired = await calToken(SID, Date.now() - 61 * 1000);
+    const noSid = await signToken({ kind: 'calstart' }, SECRET, 60);
+    const tampered = (await calToken()).slice(0, -2) + 'xx';
+    for (const t of ['', `&t=${studio}`, `&t=${pending}`, `&t=${st}`, `&t=${expired}`, `&t=${noSid}`, `&t=${tampered}`, '&t=garbage']) {
       const res = await start(`intent=calendar${t}`);
       expect(res.status).toBe(401);
       expect(res.headers.get('Location')).toBeNull();
@@ -174,7 +182,7 @@ describe('handleOAuthCallback', () => {
   it('recover for an unknown account is an error, not a pending token', async () => {
     setup({ userinfo: { email: 'nova@x.com', verified_email: true } });
     const { loc, p } = dest(await flow('intent=recover'));
-    expect(loc).toBe(`${ORIGIN}/App_Manicure.html?google_auth=error&msg=Conta%20n%C3%A3o%20encontrada`);
+    expect(loc).toBe(`${ORIGIN}/App_Manicure.html#google_auth=error&msg=Conta%20n%C3%A3o%20encontrada`);
     expect(p.token).toBeUndefined();
   });
 
@@ -253,8 +261,8 @@ describe('handleOAuthCallback', () => {
     setup({ userinfo: { email: 'Agenda@X.com', verified_email: true } });
     const masterBefore = JSON.stringify(fake.db[MASTER]);
     const otherBefore = JSON.stringify(fake.db[SID2]);
-    const { loc, p } = dest(await flow(`intent=calendar&t=${await studioToken()}`));
-    expect(loc).toBe(`${ORIGIN}/App_Manicure.html?gcal=connected`);
+    const { loc, p } = dest(await flow(`intent=calendar&t=${await calToken()}`));
+    expect(loc).toBe(`${ORIGIN}/App_Manicure.html#gcal=connected`);
     expect(p.token).toBeUndefined();
     const cfg = fake.db[SID].Configuracoes;
     const map = Object.fromEntries(cfg.slice(1).map((r) => [r[0], r[1]]));
@@ -268,7 +276,7 @@ describe('handleOAuthCallback', () => {
   });
 
   it('calendar callback with app=1 goes back to the app', async () => {
-    const { loc } = dest(await flow(`intent=calendar&app=1&t=${await studioToken()}`));
+    const { loc } = dest(await flow(`intent=calendar&app=1&t=${await calToken()}`));
     expect(loc).toBe('nailstudiopro://auth?gcal=connected');
   });
 
@@ -283,7 +291,7 @@ describe('handleOAuthCallback', () => {
     });
     fake.db[SID].Configuracoes.push(['GCAL_REFRESH_TOKEN', 'OLDTOKEN', '']);
     const before = JSON.stringify(fake.db[SID]);
-    const { p } = dest(await flow(`intent=calendar&t=${await studioToken()}`));
+    const { p } = dest(await flow(`intent=calendar&t=${await calToken()}`));
     expect(p.google_auth).toBe('error');
     expect(p.msg).toMatch(/Agenda/);
     expect(JSON.stringify(fake.db[SID])).toBe(before);
