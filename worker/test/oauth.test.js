@@ -85,6 +85,8 @@ describe('handleOAuthStart', () => {
     expect(cookie).toMatch(/HttpOnly/);
     expect(cookie).toMatch(/Secure/);
     expect(cookie).toMatch(/SameSite=Lax/);
+    expect(cookie).toMatch(/Path=\/api\/oauth(;|$)/);
+    expect(cookie).toMatch(/Max-Age=600(;|$)/);
     expect(cookieOf(res).split('=')[1]).toBe(state.n);
     expect(res.headers.get('Location')).not.toContain('csecret');
   });
@@ -289,7 +291,9 @@ describe('handleOAuthCallback', () => {
 
   it('the nonce cookie is cleared on the callback response', async () => {
     const res = await flow('intent=login');
-    expect(res.headers.get('Set-Cookie')).toMatch(/^nsp_oauth=;.*Max-Age=0/);
+    const cleared = res.headers.get('Set-Cookie');
+    expect(cleared).toMatch(/^nsp_oauth=;.*Max-Age=0/);
+    for (const attr of [/HttpOnly/, /Secure/, /SameSite=Lax/, /Path=\/api\/oauth(;|$)/]) expect(cleared).toMatch(attr);
     expect(res.headers.get('Cache-Control')).toBe('no-store');
   });
 });

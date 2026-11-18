@@ -9,7 +9,6 @@ import { defaultCatalogTabs } from './admin.js';
 const s = sanitizeCell;
 const TABS = ['Configuracoes', 'Categorias', 'Catalogo', 'Agendamentos', 'Logs_Seguranca'];
 const AG_HEAD = ['ID', 'Data', 'HoraInicio', 'HoraFim', 'ClienteNome', 'ClienteWhatsApp', 'ServicoID', 'ServicoNome', 'Valor', 'MetodoPagamento', 'StatusPagamento', 'StatusReserva', 'CalendarEventID', 'CriadoEm'];
-const MSG_CUSTOM_ACCESS = 'Não foi possível acessar sua planilha. Verifique se clicou no botão Compartilhar na sua planilha e definiu o Acesso Geral para: Qualquer pessoa com o link (Editor)!';
 
 const nowBr = () => new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 const sheetUrl = (sid) => `https://docs.google.com/spreadsheets/d/${sid}/edit`;
@@ -63,15 +62,36 @@ async function provisionNewSheet(g, d) {
   return { sid, ownershipStatus };
 }
 
+const isOutage = (e) => e instanceof GoogleError && (e.status === 429 || e.status >= 500);
+
+// Sem acesso à planilha: pede para compartilhar só com a conta do app, como Editor.
+async function noAccessError(g) {
+  let appEmail = 'a conta do Nail Studio Pro';
+  try {
+    appEmail = await g.serviceAccountEmail();
+  } catch (e) {}
+  return new UserError(`Não consegui acessar sua planilha. No Google Sheets, clique em Compartilhar e adicione ${appEmail} como Editor.`);
+}
+
+// Planilha própria: só aceita se a conta Google verificada for dona ou editora do arquivo.
 async function connectCustomSheet(g, sid, d) {
-  // Testa o acesso de Editor antes de gravar; falha de leitura ou escrita vira a mesma orientação.
+  let perms;
+  try {
+    perms = await g.driveFilePermissions(sid);
+  } catch (e) {
+    if (isOutage(e)) throw e;
+    throw await noAccessError(g);
+  }
+  const mine = perms.some((p) => String(p.emailAddress || '').trim().toLowerCase() === d.rawEmail
+    && (p.role === 'owner' || p.role === 'writer'));
+  if (!mine) throw new UserError('Esta planilha não pertence à sua conta Google.');
+
   try {
     await g.readTab(sid, 'Configuracoes');
     await g.writeTab(sid, 'Configuracoes', configRows(d));
   } catch (e) {
-    // Google fora do ar / cota: não é problema de compartilhamento.
-    if (e instanceof GoogleError && (e.status === 429 || e.status >= 500)) throw e;
-    throw new UserError(MSG_CUSTOM_ACCESS);
+    if (isOutage(e)) throw e;
+    throw await noAccessError(g);
   }
   return { sid, ownershipStatus: 'PROPRIETARIA' };
 }

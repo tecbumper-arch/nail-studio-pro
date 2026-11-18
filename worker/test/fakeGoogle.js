@@ -1,13 +1,16 @@
 // Google falso em memória: um `fetch` que implementa só os endpoints usados por src/google.js.
 // db[sid][tab] = string[][]; calls = [{ method, path, body }].
-// Opções: { ownership: 'transfer' | 'pending' | 'none' } controla shareWithOwner.
+// Opções: { ownership: 'transfer' | 'pending' | 'none' } controla shareWithOwner;
+// { permissions: { [fileId]: [{ emailAddress, role }] } } é o que a listagem de permissões do Drive devolve;
+// { serviceEmail } é o e-mail da conta do servidor (Drive about).
+// calls[i].query guarda a query string (ex.: '?fields=...').
 // fake.fail(status, pathRegex?) faz as próximas chamadas (que casem) devolverem esse status; fail(null) limpa.
 export function createFakeGoogle(seed = {}, opts = {}) {
   const db = JSON.parse(JSON.stringify(seed));
   const calls = [];
   let failure = null;
   let counter = 0;
-  const perms = {};
+  const filePerms = JSON.parse(JSON.stringify(opts.permissions || {}));
 
   const json = (obj, status = 200) =>
     new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
@@ -20,7 +23,7 @@ export function createFakeGoogle(seed = {}, opts = {}) {
     if (typeof body === 'string' && body.trim().startsWith('{')) {
       try { body = JSON.parse(body); } catch (e) {}
     }
-    calls.push({ method, path, body });
+    calls.push({ method, path, body, query: url.search });
 
     if (failure && failure.re.test(path)) return json({ error: { message: 'fake failure' } }, failure.status);
 
@@ -60,7 +63,14 @@ export function createFakeGoogle(seed = {}, opts = {}) {
 
     m = path.match(/^\/drive\/v3\/files\/([^/]+)\/permissions(?:\/([^/]+))?$/);
     if (m) {
-      if (method === 'POST') { const id = 'perm-' + ++counter; perms[id] = body; return json({ id }); }
+      if (method === 'GET') {
+        return filePerms[m[1]] ? json({ permissions: filePerms[m[1]] }) : json({ error: { message: 'File not found' } }, 404);
+      }
+      if (method === 'POST') {
+        const id = 'perm-' + ++counter;
+        (filePerms[m[1]] ||= []).push({ id, emailAddress: body.emailAddress, role: body.role });
+        return json({ id });
+      }
       if (method === 'PATCH') {
         const mode = opts.ownership || 'transfer';
         if (url.searchParams.get('transferOwnership') === 'true') {
@@ -68,6 +78,10 @@ export function createFakeGoogle(seed = {}, opts = {}) {
         }
         return mode === 'pending' ? json({}) : json({ error: { message: 'no pending' } }, 403);
       }
+    }
+
+    if (method === 'GET' && path === '/drive/v3/about') {
+      return json({ user: { emailAddress: opts.serviceEmail || 'motor@nailstudio.example' } });
     }
 
     if (method === 'POST' && path === '/calendar/v3/calendars/primary/events') return json({ id: 'fake-event-' + ++counter });

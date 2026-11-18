@@ -152,6 +152,28 @@ export function createGoogle(env, fetchImpl = fetch) {
       return status;
     },
 
+    // Quem tem acesso ao arquivo (e com qual papel), visto pela conta do servidor.
+    async driveFilePermissions(sid) {
+      const res = await ok(
+        await authed(`${apiHost}/drive/v3/files/${encodeURIComponent(sid)}/permissions?fields=${encodeURIComponent('permissions(emailAddress,role)')}`, 'GET'),
+        'Listar permissões'
+      );
+      const data = await res.json();
+      return (data.permissions || []).map((p) => ({ emailAddress: p.emailAddress || '', role: p.role || '' }));
+    },
+
+    // E-mail da conta Google do servidor (dona das planilhas criadas pelo app).
+    async serviceAccountEmail() {
+      const res = await ok(
+        await authed(`${apiHost}/drive/v3/about?fields=${encodeURIComponent('user(emailAddress)')}`, 'GET'),
+        'Ler conta do servidor'
+      );
+      const data = await res.json();
+      const email = data && data.user && data.user.emailAddress;
+      if (!email) throw new GoogleError('Resposta do Drive sem e-mail', 502);
+      return String(email);
+    },
+
     async calendarAccessToken(refreshToken) {
       const data = await refreshAccessToken(refreshToken);
       return data.access_token;

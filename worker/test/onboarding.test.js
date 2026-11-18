@@ -10,6 +10,8 @@ const SID = 'studio-1';
 const MASTER = 'master-1';
 const CUSTOM = '1AbCdEfGhIjKlMnOpQrStUvWxYz_0123456789-abcd';
 const SECRET = 'test-secret';
+const APP_EMAIL = 'motor@nailstudio.example';
+const MINE = [{ emailAddress: 'Nova@X.com', role: 'writer' }, { emailAddress: APP_EMAIL, role: 'owner' }];
 const ORIGIN = 'https://w.example';
 const CONTAS_HEAD = ['Email', 'Profissional', 'Studio', 'SheetId', 'SheetUrl', 'ClientLink', 'PinHash', 'RecHash', 'CriadoEm'];
 
@@ -22,9 +24,9 @@ function seed() {
 }
 
 let fake, ctx;
-function setup(opts) {
+function setup(opts = {}) {
   resetGoogleTokenCache();
-  fake = createFakeGoogle(seed(), opts);
+  fake = createFakeGoogle(seed(), { permissions: { [CUSTOM]: MINE }, serviceEmail: APP_EMAIL, ...opts });
   const env = { GOOGLE_CLIENT_ID: 'x', GOOGLE_CLIENT_SECRET: 'y', GOOGLE_REFRESH_TOKEN: 'z', SESSION_SECRET: SECRET, MASTER_SPREADSHEET_ID: MASTER };
   const g = createGoogle(env, fake.fetch);
   ctx = { env, g, origin: ORIGIN, waitUntil() {}, session: { kind: 'pending', email: 'nova@x.com', name: 'Nova', exp: 9999999999 } };
@@ -128,11 +130,57 @@ describe('completeInitialOnboarding', () => {
     }
   });
 
-  it('custom sheet without access explains how to share it and registers nothing', async () => {
+  it('custom sheet is accepted when the Google account is its owner or an editor', async () => {
+    for (const role of ['owner', 'writer']) {
+      setup({ permissions: { [CUSTOM]: [{ emailAddress: 'other@x.com', role: 'reader' }, { emailAddress: 'NOVA@x.com', role }] } });
+      const r = await run({ ...P(), customSheetId: CUSTOM });
+      expect(r.spreadsheetId).toBe(CUSTOM);
+      expect(contas()[2][3]).toBe(CUSTOM);
+      const permCall = fake.calls.find((c) => c.method === 'GET' && c.path === `/drive/v3/files/${CUSTOM}/permissions`);
+      expect(permCall.query).toContain('fields=');
+    }
+  });
+
+  it('a sheet that is not shared with the Google account (or only as reader) is refused', async () => {
+    const msg = 'Esta planilha não pertence à sua conta Google.';
+    const cases = [
+      [{ emailAddress: 'other@x.com', role: 'owner' }, { emailAddress: APP_EMAIL, role: 'writer' }],
+      [{ emailAddress: 'nova@x.com', role: 'reader' }, { emailAddress: 'nova@x.com', role: 'commenter' }],
+      [{ role: 'writer', type: 'anyone' }, { emailAddress: 'nova@x.com.evil', role: 'writer' }],
+      [],
+    ];
+    for (const perms of cases) {
+      setup({ permissions: { [CUSTOM]: perms } });
+      await expectReject(run({ ...P(), customSheetId: CUSTOM }), UserError, msg);
+      expect(writes()).toHaveLength(0);
+      expect(contas()).toHaveLength(2);
+    }
+  });
+
+  it('custom sheet without access asks to share it with the app account as Editor and registers nothing', async () => {
+    const expected = `Não consegui acessar sua planilha. No Google Sheets, clique em Compartilhar e adicione ${APP_EMAIL} como Editor.`;
+    // sem acesso para listar as permissões
     fake.fail(403, new RegExp(CUSTOM));
-    await expectReject(run({ ...P(), customSheetId: CUSTOM }), UserError,
-      'Não foi possível acessar sua planilha. Verifique se clicou no botão Compartilhar na sua planilha e definiu o Acesso Geral para: Qualquer pessoa com o link (Editor)!');
+    let err = await expectReject(run({ ...P(), customSheetId: CUSTOM }), UserError, expected);
+    expect(err.message).not.toMatch(/qualquer pessoa/i);
+    expect(writes()).toHaveLength(0);
     expect(contas()).toHaveLength(2);
+
+    // permissões ok, mas a gravação na planilha é recusada
+    setup();
+    fake.fail(403, new RegExp(`^/v4/spreadsheets/${CUSTOM}`));
+    await expectReject(run({ ...P(), customSheetId: CUSTOM }), UserError, expected);
+    expect(contas()).toHaveLength(2);
+
+    // e-mail do app indisponível: texto genérico
+    setup();
+    fake.fail(403, new RegExp(`${CUSTOM}|^/drive/v3/about$`));
+    err = await expectReject(run({ ...P(), customSheetId: CUSTOM }), UserError,
+      'Não consegui acessar sua planilha. No Google Sheets, clique em Compartilhar e adicione a conta do Nail Studio Pro como Editor.');
+    expect(err.message).not.toMatch(/qualquer pessoa/i);
+
+    // Google fora do ar não vira orientação de compartilhamento
+    setup();
     fake.fail(503, new RegExp(CUSTOM));
     await expectReject(run({ ...P(), customSheetId: CUSTOM }), GoogleError);
     expect(contas()).toHaveLength(2);
