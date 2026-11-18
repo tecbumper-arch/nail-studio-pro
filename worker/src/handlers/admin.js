@@ -3,8 +3,9 @@
 import { UserError } from '../errors.js';
 import { normalizeBrPhone, toMin, fromMin, newId, sanitizeCell } from '../util.js';
 import {
-  loadStudio, publicStudio, readCategorias, readCatalogo, readAgendamentos, syncCalendar,
+  loadStudio, publicStudio, readCategorias, readCatalogo, readAgendamentos,
 } from '../studio.js';
+import { syncCalendar, isRealEventId } from '../calendar.js';
 
 const CAT_HEAD = ['ID', 'Nome', 'Icone', 'Ordem', 'Ativo'];
 const SRV_HEAD = ['ID', 'Nome', 'Descricao', 'Preco', 'DuracaoMin', 'FotoUrl', 'Categoria', 'Ativo'];
@@ -154,12 +155,8 @@ export const adminHandlers = {
         } else if (action === 'CANCELAR_RESERVA') {
           rows[i][11] = 'CANCELADO';
           const calId = rows[i][12];
-          if (calId && !String(calId).startsWith('DELETED_')) {
-            try {
-              await syncCalendar(ctx, 'DELETE', null, calId);
-              rows[i][12] = 'DELETED_' + calId;
-            } catch (e) {}
-          }
+          // Só marca depois de a Agenda confirmar; se falhar, o id fica para nova tentativa.
+          if (isRealEventId(calId) && (await syncCalendar(ctx, 'DELETE', null, calId))) rows[i][12] = 'DELETED_' + calId;
         }
         await ctx.g.writeTab(sid, 'Agendamentos', rows);
         break;
@@ -182,11 +179,18 @@ export const adminHandlers = {
       ]);
     } else {
       const fimMin = toMin(p.horaInicio) + Number(p.duracaoMin || 60);
+      const horaFim = fromMin(fimMin);
+      const phone = normalizeBrPhone(p.clienteWhatsApp);
+      const sync = await syncCalendar(ctx, 'CREATE', {
+        id, data: p.data, horaInicio: p.horaInicio, horaFim,
+        clienteNome: p.clienteNome, clienteWhatsApp: phone,
+        servicoNome: p.servicoNome, valor: Number(p.valor || 0),
+      });
       await ctx.g.appendRow(sid, 'Agendamentos', [
-        id, p.data, p.horaInicio, fromMin(fimMin),
-        s(p.clienteNome), normalizeBrPhone(p.clienteWhatsApp),
+        id, p.data, p.horaInicio, horaFim,
+        s(p.clienteNome), phone,
         p.servicoId || 'MANUAL', s(p.servicoNome), Number(p.valor || 0), p.metodoPagamento || 'NO_LOCAL',
-        p.statusPagamento || 'PAGAR_NO_STUDIO', 'CONFIRMADO', 'GCAL-' + id, nowStr,
+        p.statusPagamento || 'PAGAR_NO_STUDIO', 'CONFIRMADO', (sync && sync.eventId) || 'GCAL-' + id, nowStr,
       ]);
     }
     return dashboard(ctx);

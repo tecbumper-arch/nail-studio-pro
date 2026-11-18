@@ -3,8 +3,9 @@ import { UserError } from '../errors.js';
 import { normalizeBrPhone, toMin, fromMin, newId, saoPauloNow, sanitizeCell } from '../util.js';
 import { buildPixBrCode } from '../pix.js';
 import {
-  loadStudio, publicStudio, assertKnownStudio, readCategorias, readCatalogo, readAgendamentos, syncCalendar,
+  loadStudio, publicStudio, assertKnownStudio, readCategorias, readCatalogo, readAgendamentos,
 } from '../studio.js';
+import { syncCalendar, isRealEventId } from '../calendar.js';
 
 const PAYMENT_METHODS = ['NO_LOCAL', 'PIX_TOTAL', 'PIX_SINAL_50'];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -109,15 +110,13 @@ export const publicHandlers = {
     const nowStr = new Date(ctx.now || Date.now()).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
     const phone = waPhone(p.clienteWhatsApp);
 
-    let calendarEventId = 'GCAL-' + id;
-    try {
-      const sync = await syncCalendar(ctx, 'CREATE', {
-        id, data: p.data, horaInicio: p.horaInicio, horaFim: slot.horaFim,
-        clienteNome: nome, clienteWhatsApp: phone,
-        servicoNome: srv.nome, valor: srv.preco, metodoPagamento: metodo,
-      });
-      if (sync && sync.eventId) calendarEventId = sync.eventId;
-    } catch (e) {}
+    // O id do evento vai para a planilha, então esperamos a Agenda; falha nunca bloqueia a reserva.
+    const sync = await syncCalendar(ctx, 'CREATE', {
+      id, data: p.data, horaInicio: p.horaInicio, horaFim: slot.horaFim,
+      clienteNome: nome, clienteWhatsApp: phone,
+      servicoNome: srv.nome, valor: srv.preco, metodoPagamento: metodo,
+    });
+    const calendarEventId = (sync && sync.eventId) || 'GCAL-' + id;
 
     await ctx.g.appendRow(ctx.sid, 'Agendamentos', [
       id, p.data, p.horaInicio, slot.horaFim, sanitizeCell(nome), phone,
@@ -177,12 +176,8 @@ export const publicHandlers = {
       if (row && row[0] === reservaId && normalizeBrPhone(row[5] || '').slice(-8) === last8) {
         row[11] = 'CANCELADO';
         const calId = row[12];
-        if (calId && !String(calId).startsWith('DELETED_')) {
-          try {
-            await syncCalendar(ctx, 'DELETE', null, calId);
-            row[12] = 'DELETED_' + calId;
-          } catch (e) {}
-        }
+        // Só marca depois de a Agenda confirmar; se falhar, o id fica para nova tentativa.
+        if (isRealEventId(calId) && (await syncCalendar(ctx, 'DELETE', null, calId))) row[12] = 'DELETED_' + calId;
         await ctx.g.writeTab(ctx.sid, 'Agendamentos', agRows);
         return { success: true };
       }

@@ -73,6 +73,10 @@ export function createFakeGoogle(seed = {}, opts = {}) {
     if (method === 'POST' && path === '/calendar/v3/calendars/primary/events') return json({ id: 'fake-event-' + ++counter });
     if (method === 'DELETE' && path.startsWith('/calendar/v3/calendars/primary/events/')) return new Response(null, { status: 204 });
 
+    if (method === 'POST' && url.hostname === 'script.google.com') {
+      return json({ success: true, eventId: 'hook-event-' + ++counter });
+    }
+
     return json({ error: { message: `fake google: unhandled ${method} ${path}` } }, 404);
   }
 

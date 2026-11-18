@@ -180,6 +180,19 @@ export function createGoogle(env, fetchImpl = fetch) {
       await ok(res, 'Apagar evento');
     },
 
+    // Web App do Apps Script do studio (só script.google.com; quem chama valida a URL).
+    async postWebhook(url, payload) {
+      const res = await ok(
+        await call(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload),
+        }),
+        'Webhook da Agenda'
+      );
+      return res.json();
+    },
+
     async exchangeCode(code, redirectUri) {
       const body = new URLSearchParams({
         code,

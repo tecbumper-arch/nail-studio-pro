@@ -1,9 +1,6 @@
 // Leitura do studio (Configuracoes, Categorias, Catalogo, Agendamentos) e validação de sid.
 import { UserError } from './errors.js';
 
-// Substituído pela Task 6 (sincronização com Google Calendar).
-export const syncCalendar = async () => {};
-
 const DEFAULT_CATEGORIAS = [
   { id: 'CAT-01', nome: 'Alongamentos', icone: '💅', ordem: 1, ativo: true },
   { id: 'CAT-02', nome: 'Manicure & Pedicure', icone: '✨', ordem: 2, ativo: true },

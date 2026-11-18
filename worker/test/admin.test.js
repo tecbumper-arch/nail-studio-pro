@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createFakeGoogle } from './fakeGoogle.js';
 import { createGoogle, resetGoogleTokenCache } from '../src/google.js';
 import { adminHandlers as h } from '../src/handlers/admin.js';
@@ -28,12 +28,11 @@ function studioSeed(nome) {
   };
 }
 
-let fake, ctx, syncs;
+let fake, ctx;
 beforeEach(() => {
   resetGoogleTokenCache();
   fake = createFakeGoogle({ [A]: studioSeed('Studio A'), [B]: studioSeed('Studio B') });
   const g = createGoogle({ GOOGLE_CLIENT_ID: 'x', GOOGLE_CLIENT_SECRET: 'y', GOOGLE_REFRESH_TOKEN: 'z' }, fake.fetch);
-  syncs = [];
   ctx = { env: {}, g, origin: 'https://w.example', waitUntil() {}, session: { sid: A, email: 'a@x.com' } };
 });
 
@@ -119,5 +118,49 @@ describe('admin handlers', () => {
     expect(rows[3][5]).toBe('11999990000');
     expect(rows[4][0]).toMatch(/^BLQ-/);
     expect(rows[4][11]).toBe('BLOQUEADO');
+  });
+
+  const evCalls = (m) => fake.calls.filter((c) => c.method === m && c.path.startsWith('/calendar/v3/calendars/primary/events'));
+  const setCfg = (k, v) => { const r = fake.db[A].Configuracoes.find((x) => x[0] === k); r[1] = v; };
+
+  it('CANCELAR_RESERVA deletes the stored calendar event, then marks column 13', async () => {
+    await h.adminUpdateBookingStatus(ctx, 'AG-1', 'CANCELAR_RESERVA');
+    expect(evCalls('DELETE').map((c) => c.path)).toEqual(['/calendar/v3/calendars/primary/events/ev1']);
+    expect(fake.db[A].Agendamentos[1][12]).toBe('DELETED_ev1');
+  });
+
+  it('CANCELAR_RESERVA with a failing calendar still cancels but keeps the event id', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    fake.fail(500, /\/calendar\//);
+    await h.adminUpdateBookingStatus(ctx, 'AG-1', 'CANCELAR_RESERVA');
+    expect(fake.db[A].Agendamentos[1][11]).toBe('CANCELADO');
+    expect(fake.db[A].Agendamentos[1][12]).toBe('ev1');
+  });
+
+  it('CANCELAR_RESERVA does not call the calendar for DELETED_ or GCAL- ids', async () => {
+    fake.db[A].Agendamentos[1][12] = 'DELETED_ev1';
+    fake.db[A].Agendamentos[2][12] = 'GCAL-AG-2';
+    await h.adminUpdateBookingStatus(ctx, 'AG-1', 'CANCELAR_RESERVA');
+    await h.adminUpdateBookingStatus(ctx, 'AG-2', 'CANCELAR_RESERVA');
+    expect(evCalls('DELETE')).toHaveLength(0);
+    expect(fake.db[A].Agendamentos[1][12]).toBe('DELETED_ev1');
+    expect(fake.db[A].Agendamentos[2][12]).toBe('GCAL-AG-2');
+  });
+
+  it('manual booking creates a calendar event; a block does not', async () => {
+    await h.adminCreateManualBookingOrBlock(ctx, { tipo: 'RESERVA', data: '2030-02-01', horaInicio: '10:00', duracaoMin: 90, clienteNome: 'Zé', clienteWhatsApp: '5511999990000', servicoNome: 'Gel', valor: 80 });
+    expect(evCalls('POST')).toHaveLength(1);
+    expect(evCalls('POST')[0].body.end.dateTime).toBe('2030-02-01T11:30:00');
+    expect(fake.db[A].Agendamentos[3][12]).toMatch(/^fake-event-/);
+    await h.adminCreateManualBookingOrBlock(ctx, { tipo: 'BLOQUEIO', data: '2030-02-02', horaInicio: '10:00', horaFim: '12:00', motivo: 'Folga' });
+    expect(evCalls('POST')).toHaveLength(1);
+    expect(fake.db[A].Agendamentos[4][12]).toMatch(/^GCAL-BLQ-/);
+  });
+
+  it('manual booking with calendar down still saves with a GCAL- placeholder', async () => {
+    setCfg('GCAL_REFRESH_TOKEN', '');
+    setCfg('GCAL_WEBHOOK_URL', '');
+    await h.adminCreateManualBookingOrBlock(ctx, { tipo: 'RESERVA', data: '2030-02-01', horaInicio: '10:00', duracaoMin: 60, clienteNome: 'Zé', clienteWhatsApp: '5511999990000', servicoNome: 'Gel', valor: 80 });
+    expect(fake.db[A].Agendamentos[3][12]).toMatch(/^GCAL-AG-/);
   });
 });
