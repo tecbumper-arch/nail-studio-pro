@@ -27,7 +27,8 @@ async function readConfig(ctx, sid) {
   };
 }
 
-async function upsertConfig(ctx, sid, updates) {
+// Grava chaves em Configuracoes (ler-alterar-gravar), preservando as demais linhas.
+export async function upsertConfig(ctx, sid, updates) {
   const rows = await ctx.g.readTab(sid, 'Configuracoes');
   const out = rows.length ? rows.map((r) => [...r]) : [['Chave', 'Valor', 'Descricao']];
   for (const [k, val] of Object.entries(updates)) {

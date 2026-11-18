@@ -3,7 +3,7 @@
 import { UserError } from '../errors.js';
 import { normalizeBrPhone, toMin, fromMin, newId, sanitizeCell } from '../util.js';
 import {
-  loadStudio, publicStudio, readCategorias, readCatalogo, readAgendamentos,
+  loadStudio, publicStudio, readCategorias, readCatalogo, readAgendamentos, DEFAULT_CATEGORIAS,
 } from '../studio.js';
 import { syncCalendar, isRealEventId } from '../calendar.js';
 
@@ -41,6 +41,21 @@ async function dashboard(ctx) {
 }
 
 const catRow = (c) => [c.id, c.nome, c.icone, String(c.ordem), c.ativo ? 'SIM' : 'NAO'];
+
+// Categorias e serviços padrão (como App_Manicure.html:1453-1468); usados no seed e no onboarding.
+export function defaultCatalogTabs() {
+  const photo = (id) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=400&q=80`;
+  return {
+    Categorias: [CAT_HEAD, ...DEFAULT_CATEGORIAS.map(catRow)],
+    Catalogo: [
+      SRV_HEAD,
+      ['SRV-101', 'Alongamento em Fibra de Vidro', 'Alongamento resistente com acabamento natural, curvatura perfeita e esmaltação em gel inclusa.', '160', '120', photo('photo-1604654894610-df63bc536371'), 'Alongamentos', 'SIM'],
+      ['SRV-102', 'Manutenção de Alongamento', 'Manutenção completa (até 21 dias), nivelamento, cuticulagem e nova esmaltação.', '110', '90', photo('photo-1519014816548-bf5fe059798b'), 'Alongamentos', 'SIM'],
+      ['SRV-103', 'Banho de Gel / Blindagem', 'Camada protetora de gel sobre a unha natural para maior durabilidade e brilho intenso.', '90', '60', photo('photo-1632345031435-8727f6897d53'), 'Blindagem & Banho de Gel', 'SIM'],
+      ['SRV-104', 'Pé e Mão Tradicional Completo', 'Cuticulagem funda, hidratação e esmaltação tradicional completa (mãos e pés).', '70', '60', photo('photo-1522337360788-8b13dee7a37e'), 'Manicure & Pedicure', 'SIM'],
+    ],
+  };
+}
 
 export const adminHandlers = {
   getAdminDashboardData: (ctx) => dashboard(ctx),
@@ -86,15 +101,7 @@ export const adminHandlers = {
   },
 
   async adminSeedDefaultCatalog(ctx) {
-    const photo = (id) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=400&q=80`;
-    const rows = [
-      SRV_HEAD,
-      ['SRV-101', 'Alongamento em Fibra de Vidro', 'Alongamento resistente com acabamento natural, curvatura perfeita e esmaltação em gel inclusa.', '160', '120', photo('photo-1604654894610-df63bc536371'), 'Alongamentos', 'SIM'],
-      ['SRV-102', 'Manutenção de Alongamento', 'Manutenção completa (até 21 dias), nivelamento, cuticulagem e nova esmaltação.', '110', '90', photo('photo-1519014816548-bf5fe059798b'), 'Alongamentos', 'SIM'],
-      ['SRV-103', 'Banho de Gel / Blindagem', 'Camada protetora de gel sobre a unha natural para maior durabilidade e brilho intenso.', '90', '60', photo('photo-1632345031435-8727f6897d53'), 'Blindagem & Banho de Gel', 'SIM'],
-      ['SRV-104', 'Pé e Mão Tradicional Completo', 'Cuticulagem funda, hidratação e esmaltação tradicional completa (mãos e pés).', '70', '60', photo('photo-1522337360788-8b13dee7a37e'), 'Manicure & Pedicure', 'SIM'],
-    ];
-    await ctx.g.writeTab(sidOf(ctx), 'Catalogo', rows);
+    await ctx.g.writeTab(sidOf(ctx), 'Catalogo', defaultCatalogTabs().Catalogo);
     return dashboard(ctx);
   },
 

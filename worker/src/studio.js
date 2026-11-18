@@ -1,7 +1,7 @@
 // Leitura do studio (Configuracoes, Categorias, Catalogo, Agendamentos) e validação de sid.
 import { UserError } from './errors.js';
 
-const DEFAULT_CATEGORIAS = [
+export const DEFAULT_CATEGORIAS = [
   { id: 'CAT-01', nome: 'Alongamentos', icone: '💅', ordem: 1, ativo: true },
   { id: 'CAT-02', nome: 'Manicure & Pedicure', icone: '✨', ordem: 2, ativo: true },
   { id: 'CAT-03', nome: 'Blindagem & Banho de Gel', icone: '💎', ordem: 3, ativo: true },

@@ -56,11 +56,17 @@ export const authHandlers = {
   },
 };
 
+// Regras de PIN novo (troca de PIN e onboarding). Devolve o PIN limpo.
+export function validateNewPin(raw) {
+  const pin = String(raw || '').trim();
+  if (!/^\d{4,6}$/.test(pin)) throw new UserError('O PIN precisa ter de 4 a 6 números.');
+  if (pin === '123456') throw new UserError('Escolha um PIN diferente de 123456.');
+  return pin;
+}
+
 export const adminAuthHandlers = {
   async adminSetPin(ctx, { novoPin } = {}) {
-    const pin = String(novoPin || '').trim();
-    if (!/^\d{4,6}$/.test(pin)) throw new UserError('O PIN precisa ter de 4 a 6 números.');
-    if (pin === '123456') throw new UserError('Escolha um PIN diferente de 123456.');
+    const pin = validateNewPin(novoPin);
     const sid = ctx.session.sid;
     const hash = await sha256Hex(pin);
     const rows = await ctx.g.readTab(sid, 'Configuracoes');
