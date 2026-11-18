@@ -17,7 +17,7 @@ export async function findAccountByEmail(g, env, email) {
 }
 
 export function issueStudioSession(env, { sid, email }, now) {
-  return signToken({ kind: 'studio', sid, email }, env.SESSION_SECRET, STUDIO_TTL, now ? now.getTime() : undefined);
+  return signToken({ kind: 'studio', sid, email }, env.SESSION_SECRET, STUDIO_TTL, now ? new Date(now).getTime() : undefined);
 }
 
 export const authHandlers = {

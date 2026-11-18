@@ -60,6 +60,22 @@ describe('authenticateAdmin', () => {
     expect(fake.calls.length).toBe(reads);
   });
 
+  it('accepts ctx.now as a Date or a number and signs relative to it', async () => {
+    const t = Date.parse('2030-01-01T00:00:00Z');
+    for (const now of [new Date(t), t]) {
+      const r = await authHandlers.authenticateAdmin({ ...ctx, now }, { loginId: 'ana@x.com', pin: '4321' });
+      const p = await verifyToken(r.token, SECRET, t);
+      expect(p.exp).toBe(Math.floor(t / 1000) + 2592000);
+    }
+  });
+
+  it('email casing and spaces share one lock counter', async () => {
+    await expect(authHandlers.authenticateAdmin(ctx, { loginId: ' ANA@x.com ', pin: '0' })).rejects.toThrow();
+    await expect(authHandlers.authenticateAdmin(ctx, { loginId: 'ana@X.COM', pin: '0' })).rejects.toThrow();
+    expect([...ctx.env.RATE_LIMIT.m.keys()]).toEqual(['pin:ana@x.com']);
+    expect(ctx.env.RATE_LIMIT.m.get('pin:ana@x.com')).toBe('2');
+  });
+
   it('success clears the failure counter', async () => {
     await expect(authHandlers.authenticateAdmin(ctx, { loginId: 'ana@x.com', pin: '0000' })).rejects.toThrow();
     await authHandlers.authenticateAdmin(ctx, { loginId: 'ana@x.com', pin: '4321' });
@@ -71,6 +87,16 @@ describe('authenticateAdmin', () => {
     await expect(authHandlers.authenticateAdmin(ctx, { loginId: 'ana@x.com', pin: '123456' })).rejects.toThrow('Defina um PIN: entre com Google e crie um novo PIN.');
     await setup(null);
     await expect(authHandlers.authenticateAdmin(ctx, { loginId: 'ana@x.com', pin: '123456' })).rejects.toThrow('Defina um PIN');
+  });
+});
+
+describe('adminSetPin isolation', () => {
+  it('leaves another studio and the master sheet unchanged', async () => {
+    await setup(null);
+    fake.db['studio-2'] = { Configuracoes: [['Chave', 'Valor', 'Descricao'], ['ADMIN_PIN_HASH', 'OTHER', '']] };
+    const before = JSON.stringify({ o: fake.db['studio-2'], m: fake.db[MASTER] });
+    await adminAuthHandlers.adminSetPin(ctx, { novoPin: '9876' });
+    expect(JSON.stringify({ o: fake.db['studio-2'], m: fake.db[MASTER] })).toBe(before);
   });
 });
 
