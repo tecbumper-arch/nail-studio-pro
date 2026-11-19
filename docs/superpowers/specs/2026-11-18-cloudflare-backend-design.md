@@ -173,6 +173,8 @@ Chamadas do construtor (a dona pode corrigir):
   cancelar reservas de quem souber o número — comportamento atual, mantido.
 - As planilhas de studio criadas com "qualquer pessoa com o link pode editar" continuam
   assim; restringir o compartilhamento é um passo seguinte.
+- O contador de falhas de PIN no Workers KV não é atômico: rajadas paralelas podem
+  ultrapassar as 5 tentativas / 15 min. Melhoria futura: contador em Durable Object.
 - O plano Free do Workers tem 100 mil requisições/dia e limite de CPU por requisição;
   folgado para o volume esperado.
 

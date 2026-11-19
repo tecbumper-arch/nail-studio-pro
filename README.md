@@ -4,17 +4,19 @@ Aplicativo Mobile Android (`.APK`) e Plataforma Web SaaS Multi-Contas para **Man
 
 ---
 
-## 🚀 Links Oficiais em Produção (24/7)
+## 🚀 Links (Cloudflare Worker)
 
-- 📲 **Download Direto do Aplicativo Android (`NailStudioPro.apk`):**
-  - 👉 **[Baixar pela Release Oficial do GitHub (v2.2.0)](https://github.com/tecbumper-arch/nail-studio-pro/releases/latest/download/NailStudioPro.apk)**
-  - 👉 **[Baixar pelo Servidor Cloud 24h](https://nailstudiopro-app.surge.sh/NailStudioPro.apk)**
-- 💅 **Painel da Manicure (Web / Mobile 24h):**
-  - 👉 **[Abrir via GitHub Pages](https://tecbumper-arch.github.io/nail-studio-pro/App_Manicure.html)**
-  - 👉 **[Abrir via Servidor Cloud 24h](https://nailstudiopro-app.surge.sh/App_Manicure.html)**
-- 📅 **Página Pública de Agendamento da Cliente (24h):**
-  - 👉 **[Abrir via GitHub Pages](https://tecbumper-arch.github.io/nail-studio-pro/Pagina_Cliente.html)**
-  - 👉 **[Abrir via Servidor Cloud 24h](https://nailstudiopro-app.surge.sh/Pagina_Cliente.html)**
+> **Atenção:** as versões ≤ v2.2 (APK antigo, páginas no GitHub Pages / surge.sh) usavam uma credencial Google embutida no código e **devem ser substituídas** pela versão v3 abaixo. Os endereços antigos agora só redirecionam para o Worker.
+
+Substitua `<worker>` pelo endereço do seu Worker (ex.: `https://nail-studio-pro.SEU-SUBDOMINIO.workers.dev`; veja `worker/README.md`).
+
+- 💅 **Painel da Manicure:** `https://<worker>/App_Manicure.html`
+- 📅 **Página pública da cliente:** `https://<worker>/Pagina_Cliente.html?s=<id-do-studio>`
+- 📲 **APK:** gerar um novo (`android-app/`) apontando para o Worker e distribuir o novo arquivo.
+
+**Arquitetura em 3 linhas:** o navegador/APK só fala com o Cloudflare Worker (`/api/*`); o Worker guarda as credenciais Google como secrets e é o único que acessa Google Sheets e Agenda; as páginas (`worker/public`) não contêm nenhuma credencial.
+
+Guia de deploy: [`worker/README.md`](worker/README.md).
 
 ---
 
@@ -23,8 +25,8 @@ Aplicativo Mobile Android (`.APK`) e Plataforma Web SaaS Multi-Contas para **Man
 1. **Autenticação Real com Contas Google do Aparelho (`AccountManager`):**
    - No Android, utiliza o seletor nativo oficial do sistema (`AccountManager.newChooseAccountIntent` para `"com.google"`), permitindo login exclusivo com contas Google reais cadastradas no aparelho.
    - Criação e provisionamento automático da planilha individual do Studio no Google Drive no primeiro acesso.
-2. **100% Independente de Computador (Arquitetura Cloud-Direct):**
-   - O APK carrega instantaneamente a partir dos assets internos (`file:///android_asset/App_Manicure.html`) e comunica-se diretamente com as APIs do Google Cloud (`sheets.googleapis.com` e `googleapis.com/calendar/v3`).
+2. **100% Independente de Computador (Cloudflare Worker):**
+   - O APK abre o Worker no WebView; o Worker conversa com as APIs do Google (Sheets e Agenda) usando secrets guardados no servidor.
 3. **Sincronização em Tempo Real com Google Agenda:**
    - Novos agendamentos feitos pela cliente ou pela profissional entram automaticamente na Google Agenda.
    - Cancelamentos removem o evento da Google Agenda e liberam o horário na hora.
@@ -37,5 +39,6 @@ Aplicativo Mobile Android (`.APK`) e Plataforma Web SaaS Multi-Contas para **Man
 
 ## 📂 Estrutura do Repositório
 
-- `NailApp_Sheets/`: Aplicação Web Mobile-First (`App_Manicure.html`, `Pagina_Cliente.html`), script Google Apps Script (`Code.gs`) e utilitários.
+- `worker/`: Cloudflare Worker (API em `src/`, páginas em `public/`, testes) e guia de deploy.
+- `NailApp_Sheets/`: páginas de redirecionamento para o Worker, script Google Apps Script (`Code.gs`) e utilitários legados.
 - `android-app/`: Código-fonte nativo do aplicativo Android em Kotlin (`MainActivity.kt`, WebView imersivo, ponte nativa `AndroidNativeBridge` e integração com `AccountManager`).

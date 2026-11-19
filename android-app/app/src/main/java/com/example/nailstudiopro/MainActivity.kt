@@ -14,9 +14,7 @@ import android.os.Message
 import android.webkit.JavascriptInterface
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
-import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
-import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -31,9 +29,8 @@ import androidx.core.view.WindowInsetsControllerCompat
 class MainActivity : ComponentActivity() {
 
     companion object {
-        const val BASE_URL = "https://nailstudiopro-app.surge.sh"
-        const val LOCAL_ASSET_MANICURE = "file:///android_asset/App_Manicure.html"
-        const val LOCAL_ASSET_CLIENTE = "file:///android_asset/Pagina_Cliente.html"
+        // TROQUE pela URL real do Worker após o deploy (veja worker/README.md)
+        const val BASE_URL = "https://nail-studio-pro.SEU-SUBDOMINIO.workers.dev"
     }
 
     private lateinit var webView: WebView
@@ -47,14 +44,10 @@ class MainActivity : ComponentActivity() {
             val email = result.data?.getStringExtra(AccountManager.KEY_ACCOUNT_NAME)
             val accType = result.data?.getStringExtra(AccountManager.KEY_ACCOUNT_TYPE)
             if (!email.isNullOrBlank() && (accType == null || accType == "com.google")) {
-                val safeEmail = email.trim().lowercase().replace("'", "")
-                val deviceProof = "ANDROID_OS_VERIFIED_" + android.util.Base64.encodeToString(
-                    ("NAIL_ACCOUNTS_V2:" + safeEmail).toByteArray(Charsets.UTF_8),
-                    android.util.Base64.NO_WRAP
-                )
+                val safeEmail = email.trim().lowercase().replace("'", "").replace("\\", "")
                 webView.post {
                     webView.evaluateJavascript(
-                        "if (typeof window.onAndroidDeviceGoogleAccountSelected === 'function') { window.onAndroidDeviceGoogleAccountSelected('$safeEmail', '$deviceProof'); }",
+                        "if (typeof window.onAndroidDeviceGoogleAccountSelected === 'function') { window.onAndroidDeviceGoogleAccountSelected('$safeEmail'); }",
                         null
                     )
                 }
@@ -122,17 +115,25 @@ class MainActivity : ComponentActivity() {
                         null
                     )
                     accountPickerLauncher.launch(intent)
-                } catch (e: Exception) {
-                    // Fallback para o OAuth 2.0 Oficial Direto com Google Cloud (sem servidor PC)
-                    val oauthUrl = "https://accounts.google.com/o/oauth2/v2/auth" +
-                        "?client_id=${"1071006060591-tmhssin2h21lcre235vtolojh4g403ep" + ".apps.googleusercontent.com"}" +
-                        "&redirect_uri=" + Uri.encode("http://localhost:8080/oauth2callback") +
-                        "&response_type=code" +
-                        "&scope=" + Uri.encode("https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events") +
-                        "&access_type=offline&prompt=consent%20select_account"
-                    webView.loadUrl(oauthUrl)
+                } catch (_: Exception) {
+                    // Sem seletor de contas no aparelho: a usuária digita o e-mail na página.
                 }
             }
+        }
+
+        /**
+         * Abre no navegador do sistema (o Google bloqueia login dentro de WebView).
+         * Só aceita o início do fluxo OAuth do próprio Worker.
+         */
+        @JavascriptInterface
+        fun openInSystemBrowser(url: String) {
+            if (!url.startsWith("$BASE_URL/api/oauth/start")) return
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                context.startActivity(intent)
+            } catch (_: Exception) {}
         }
     }
 
@@ -143,18 +144,15 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Intercepta retorno OAuth (localhost:8080/oauth2callback) e processa 100% localmente no APK
+     * Trata o retorno do OAuth: nailstudiopro://auth?<query> vira
+     * BASE_URL/App_Manicure.html#<query> (a página lê o resultado só do fragmento).
      */
-    private fun interceptLocalOAuthRedirect(url: String): String? {
-        if (url.startsWith("http://localhost:8080/") || url.startsWith("http://127.0.0.1:8080/")) {
-            val parsed = Uri.parse(url)
-            val code = parsed.getQueryParameter("code")
-            if (!code.isNullOrBlank()) {
-                return "$LOCAL_ASSET_MANICURE?google_oauth_code=${Uri.encode(code)}"
-            }
-            return LOCAL_ASSET_MANICURE
+    private fun handleAuthIntent(intent: Intent?) {
+        val data = intent?.data ?: return
+        if (data.scheme == "nailstudiopro" && data.host == "auth") {
+            val q = data.encodedQuery ?: ""
+            webView.loadUrl("$BASE_URL/App_Manicure.html#$q")
         }
-        return null
     }
 
     /**
@@ -162,24 +160,11 @@ class MainActivity : ComponentActivity() {
      */
     private fun handleUrl(url: String): Boolean {
         try {
-            // 1. Redirecionamento de OAuth do Google (localhost -> Processamento Local 100% Cloud-Direct no APK)
-            val oauthLocalTarget = interceptLocalOAuthRedirect(url)
-            if (oauthLocalTarget != null) {
-                webView.loadUrl(oauthLocalTarget)
-                return true
-            }
-
-            // 2. Arquivos locais empacotados no APK (Modo Offline / Cloud Direct)
-            if (url.startsWith("file:///android_asset/")) {
-                webView.loadUrl(url)
-                return true
-            }
-
             val uri = Uri.parse(url)
             val scheme = uri.scheme?.lowercase() ?: ""
             val host = uri.host?.lowercase() ?: ""
 
-            // 3. WhatsApp: wa.me, api.whatsapp.com ou whatsapp://
+            // 1. WhatsApp: wa.me, api.whatsapp.com ou whatsapp://
             if (scheme == "whatsapp" || host == "wa.me" || host == "api.whatsapp.com" || url.contains("api.whatsapp.com") || url.contains("wa.me")) {
                 val intent = Intent(Intent.ACTION_VIEW, uri).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK
@@ -196,7 +181,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            // 4. Telefone (tel:), E-mail (mailto:), Instagram ou Google Maps
+            // 2. Telefone (tel:), E-mail (mailto:), Instagram ou Google Maps
             if (
                 scheme == "tel" ||
                 scheme == "mailto" ||
@@ -211,21 +196,7 @@ class MainActivity : ComponentActivity() {
                 return true
             }
 
-            // 5. Página Cliente ou rotas internas da aplicação -> Carrega direto do Asset Local do APK (0ms e 100% independente!)
-            if (url.contains("Pagina_Cliente.html")) {
-                val q = uri.encodedQuery
-                val target = if (!q.isNullOrEmpty()) "$LOCAL_ASSET_CLIENTE?$q" else LOCAL_ASSET_CLIENTE
-                webView.loadUrl(target)
-                return true
-            }
-            if (url.contains("App_Manicure.html") || url == BASE_URL || url == "$BASE_URL/") {
-                val q = uri.encodedQuery
-                val target = if (!q.isNullOrEmpty()) "$LOCAL_ASSET_MANICURE?$q" else LOCAL_ASSET_MANICURE
-                webView.loadUrl(target)
-                return true
-            }
-
-            // 6. Links externos como Planilha Google (docs.google.com), Drive, etc. (exceto accounts.google.com para OAuth)
+            // 3. Links externos como Planilha Google (docs.google.com), Drive, etc. (exceto accounts.google.com para OAuth)
             if (host.contains("docs.google.com") || host.contains("drive.google.com") || host.contains("calendar.google.com")) {
                 val intent = Intent(Intent.ACTION_VIEW, uri).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK
@@ -234,8 +205,14 @@ class MainActivity : ComponentActivity() {
                 return true
             }
 
-            // Padrão: carregar no WebView
-            webView.loadUrl(url)
+            // Rotas do Worker (App_Manicure.html, Pagina_Cliente.html e API) ficam no WebView
+            if (url.startsWith(BASE_URL)) {
+                webView.loadUrl(url)
+                return true
+            }
+
+            // Qualquer outro endereço abre no navegador do sistema
+            startActivity(Intent(Intent.ACTION_VIEW, uri).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK })
             return true
         } catch (e: Exception) {
             e.printStackTrace()
@@ -255,10 +232,10 @@ class MainActivity : ComponentActivity() {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.databaseEnabled = true
-            settings.allowFileAccess = true
+            settings.allowFileAccess = false
             settings.allowContentAccess = true
-            settings.allowFileAccessFromFileURLs = true
-            settings.allowUniversalAccessFromFileURLs = true
+            settings.allowFileAccessFromFileURLs = false
+            settings.allowUniversalAccessFromFileURLs = false
             settings.setSupportMultipleWindows(true)
             settings.javaScriptCanOpenWindowsAutomatically = true
             settings.cacheMode = WebSettings.LOAD_NO_CACHE
@@ -273,14 +250,6 @@ class MainActivity : ComponentActivity() {
 
             webViewClient = object : WebViewClient() {
                 override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-                    if (url != null) {
-                        val oauthLocalTarget = interceptLocalOAuthRedirect(url)
-                        if (oauthLocalTarget != null) {
-                            view?.stopLoading()
-                            view?.loadUrl(oauthLocalTarget)
-                            return
-                        }
-                    }
                     super.onPageStarted(view, url, favicon)
                     hideSystemBars()
                 }
@@ -294,51 +263,6 @@ class MainActivity : ComponentActivity() {
                 override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
                     val u = url ?: return false
                     return handleUrl(u)
-                }
-
-                // Intercepta redirecionamento OAuth (localhost:8080) ou faz fallback para asset local se sem rede
-                override fun onReceivedError(
-                    view: WebView?,
-                    request: WebResourceRequest?,
-                    error: WebResourceError?
-                ) {
-                    if (request?.isForMainFrame == true) {
-                        val failedUrl = request.url?.toString() ?: ""
-                        val oauthLocalTarget = interceptLocalOAuthRedirect(failedUrl)
-                        if (oauthLocalTarget != null) {
-                            view?.loadUrl(oauthLocalTarget)
-                            return
-                        }
-                        if (failedUrl.contains("Pagina_Cliente.html")) {
-                            val query = request.url?.encodedQuery
-                            val target = if (!query.isNullOrEmpty()) "$LOCAL_ASSET_CLIENTE?$query" else LOCAL_ASSET_CLIENTE
-                            view?.loadUrl(target)
-                            return
-                        } else if (!failedUrl.startsWith("file:///android_asset/")) {
-                            view?.loadUrl(LOCAL_ASSET_MANICURE)
-                            return
-                        }
-                    }
-                    super.onReceivedError(view, request, error)
-                }
-
-                override fun onReceivedHttpError(
-                    view: WebView?,
-                    request: WebResourceRequest?,
-                    errorResponse: WebResourceResponse?
-                ) {
-                    super.onReceivedHttpError(view, request, errorResponse)
-                    val code = errorResponse?.statusCode ?: 200
-                    if (request?.isForMainFrame == true && (code == 530 || code == 502 || code == 503 || code == 404)) {
-                        val failedUrl = request.url?.toString() ?: ""
-                        if (failedUrl.contains("Pagina_Cliente.html")) {
-                            val query = request.url?.encodedQuery
-                            val target = if (!query.isNullOrEmpty()) "$LOCAL_ASSET_CLIENTE?$query" else LOCAL_ASSET_CLIENTE
-                            view?.loadUrl(target)
-                        } else if (failedUrl.contains("App_Manicure.html") || failedUrl == "$BASE_URL/") {
-                            view?.loadUrl(LOCAL_ASSET_MANICURE)
-                        }
-                    }
                 }
             }
 
@@ -390,8 +314,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            // Carrega instantaneamente do Asset Interno do APK (100% independente de PC ou servidor externo)
-            loadUrl(LOCAL_ASSET_MANICURE)
         }
 
         // Ajusta automaticamente o padding inferior quando o teclado virtual (IME) sobe no modo imersivo
@@ -402,6 +324,13 @@ class MainActivity : ComponentActivity() {
         }
 
         setContentView(webView)
+
+        // Abertura normal ou retorno do OAuth (nailstudiopro://auth?...)
+        if (intent?.data?.scheme == "nailstudiopro") {
+            handleAuthIntent(intent)
+        } else {
+            webView.loadUrl("$BASE_URL/App_Manicure.html")
+        }
 
         // Integração do Botão Voltar físico/gesto do Android com as gavetas, modais e abas do App
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -422,6 +351,12 @@ class MainActivity : ComponentActivity() {
                 }
             }
         })
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleAuthIntent(intent)
     }
 
     override fun onResume() {

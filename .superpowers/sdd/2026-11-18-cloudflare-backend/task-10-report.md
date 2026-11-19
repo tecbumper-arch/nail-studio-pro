@@ -1,0 +1,5 @@
+# Task 10 report
+Implemented: 8 redirect stubs (root + NailApp_Sheets; Index/200 redirect to App_Manicure.html; preserve search+hash; placeholder https://nail-studio-pro.SEU-SUBDOMINIO.workers.dev), deleted android assets App_Manicure/Pagina_Cliente, MainActivity.kt (BASE_URL placeholder, loads $BASE_URL/App_Manicure.html, nailstudiopro://auth?q -> App_Manicure.html#q, openInSystemBrowser on bridge "AndroidNative" restricted to BASE_URL/api/oauth/start, picker calls onAndroidDeviceGoogleAccountSelected(email), removed LOCAL_ASSET_*, interceptLocalOAuthRedirect, deviceProof, OAuth client-id fallback, offline fallbacks, file access disabled), AndroidManifest (singleTask + nailstudiopro://auth filter), README.md, worker/README.md (with sed command), spec risk entry.
+Grep: remaining hits only worker/test/e2e/e2e.mjs (asserts absence) and the plan doc (text of the grep command). servidor_permanente.js only has `t.client_secret` variable refs, no literal credential; Code.gs and Master.js clean; no change.
+Tests: vitest 10 files / 123 passed; e2e 12 passed, 0 failed.
+APK not compiled (no Android SDK).

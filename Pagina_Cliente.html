@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nail Studio Pro</title>
+  <!-- Página de redirecionamento. O app agora roda no Cloudflare Worker.
+       Troque a constante WORKER_URL (e a URL no meta refresh) pelo endereço real após o deploy (veja worker/README.md). -->
+  <meta http-equiv="refresh" content="2; url=https://nail-studio-pro.SEU-SUBDOMINIO.workers.dev/Pagina_Cliente.html">
+  <script>
+    var WORKER_URL = 'https://nail-studio-pro.SEU-SUBDOMINIO.workers.dev';
+    location.replace(WORKER_URL + '/Pagina_Cliente.html' + location.search + location.hash);
+  </script>
+</head>
+<body>
+  <p>Redirecionando para o Nail Studio Pro&hellip; <a href="https://nail-studio-pro.SEU-SUBDOMINIO.workers.dev/Pagina_Cliente.html">Clique aqui</a> se nada acontecer.</p>
+</body>
+</html>
