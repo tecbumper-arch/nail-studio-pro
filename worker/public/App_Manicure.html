@@ -1221,6 +1221,8 @@
     const PENDING_KEY = 'NAIL_PENDING_TOKEN'; // token curto do cadastro (conta Google confirmada, studio ainda não criado)
     let dashState = { studio: {}, categorias: [], catalogo: [], agendamentos: [] };
     let agendaFilter = 'TODOS';
+    let renderedCategorias = []; // listas desenhadas por último (botões usam data-idx)
+    let renderedCatalogo = [];
     let deferredInstallPrompt = null;
 
     window.addEventListener('beforeinstallprompt', (e) => {
@@ -2135,17 +2137,17 @@
           <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">
             <div>
               <div style="font-weight:800; font-size:0.95rem;">${esc(ag.clienteNome)}</div>
-              <div style="font-size:0.79rem; color:var(--text-muted);"><i class="fa-regular fa-calendar"></i> <strong>${dFmt}</strong> • <strong>${ag.horaInicio} às ${ag.horaFim}</strong></div>
+              <div style="font-size:0.79rem; color:var(--text-muted);"><i class="fa-regular fa-calendar"></i> <strong>${esc(dFmt)}</strong> • <strong>${esc(ag.horaInicio)} às ${esc(ag.horaFim)}</strong></div>
               <div style="font-size:0.81rem; font-weight:700; color:var(--primary-dark); margin-top:2px;">${esc(ag.servicoNome)} ${!isBlock ? '• R$ ' + Number(ag.valor).toFixed(2).replace('.', ',') : ''}</div>
             </div>
             ${badge}
           </div>
           <div class="btn-row">
-            ${isPixWarn ? `<button class="btn-sm" style="background:#10b981; color:#fff;" onclick="bookingAction('${ag.id}','VALIDAR_PIX')"><i class="fa-solid fa-check"></i> Validar Pix</button>` : ''}
-            ${!isBlock && ag.statusReserva !== 'CANCELADO' && ag.statusReserva !== 'CONCLUIDO' ? `<button class="btn-sm" style="background:#0ea5e9; color:#fff;" onclick="bookingAction('${ag.id}','CONCLUIR_ATENDIMENTO')"><i class="fa-solid fa-check-double"></i> Concluir</button>` : ''}
-            ${!isBlock && ag.clienteWhatsApp ? `<a href="${waLink(ag.clienteWhatsApp, wMsg)}" onclick="openWaChat('${ag.clienteWhatsApp}', '${wMsg}', event)" class="btn-sm" style="background:#25d366; color:#fff;"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>` : ''}
-            ${ag.statusReserva !== 'CANCELADO' ? `<a href="${buildGoogleCalendarUrl(ag, dashState.studio.nome)}" target="_blank" class="btn-sm" style="background:#3b82f6; color:#fff;"><i class="fa-regular fa-calendar-plus"></i> Agenda</a>` : ''}
-            ${ag.statusReserva !== 'CANCELADO' ? `<button class="btn-sm" style="background:#fee2e2; color:#b91c1c;" onclick="bookingAction('${ag.id}','CANCELAR_RESERVA')"><i class="fa-solid fa-xmark"></i> Liberar Vaga</button>` : ''}
+            ${isPixWarn ? `<button class="btn-sm" style="background:#10b981; color:#fff;" data-act="booking" data-id="${esc(ag.id)}" data-op="VALIDAR_PIX"><i class="fa-solid fa-check"></i> Validar Pix</button>` : ''}
+            ${!isBlock && ag.statusReserva !== 'CANCELADO' && ag.statusReserva !== 'CONCLUIDO' ? `<button class="btn-sm" style="background:#0ea5e9; color:#fff;" data-act="booking" data-id="${esc(ag.id)}" data-op="CONCLUIR_ATENDIMENTO"><i class="fa-solid fa-check-double"></i> Concluir</button>` : ''}
+            ${!isBlock && ag.clienteWhatsApp ? `<a href="${esc(waLink(ag.clienteWhatsApp, wMsg))}" data-act="wa" data-phone="${esc(ag.clienteWhatsApp)}" data-text="${esc(wMsg)}" class="btn-sm" style="background:#25d366; color:#fff;"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>` : ''}
+            ${ag.statusReserva !== 'CANCELADO' ? `<a href="${esc(buildGoogleCalendarUrl(ag, dashState.studio.nome))}" target="_blank" class="btn-sm" style="background:#3b82f6; color:#fff;"><i class="fa-regular fa-calendar-plus"></i> Agenda</a>` : ''}
+            ${ag.statusReserva !== 'CANCELADO' ? `<button class="btn-sm" style="background:#fee2e2; color:#b91c1c;" data-act="booking" data-id="${esc(ag.id)}" data-op="CANCELAR_RESERVA"><i class="fa-solid fa-xmark"></i> Liberar Vaga</button>` : ''}
           </div>
         `;
         bList.appendChild(el);
@@ -2172,7 +2174,8 @@
       // Renderizar lista de categorias no gerenciador CRUD
       const box = document.getElementById('categoriesCrudList');
       box.innerHTML = '';
-      categorias.forEach(c => {
+      renderedCategorias = categorias;
+      categorias.forEach((c, idx) => {
         const row = document.createElement('div');
         row.style = 'display:flex; justify-content:space-between; align-items:center; padding:8px 10px; background:var(--bg-app); border:1px solid var(--border); border-radius:12px; margin-bottom:6px;';
         row.innerHTML = `
@@ -2181,10 +2184,10 @@
             <span>${esc(c.nome)}</span>
           </div>
           <div style="display:flex; gap:6px; flex-shrink:0;">
-            <button type="button" onclick='editCategoryCrud(${JSON.stringify(c).replace(/'/g, "&#39;")})' style="background:var(--primary-soft); color:var(--primary-dark); border:none; height:36px; padding:0 12px; border-radius:10px; font-size:0.76rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:5px; white-space:nowrap;">
+            <button type="button" data-act="cat-edit" data-idx="${idx}" style="background:var(--primary-soft); color:var(--primary-dark); border:none; height:36px; padding:0 12px; border-radius:10px; font-size:0.76rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:5px; white-space:nowrap;">
               <i class="fa-solid fa-pen"></i> Editar
             </button>
-            <button type="button" onclick="deleteCategoryCrud('${c.id}')" style="background:#fee2e2; color:#b91c1c; border:none; width:36px; height:36px; border-radius:10px; font-size:0.8rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;">
+            <button type="button" data-act="cat-del" data-id="${esc(c.id)}" style="background:#fee2e2; color:#b91c1c; border:none; width:36px; height:36px; border-radius:10px; font-size:0.8rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;">
               <i class="fa-solid fa-trash"></i>
             </button>
           </div>
@@ -2276,7 +2279,8 @@
         return;
       }
 
-      catalogo.forEach(s => {
+      renderedCatalogo = catalogo;
+      catalogo.forEach((s, idx) => {
         const item = document.createElement('div');
         item.className = 'booking-item';
         if (!s.ativo) item.style.opacity = '0.65';
@@ -2288,14 +2292,14 @@
                 <span style="font-weight:800; font-size:0.94rem;">${esc(s.nome)}</span>
                 <span class="badge ${s.ativo ? 'b-ok' : 'b-cancel'}">${s.ativo ? 'Visível' : 'Pausado'}</span>
               </div>
-              <div style="font-size:0.78rem; color:var(--text-muted);">R$ ${Number(s.preco).toFixed(2).replace('.', ',')} • ${s.duracaoMin} min • <strong>${esc(s.categoria)}</strong></div>
+              <div style="font-size:0.78rem; color:var(--text-muted);">R$ ${Number(s.preco).toFixed(2).replace('.', ',')} • ${esc(s.duracaoMin)} min • <strong>${esc(s.categoria)}</strong></div>
             </div>
           </div>
           <div class="btn-row">
-            <button class="btn-sm" style="background:var(--primary-soft); color:var(--primary-dark);" onclick='editSrv(${JSON.stringify(s).replace(/'/g, "&#39;")})'><i class="fa-solid fa-pen"></i> Editar</button>
-            <button class="btn-sm" style="background:#e0e7ff; color:#3730a3;" onclick='duplicateSrv(${JSON.stringify(s).replace(/'/g, "&#39;")})'><i class="fa-regular fa-copy"></i> Duplicar</button>
-            <button class="btn-sm" style="background:#fef3c7; color:#b45309;" onclick="toggleSrvActive('${s.id}')"><i class="fa-solid ${s.ativo ? 'fa-eye-slash' : 'fa-eye'}"></i> ${s.ativo ? 'Pausar' : 'Ativar'}</button>
-            <button class="btn-sm" style="background:#fee2e2; color:#b91c1c;" onclick="delSrv('${s.id}')"><i class="fa-solid fa-trash"></i></button>
+            <button class="btn-sm" style="background:var(--primary-soft); color:var(--primary-dark);" data-act="srv-edit" data-idx="${idx}"><i class="fa-solid fa-pen"></i> Editar</button>
+            <button class="btn-sm" style="background:#e0e7ff; color:#3730a3;" data-act="srv-dup" data-idx="${idx}"><i class="fa-regular fa-copy"></i> Duplicar</button>
+            <button class="btn-sm" style="background:#fef3c7; color:#b45309;" data-act="srv-toggle" data-id="${esc(s.id)}"><i class="fa-solid ${s.ativo ? 'fa-eye-slash' : 'fa-eye'}"></i> ${s.ativo ? 'Pausar' : 'Ativar'}</button>
+            <button class="btn-sm" style="background:#fee2e2; color:#b91c1c;" data-act="srv-del" data-id="${esc(s.id)}"><i class="fa-solid fa-trash"></i></button>
           </div>
         `;
         cList.appendChild(item);
@@ -2351,18 +2355,18 @@
         el.className = 'booking-item' + (needsMaint ? ' pix-warn' : '');
         const daysBadge = needsMaint
           ? `<span class="badge b-warn"><i class="fa-solid fa-bell"></i> Há ${c.daysAgo} dias • Chamar p/ Manutenção!</span>`
-          : (c.daysAgo >= 0 ? `<span class="badge b-ok">Atendida há ${c.daysAgo} dia(s)</span>` : `<span class="badge b-local">Agendada para ${dFmt}</span>`);
+          : (c.daysAgo >= 0 ? `<span class="badge b-ok">Atendida há ${c.daysAgo} dia(s)</span>` : `<span class="badge b-local">Agendada para ${esc(dFmt)}</span>`);
 
         el.innerHTML = `
           <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap; margin-bottom:6px;">
             <div>
               <div style="font-weight:800; font-size:0.95rem;">${esc(c.nome)}</div>
-              <div style="font-size:0.78rem; color:var(--text-muted);">Último: <strong>${esc(c.lastSrv)}</strong> (${dFmt})</div>
+              <div style="font-size:0.78rem; color:var(--text-muted);">Último: <strong>${esc(c.lastSrv)}</strong> (${esc(dFmt)})</div>
               <div style="font-size:0.78rem; color:var(--primary-dark); font-weight:800;">${c.count} atendimento(s) • Total: R$ ${c.total.toFixed(2).replace('.', ',')}</div>
             </div>
             ${daysBadge}
           </div>
-          ${c.whats ? `<div class="btn-row"><a href="${waLink(c.whats, msg)}" onclick="openWaChat('${c.whats}', '${msg}', event)" class="btn-sm" style="background:#25d366; color:#fff;"><i class="fa-brands fa-whatsapp"></i> Chamar p/ Manutenção no WhatsApp</a></div>` : ''}
+          ${c.whats ? `<div class="btn-row"><a href="${esc(waLink(c.whats, msg))}" data-act="wa" data-phone="${esc(c.whats)}" data-text="${esc(msg)}" class="btn-sm" style="background:#25d366; color:#fff;"><i class="fa-brands fa-whatsapp"></i> Chamar p/ Manutenção no WhatsApp</a></div>` : ''}
         `;
         box.appendChild(el);
       });
@@ -2760,8 +2764,26 @@
     });
 
     function esc(s) {
-      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
     }
+
+    // Botões das listas (Agenda, Categorias, Serviços, Clientes): dados vão em data-*, nunca em
+    // código dentro de atributos on*="...". Um único ouvinte decide o que fazer.
+    document.addEventListener('click', (e) => {
+      const el = e.target.closest('[data-act]');
+      if (!el) return;
+      const d = el.dataset;
+      switch (d.act) {
+        case 'wa': openWaChat(d.phone, d.text, e); break;
+        case 'booking': bookingAction(d.id, d.op); break;
+        case 'cat-edit': if (renderedCategorias[d.idx]) editCategoryCrud(renderedCategorias[d.idx]); break;
+        case 'cat-del': deleteCategoryCrud(d.id); break;
+        case 'srv-edit': if (renderedCatalogo[d.idx]) editSrv(renderedCatalogo[d.idx]); break;
+        case 'srv-dup': if (renderedCatalogo[d.idx]) duplicateSrv(renderedCatalogo[d.idx]); break;
+        case 'srv-toggle': toggleSrvActive(d.id); break;
+        case 'srv-del': delSrv(d.id); break;
+      }
+    });
   </script>
 
   <!-- MODAL: GUIA PASSO A PASSO PARA IPHONE / IPAD (IOS) -->

@@ -270,6 +270,12 @@ test('cliente agenda e vê o Pix', async ({ browser, origin, apiLog, errors }) =
   assert.equal(row[9], 'PIX_SINAL_50');
   assert.match(row[12], /^fake-event-/, 'evento criado na Agenda pelo servidor');
 
+  // "Já paguei": a página manda o WhatsApp da reserva junto (o servidor exige).
+  await page.click('#cBtnPaid');
+  await page.waitForFunction(() => document.getElementById('cBtnPaid').textContent.includes('Manicure Avisada!'));
+  const db2 = await (await fetch(apiLog.googleBase + '/__db')).json();
+  assert.equal(db2[SID].Agendamentos.find((r) => r[4] === CLIENTE)[10], 'CLIENTE_INFORMOU_PIX');
+
   // Meus Horários
   await page.click('#cPixModal button:has-text("Fechar")');
   await page.click('#tabBtnMy');
@@ -446,6 +452,74 @@ test('retorno do Google com a página já aberta (hashchange) mostra a mensagem'
   await page.waitForSelector('#lockScreen');
   await page.evaluate((m) => { location.hash = `google_auth=error&msg=${encodeURIComponent(m)}`; }, 'Aviso aquecido.');
   await waitToast(page, 'Aviso aquecido.');
+  await ctx.close();
+});
+
+// Regressão XSS: nomes de cliente com ' e HTML não podem virar código no painel da manicure.
+test('nome de cliente malicioso não executa código na Agenda nem nos Clientes (WhatsApp)', async ({ browser, origin, apiLog, errors }) => {
+  const js = Buffer.from('window.__pwned=111').toString('base64'); // 18 bytes: base64 sem '=' de padding
+  const payloads = [
+    { nome: `Ana'-eval(atob('${js}'))-'`, whats: '11966660001', hora: '15:00' },
+    { nome: `Bia<img src=x onerror="window.__pwned=2">`, whats: '11966660002', hora: '16:00' },
+    { nome: `Cy&#39;);window.__pwned=3;//`, whats: '11966660003', hora: '17:00' },
+    { nome: `Di"><svg onload=window.__pwned=4>`, whats: '11966660004', hora: '18:00' },
+  ];
+  for (const p of payloads) {
+    const r = await rpcFromNode(origin, 'createCustomerBooking', [{
+      data: tomorrowIso(), horaInicio: p.hora, servicoId: 'SRV-101', clienteNome: p.nome, clienteWhatsApp: p.whats, metodoPagamento: 'NO_LOCAL',
+    }], { sid: SID });
+    assert.equal(r.status, 200, JSON.stringify(r.json));
+  }
+
+  const ctx = await newContext(browser, origin, apiLog);
+  // Abrir o WhatsApp vira 204 (a navegação é cancelada e a página continua para a verificação).
+  const waHits = [];
+  await ctx.route('https://api.whatsapp.com/**', (route) => { waHits.push(route.request().url()); return route.fulfill({ status: 204, body: '' }); });
+  const page = await newPage(ctx, errors);
+  await loginWithPin(page, origin, EMAIL, PIN);
+  await page.waitForSelector('#lockScreen.hidden', { state: 'attached', timeout: 15_000 });
+  await page.waitForFunction(() => document.getElementById('bookingsList').textContent.includes('Di"><svg'), null, { timeout: 15_000 });
+  for (const p of payloads) {
+    assert.ok((await page.textContent('#bookingsList')).includes(p.nome), `nome aparece como texto na Agenda: ${p.nome}`);
+  }
+  const clickWa = async (container) => {
+    const links = page.locator(`${container} a:has-text("WhatsApp")`);
+    const n = await links.count();
+    assert.ok(n >= payloads.length, `${container}: ${n} botões de WhatsApp`);
+    for (let i = 0; i < n; i++) {
+      await links.nth(i).click();
+      await page.waitForTimeout(150);
+    }
+  };
+  await clickWa('#bookingsList');
+  assert.equal(await page.evaluate(() => window.__pwned), undefined, 'nenhum código injetado rodou na Agenda');
+
+  await page.click('.nav-btn:has-text("Clientes")');
+  await page.waitForFunction(() => document.getElementById('crmClientsList').textContent.includes('Di"><svg'));
+  for (const p of payloads) {
+    assert.ok((await page.textContent('#crmClientsList')).includes(p.nome), `nome aparece como texto nos Clientes: ${p.nome}`);
+  }
+  await clickWa('#crmClientsList');
+  assert.equal(await page.evaluate(() => window.__pwned), undefined, 'nenhum código injetado rodou nos Clientes');
+  const evilHit = waHits.find((u) => u.includes('11966660001'));
+  assert.ok(evilHit, 'o botão do WhatsApp abriu o chat da cliente');
+  assert.ok(decodeURIComponent(new URL(evilHit).searchParams.get('text') || '').includes(payloads[0].nome), 'mensagem leva o nome como texto');
+
+  // Os outros botões das listas (agora via data-*) continuam funcionando.
+  await page.click('.nav-btn:has-text("Agenda")');
+  const anaCard = page.locator('#bookingsList .booking-item', { hasText: payloads[0].nome });
+  await anaCard.locator('button:has-text("Concluir")').click();
+  await waitToast(page, 'Status atualizado com sucesso!');
+  const db = await (await fetch(apiLog.googleBase + '/__db')).json();
+  const rows = db[SID].Agendamentos;
+  assert.equal(rows.find((r) => r[4] === payloads[0].nome)[11], 'CONCLUIDO');
+  assert.ok(rows.some((r) => r[4] === CLIENTE), 'as outras reservas continuam na planilha');
+  await page.click('.nav-btn:has-text("Serviços")');
+  await page.locator('#catalogList button:has-text("Editar")').first().click();
+  assert.equal(await page.inputValue('#srvNome'), 'Alongamento em Gel');
+  await page.locator('#categoriesCrudList button:has-text("Editar")').first().dispatchEvent('click'); // gaveta recolhida
+  assert.equal(await page.inputValue('#catEditName'), 'Alongamentos');
+  assert.equal(await page.evaluate(() => window.__pwned), undefined);
   await ctx.close();
 });
 

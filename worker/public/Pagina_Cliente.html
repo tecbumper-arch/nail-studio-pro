@@ -742,7 +742,7 @@
       if (st.whatsapp) {
         const cleanW = normalizeBrPhone(st.whatsapp);
         const urlW = 'https://api.whatsapp.com/send?phone=' + cleanW + '&text=' + encodeURIComponent('Olá! Vim pela página de agendamento online do ' + (st.nome || 'Studio') + '.');
-        pillsHtml += `<a href="${urlW}" class="studio-pill"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>`;
+        pillsHtml += `<a href="${esc(urlW)}" class="studio-pill"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>`;
       }
       if (st.instagram) {
         const cleanInsta = String(st.instagram).replace(/^@/, '').replace(/https?:\/\/(www\.)?instagram\.com\//i, '').replace(/\//g, '').trim();
@@ -752,7 +752,7 @@
       }
       if (st.endereco) {
         const mapUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(st.endereco);
-        pillsHtml += `<a href="${mapUrl}" target="_blank" class="studio-pill"><i class="fa-solid fa-location-dot"></i> Como Chegar</a>`;
+        pillsHtml += `<a href="${esc(mapUrl)}" target="_blank" class="studio-pill"><i class="fa-solid fa-location-dot"></i> Como Chegar</a>`;
       }
       box.innerHTML = pillsHtml;
     }
@@ -843,16 +843,16 @@
               <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:6px;">
                 <div>
                   <div style="font-weight:800; font-size:0.95rem; color:var(--text-main);">💅 ${esc(r.servicoNome)}</div>
-                  <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">📅 <strong>${dFmt}</strong> • ⏰ <strong>${r.horaInicio} às ${r.horaFim}</strong></div>
-                  <div style="font-size:0.8rem; font-weight:800; color:var(--primary-dark); margin-top:2px;">💵 R$ ${Number(r.valorTotal).toFixed(2).replace('.', ',')} • <span style="font-weight:600; color:var(--text-muted);">#${r.id}</span></div>
+                  <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">📅 <strong>${esc(dFmt)}</strong> • ⏰ <strong>${esc(r.horaInicio)} às ${esc(r.horaFim)}</strong></div>
+                  <div style="font-size:0.8rem; font-weight:800; color:var(--primary-dark); margin-top:2px;">💵 R$ ${Number(r.valorTotal).toFixed(2).replace('.', ',')} • <span style="font-weight:600; color:var(--text-muted);">#${esc(r.id)}</span></div>
                 </div>
                 ${statusBadge}
               </div>
               ${!isCancel && !isDone ? `
                 <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;">
-                  ${r.metodoPagamento.includes('PIX') ? `<button type="button" onclick="reopenBookingModal(${idx})" style="flex:1; min-height:38px; border:none; border-radius:10px; background:var(--gradient); color:#fff; font-weight:800; font-size:0.76rem; padding:6px 10px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px;"><i class="fa-brands fa-pix"></i> QR Code Pix</button>` : ''}
-                  <a href="${waUrl}" style="flex:1; min-height:38px; border-radius:10px; background:#25d366; color:#fff; font-weight:800; font-size:0.76rem; padding:6px 10px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:5px;"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
-                  <button type="button" onclick="cancelMyBooking('${r.id}')" style="min-height:38px; border:none; border-radius:10px; background:#fee2e2; color:#991b1b; font-weight:800; font-size:0.75rem; padding:6px 10px; cursor:pointer;"><i class="fa-solid fa-xmark"></i> Cancelar</button>
+                  ${r.metodoPagamento.includes('PIX') ? `<button type="button" data-act="my-pix" data-idx="${idx}" style="flex:1; min-height:38px; border:none; border-radius:10px; background:var(--gradient); color:#fff; font-weight:800; font-size:0.76rem; padding:6px 10px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px;"><i class="fa-brands fa-pix"></i> QR Code Pix</button>` : ''}
+                  <a href="${esc(waUrl)}" style="flex:1; min-height:38px; border-radius:10px; background:#25d366; color:#fff; font-weight:800; font-size:0.76rem; padding:6px 10px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:5px;"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
+                  <button type="button" data-act="my-cancel" data-idx="${idx}" style="min-height:38px; border:none; border-radius:10px; background:#fee2e2; color:#991b1b; font-weight:800; font-size:0.75rem; padding:6px 10px; cursor:pointer;"><i class="fa-solid fa-xmark"></i> Cancelar</button>
                 </div>
               ` : ''}
             </div>
@@ -968,7 +968,7 @@
           document.getElementById('cScheduleArea').classList.remove('hidden');
           const bnr = document.getElementById('cSelectedSrvBanner');
           if (bnr) {
-            bnr.innerHTML = `<div><div style="font-size:0.7rem; font-weight:800; color:var(--primary); text-transform:uppercase;">Procedimento Escolhido</div><div style="font-weight:800; font-size:0.95rem;">💅 ${esc(s.nome)}</div></div><div style="text-align:right;"><div style="font-weight:900; font-size:1.05rem; color:var(--primary-dark);">R$ ${Number(s.preco).toFixed(2).replace('.', ',')}</div><div style="font-size:0.72rem; color:var(--text-muted);">⏱️ ${s.duracaoMin} min</div></div>`;
+            bnr.innerHTML = `<div><div style="font-size:0.7rem; font-weight:800; color:var(--primary); text-transform:uppercase;">Procedimento Escolhido</div><div style="font-weight:800; font-size:0.95rem;">💅 ${esc(s.nome)}</div></div><div style="text-align:right;"><div style="font-weight:900; font-size:1.05rem; color:var(--primary-dark);">R$ ${Number(s.preco).toFixed(2).replace('.', ',')}</div><div style="font-size:0.72rem; color:var(--text-muted);">⏱️ ${esc(s.duracaoMin)} min</div></div>`;
           }
           loadSlots();
           setTimeout(() => {
@@ -982,7 +982,7 @@
         el.innerHTML = `
           <img class="srv-img" src="${esc(s.fotoUrl)}" onerror="this.src='https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=400&q=80'">
           <div style="flex:1;">
-            <div style="font-size:0.68rem; font-weight:800; color:var(--primary); text-transform:uppercase;">${esc(s.categoria)} • ${s.duracaoMin} min</div>
+            <div style="font-size:0.68rem; font-weight:800; color:var(--primary); text-transform:uppercase;">${esc(s.categoria)} • ${esc(s.duracaoMin)} min</div>
             <div style="font-weight:800; font-size:1rem; margin:2px 0;">${esc(s.nome)}</div>
             <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:6px;">${esc(s.descricao)}</div>
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -1043,7 +1043,7 @@
         b.className = 'slot ' + (s.disponivel ? '' : 'busy');
         b.disabled = !s.disponivel;
         const lbl = s.disponivel ? 'LIVRE' : (s.motivo === 'PASSOU' ? 'ENCERRADO' : 'OCUPADO');
-        b.innerHTML = `<span>${s.horaInicio}</span><span style="font-size:0.58rem; color:${s.disponivel?'#10b981':'#94a3b8'}">${lbl}</span>`;
+        b.innerHTML = `<span>${esc(s.horaInicio)}</span><span style="font-size:0.58rem; color:${s.disponivel?'#10b981':'#94a3b8'}">${lbl}</span>`;
         if (s.disponivel) {
           b.onclick = () => {
             selSlot = s.horaInicio;
@@ -1123,10 +1123,10 @@
         const pagLabel = r.metodoPagamento === 'NO_LOCAL' ? 'Pagar no Studio' : (r.metodoPagamento === 'PIX_SINAL_50' ? 'Sinal 50% via Pix' : 'Pix Valor Total');
         ticketEl.innerHTML = `
           <div class="ticket-row"><span>💅 Procedimento:</span><strong>${esc(r.servicoNome)}</strong></div>
-          <div class="ticket-row"><span>📅 Data e Hora:</span><strong>${d}/${m}/${y} às ${r.horaInicio}</strong></div>
+          <div class="ticket-row"><span>📅 Data e Hora:</span><strong>${esc(d)}/${esc(m)}/${esc(y)} às ${esc(r.horaInicio)}</strong></div>
           <div class="ticket-row"><span>👤 Cliente:</span><strong>${esc(r.clienteNome)}</strong></div>
           <div class="ticket-row"><span>💵 Valor Total:</span><strong>R$ ${Number(r.valorTotal).toFixed(2).replace('.', ',')}</strong></div>
-          <div class="ticket-row" style="margin-bottom:0;"><span>💳 Pagamento:</span><strong>${pagLabel} (#${r.id})</strong></div>
+          <div class="ticket-row" style="margin-bottom:0;"><span>💳 Pagamento:</span><strong>${pagLabel} (#${esc(r.id)})</strong></div>
         `;
       }
       const gcalEl = document.getElementById('cGCalLink');
@@ -1183,7 +1183,14 @@ Gostaria de confirmar meu horário!`;
 
     async function notifyPaid() {
       if (!lastRes) return;
-      await rpc('notifyPixPaidByCustomer', lastRes.id);
+      // O servidor só aceita o aviso com o WhatsApp da própria reserva.
+      const phone = lastRes.clienteWhatsApp || localStorage.getItem('NAIL_CLIENT_WHATS') || '';
+      try {
+        await rpc('notifyPixPaidByCustomer', lastRes.id, phone);
+      } catch (e) {
+        alert(e.message);
+        return;
+      }
       document.getElementById('cBtnPaid').textContent = 'Manicure Avisada!';
       document.getElementById('cBtnPaid').disabled = true;
     }
@@ -1222,8 +1229,18 @@ Gostaria de confirmar meu horário!`;
     });
 
     function esc(s) {
-      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
     }
+
+    // Botões de "Meus Horários": dados em data-*, nunca código dentro de atributos on*="...".
+    document.addEventListener('click', (e) => {
+      const el = e.target.closest('[data-act]');
+      if (!el) return;
+      const r = myBookingsCache[el.dataset.idx];
+      if (!r) return;
+      if (el.dataset.act === 'my-pix') reopenBookingModal(Number(el.dataset.idx));
+      else if (el.dataset.act === 'my-cancel') cancelMyBooking(r.id);
+    });
   </script>
 </body>
 </html>
