@@ -221,6 +221,12 @@ async function rpcFromNode(origin, fn, args, { token, sid } = {}) {
   return { status: r.status, json: await r.json() };
 }
 
+// Como se a página tivesse aberto o fluxo do Google nesta aba (openOAuth grava a marca na sessionStorage).
+async function markOAuthStarted(page, origin, intent) {
+  await page.goto(origin + '/App_Manicure.html');
+  await page.evaluate((i) => sessionStorage.setItem('nsp_oauth_pending', JSON.stringify({ intent: i, at: Date.now() })), intent);
+}
+
 async function loginWithPin(page, origin, email, pin) {
   await page.goto(origin + '/App_Manicure.html');
   await page.fill('#loginUserInput', email);
@@ -348,6 +354,7 @@ test('recuperar PIN: retorno do Google (intent=recover) → Novo PIN → entra c
   assert.equal(login.status, 200);
   const ctx = await newContext(browser, origin, apiLog);
   const page = await newPage(ctx, errors);
+  await markOAuthStarted(page, origin, 'recover');
   await page.goto(`${origin}/App_Manicure.html#google_auth=success&token=${encodeURIComponent(login.json.data.token)}&email=${encodeURIComponent(EMAIL)}&intent=recover`);
   await page.waitForSelector('#recNewPinInput', { state: 'visible' });
   assert.equal(await page.evaluate(() => location.hash), '', 'fragmento limpo');
@@ -420,6 +427,7 @@ test('criar acesso: retorno pending abre o cadastro com e-mail do Google (só le
   const pending = await signToken({ kind: 'pending', email: 'nova@exemplo.com', name: 'Nova' }, SESSION_SECRET, 1800);
   const ctx = await newContext(browser, origin, apiLog);
   const page = await newPage(ctx, errors);
+  await markOAuthStarted(page, origin, 'onboard');
   await page.goto(`${origin}/App_Manicure.html#google_auth=pending&token=${encodeURIComponent(pending)}&email=nova%40exemplo.com`);
   await page.waitForSelector('#authModeOnboarding:not(.hidden)');
   assert.equal(await page.evaluate(() => location.hash), '');
@@ -434,6 +442,25 @@ test('criar acesso: retorno pending abre o cadastro com e-mail do Google (só le
   await ctx.close();
   const db = await (await fetch(apiLog.googleBase + '/__db')).json();
   assert.ok(db[MASTER].Contas_Manicures.some((r) => r[0] === 'nova@exemplo.com'), 'conta registrada na mestre');
+});
+
+test('retorno do Google forjado (link de outra pessoa, sem fluxo aberto nesta aba) é ignorado', async ({ browser, origin, apiLog, errors }) => {
+  const login = await rpcFromNode(origin, 'authenticateAdmin', [{ loginId: EMAIL, pin: PIN }]);
+  const pending = await signToken({ kind: 'pending', email: 'outra@exemplo.com', name: 'X' }, SESSION_SECRET, 1800);
+  const ctx = await newContext(browser, origin, apiLog);
+  const page = await newPage(ctx, errors);
+  await page.goto(`${origin}/App_Manicure.html#google_auth=success&token=${encodeURIComponent(login.json.data.token)}&email=${encodeURIComponent(EMAIL)}`);
+  await page.waitForSelector('#btnUnlock');
+  await page.waitForTimeout(800);
+  assert.equal(await page.evaluate(() => location.hash), '', 'fragmento limpo');
+  assert.equal(await page.evaluate(() => sessionStorage.getItem('NAIL_ADM_TOKEN') || localStorage.getItem('NAIL_ADM_TOKEN')), null, 'token forjado não foi aceito');
+  assert.ok(!(await page.locator('#lockScreen').getAttribute('class')).includes('hidden'), 'continua na tela de login');
+  await page.goto(`${origin}/App_Manicure.html?r=2#google_auth=pending&token=${encodeURIComponent(pending)}&email=outra%40exemplo.com`);
+  await page.waitForSelector('#btnUnlock');
+  await page.waitForTimeout(500);
+  assert.ok(await page.locator('#authModeOnboarding').evaluate((el) => el.classList.contains('hidden')), 'cadastro não abriu');
+  assert.equal(await page.evaluate((k) => sessionStorage.getItem(k), 'NAIL_PENDING_TOKEN'), null);
+  await ctx.close();
 });
 
 test('retorno google_auth=error mostra a mensagem', async ({ browser, origin, apiLog, errors }) => {
@@ -531,6 +558,19 @@ test('nenhuma resposta de /api/* contém "GCAL_REFRESH_TOKEN" nem "ADMIN_PIN_HAS
       assert.ok(!r.body.includes(bad), `${r.url} contém ${bad}`);
     }
   }
+});
+
+test('páginas saem com cabeçalhos de segurança (sem moldura, nosniff, referrer)', async ({ origin }) => {
+  for (const p of ['/App_Manicure.html', '/Pagina_Cliente.html', '/manifest.json']) {
+    const r = await fetch(origin + p);
+    assert.equal(r.status, 200, p);
+    assert.equal(r.headers.get('content-security-policy'), "frame-ancestors 'none'", p);
+    assert.equal(r.headers.get('x-frame-options'), 'DENY', p);
+    assert.equal(r.headers.get('x-content-type-options'), 'nosniff', p);
+    assert.equal(r.headers.get('referrer-policy'), 'strict-origin-when-cross-origin', p);
+  }
+  const headersFile = await fetch(origin + '/_headers');
+  assert.notEqual(headersFile.status, 200, '_headers não é servido como arquivo');
 });
 
 test('HTML servido não contém "clientSecret" nem "refreshToken"', async ({ origin, apiLog }) => {

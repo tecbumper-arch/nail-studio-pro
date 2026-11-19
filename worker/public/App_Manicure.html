@@ -1335,7 +1335,25 @@
       return window.AndroidNativeBridge || window.AndroidNative || null;
     }
 
+    // Marca nesta aba que o fluxo do Google foi aberto por aqui. O retorno (#google_auth=...) só é
+    // aceito com essa marca: um link forjado com o token de outra pessoa é ignorado.
+    // No APK a página volta no mesmo WebView, que mantém a sessionStorage.
+    const OAUTH_PENDING_KEY = 'nsp_oauth_pending';
+    const OAUTH_PENDING_MAX_MS = 15 * 60 * 1000;
+
+    function takeOAuthPending() {
+      let mark = null;
+      try {
+        mark = JSON.parse(sessionStorage.getItem(OAUTH_PENDING_KEY) || 'null');
+      } catch (e) {}
+      sessionStorage.removeItem(OAUTH_PENDING_KEY);
+      if (!mark || typeof mark.at !== 'number' || Date.now() - mark.at > OAUTH_PENDING_MAX_MS) return null;
+      return mark;
+    }
+
     function openOAuth(path) {
+      const intent = new URL(path, window.location.href).searchParams.get('intent') || '';
+      sessionStorage.setItem(OAUTH_PENDING_KEY, JSON.stringify({ intent, at: Date.now() }));
       const bridge = nativeBridge();
       if (bridge && typeof bridge.openInSystemBrowser === 'function') {
         bridge.openInSystemBrowser(new URL(path, window.location.href).href);
@@ -1363,6 +1381,11 @@
       const status = h.get('google_auth');
       const token = h.get('token') || '';
       const email = (h.get('email') || '').trim().toLowerCase();
+      const startedHere = takeOAuthPending();
+      if ((status === 'success' || status === 'pending') && token && !startedHere) {
+        showToast('Login com Google não confirmado nesta tela. Toque em "Entrar com Google" de novo.');
+        return result;
+      }
       if (h.get('gcal') === 'connected') {
         result.gcal = true;
       } else if (status === 'success' && token) {

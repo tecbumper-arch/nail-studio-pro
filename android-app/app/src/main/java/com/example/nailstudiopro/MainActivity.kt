@@ -31,6 +31,18 @@ class MainActivity : ComponentActivity() {
     companion object {
         // TROQUE pela URL real do Worker após o deploy (veja worker/README.md)
         const val BASE_URL = "https://nail-studio-pro.SEU-SUBDOMINIO.workers.dev"
+
+        /**
+         * true só para https no mesmo host do Worker. Comparar texto com startsWith(BASE_URL)
+         * aceitaria "https://<host-do-worker>.outro-site.com".
+         */
+        fun isWorkerUrl(uri: Uri): Boolean {
+            val base = Uri.parse(BASE_URL)
+            return uri.scheme.equals("https", ignoreCase = true) &&
+                uri.host != null &&
+                uri.host.equals(base.host, ignoreCase = true) &&
+                (uri.port == -1 || uri.port == 443)
+        }
     }
 
     private lateinit var webView: WebView
@@ -127,9 +139,10 @@ class MainActivity : ComponentActivity() {
          */
         @JavascriptInterface
         fun openInSystemBrowser(url: String) {
-            if (!url.startsWith("$BASE_URL/api/oauth/start")) return
+            val uri = Uri.parse(url)
+            if (!isWorkerUrl(uri) || uri.path != "/api/oauth/start") return
             try {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                val intent = Intent(Intent.ACTION_VIEW, uri).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK
                 }
                 context.startActivity(intent)
@@ -207,7 +220,7 @@ class MainActivity : ComponentActivity() {
             }
 
             // Rotas do Worker (App_Manicure.html, Pagina_Cliente.html e API) ficam no WebView
-            if (url.startsWith(BASE_URL)) {
+            if (isWorkerUrl(uri)) {
                 webView.loadUrl(url)
                 return true
             }
