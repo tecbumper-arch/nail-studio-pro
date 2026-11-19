@@ -18,6 +18,15 @@ Substitua `<worker>` pelo endereço do seu Worker (ex.: `https://nail-studio-pro
 
 Guia de deploy: [`worker/README.md`](worker/README.md).
 
+> **Ordem de publicação (não pule):** os redirecionamentos deste repositório ainda apontam para um endereço provisório. Se forem para o `main` (GitHub Pages) antes do Worker, o link de agendamento das clientes quebra.
+>
+> 1. Publicar o Worker (`worker/README.md`, seções 1 a 3) e testar.
+> 2. Anotar o endereço do Worker que o deploy mostrou.
+> 3. Rodar o `sed` da seção 5 do `worker/README.md` (troca o endereço provisório pelo real).
+> 4. Commit e push dessa troca.
+> 5. Só então fazer o merge no `main` / Pages.
+> 6. Gerar o APK novo e, por último, desligar a credencial antiga (seção 4).
+
 ---
 
 ## ✨ Principais Funcionalidades
