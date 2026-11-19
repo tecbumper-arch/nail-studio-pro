@@ -547,6 +547,19 @@ test('nome de cliente malicioso não executa código na Agenda nem nos Clientes 
   await page.locator('#categoriesCrudList button:has-text("Editar")').first().dispatchEvent('click'); // gaveta recolhida
   assert.equal(await page.inputValue('#catEditName'), 'Alongamentos');
   assert.equal(await page.evaluate(() => window.__pwned), undefined);
+
+  // Página da cliente: "Meus Horários" com nome malicioso; Cancelar (via data-*) funciona.
+  const cli = await newPage(ctx, errors);
+  await cli.goto(`${origin}/Pagina_Cliente.html?s=${SID}`);
+  await cli.waitForSelector('.srv-card');
+  await cli.click('#tabBtnMy');
+  await cli.fill('#cLookupWhats', payloads[1].whats);
+  await cli.click('#cMyBookingsView button:has-text("Buscar")');
+  await cli.locator('#cMyBookingsList button:has-text("Cancelar")').first().click();
+  await cli.waitForFunction(() => document.getElementById('cMyBookingsList').textContent.includes('Cancelado'));
+  const db3 = await (await fetch(apiLog.googleBase + '/__db')).json();
+  assert.equal(db3[SID].Agendamentos.find((r) => r[4] === payloads[1].nome)[11], 'CANCELADO');
+  assert.equal(await cli.evaluate(() => window.__pwned), undefined);
   await ctx.close();
 });
 
