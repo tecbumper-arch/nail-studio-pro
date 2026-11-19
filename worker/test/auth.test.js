@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createFakeGoogle } from './fakeGoogle.js';
 import { createGoogle, resetGoogleTokenCache } from '../src/google.js';
 import { authHandlers, adminAuthHandlers } from '../src/handlers/auth.js';
@@ -9,10 +9,22 @@ const SID = 'studio-1';
 const MASTER = 'master-1';
 const SECRET = 'test-secret';
 
+// KV em memória que conta gravações (put/delete): o plano grátis só tem 1.000 por dia.
 function fakeKv() {
   const m = new Map();
-  return { m, get: async (k) => m.get(k) ?? null, put: async (k, v) => { m.set(k, v); }, delete: async (k) => { m.delete(k); } };
+  const kv = {
+    m, writes: 0,
+    get: async (k) => m.get(k) ?? null,
+    put: async (k, v) => { kv.writes++; m.set(k, v); },
+    delete: async (k) => { kv.writes++; m.delete(k); },
+  };
+  return kv;
 }
+const brokenKv = () => ({
+  get: async () => { throw new Error('KV down'); },
+  put: async () => { throw new Error('KV put limit exceeded'); },
+  delete: async () => { throw new Error('KV down'); },
+});
 
 async function seed(pinHash) {
   const cfg = [['Chave', 'Valor', 'Descricao'], ['STUDIO_NOME', 'Studio Ana', ''], ['SETUP_CONCLUIDO', 'SIM', '']];
@@ -48,7 +60,28 @@ describe('authenticateAdmin', () => {
 
   it('unknown email fails with the current "Conta não encontrada..." message', async () => {
     await expect(authHandlers.authenticateAdmin(ctx, { loginId: 'no@x.com', pin: '4321' })).rejects.toThrow(/^Conta não encontrada com este e-mail\./);
-    expect(ctx.env.RATE_LIMIT.m.get('pin:no@x.com')).toBe('1');
+  });
+
+  it('unknown email does not spend KV writes', async () => {
+    for (let i = 0; i < 3; i++) {
+      await expect(authHandlers.authenticateAdmin(ctx, { loginId: 'no@x.com', pin: '4321' })).rejects.toThrow(/^Conta não encontrada/);
+    }
+    expect(ctx.env.RATE_LIMIT.writes).toBe(0);
+  });
+
+  it('a clean login (no failure counter) does not spend KV writes', async () => {
+    await authHandlers.authenticateAdmin(ctx, { loginId: 'ana@x.com', pin: '4321' });
+    expect(ctx.env.RATE_LIMIT.writes).toBe(0);
+  });
+
+  it('KV errors degrade gracefully: login works and a wrong PIN is still a normal error', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    ctx.env.RATE_LIMIT = brokenKv();
+    const r = await authHandlers.authenticateAdmin(ctx, { loginId: 'ana@x.com', pin: '4321' });
+    expect(r.spreadsheetId).toBe(SID);
+    await expect(authHandlers.authenticateAdmin(ctx, { loginId: 'ana@x.com', pin: '0000' })).rejects.toThrow('Senha / PIN incorreto!');
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
   });
 
   it('sixth attempt within 15 min is locked even with the right PIN', async () => {

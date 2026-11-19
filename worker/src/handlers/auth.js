@@ -3,7 +3,7 @@ import { signToken } from '../session.js';
 import { UserError } from '../errors.js';
 import { hashPin } from '../util.js';
 import { loadStudio } from '../studio.js';
-import { isLocked, recordFailure, clearFailures } from '../rateLimit.js';
+import { getFailures, isOverLimit, recordFailure, clearFailures } from '../rateLimit.js';
 
 const STUDIO_TTL = 30 * 24 * 60 * 60;
 
@@ -27,13 +27,14 @@ export const authHandlers = {
     if (!email) throw new UserError('Informe o e-mail da sua conta Google.');
     const key = `pin:${email}`;
 
-    if (await isLocked(env.RATE_LIMIT, key)) {
+    const failures = await getFailures(env.RATE_LIMIT, key);
+    if (isOverLimit(failures)) {
       throw new UserError('Muitas tentativas. Tente novamente em 15 minutos.');
     }
 
     const conta = await findAccountByEmail(g, env, email);
     if (!conta) {
-      await recordFailure(env.RATE_LIMIT, key);
+      // Sem gravação no KV: e-mail desconhecido não tem PIN a adivinhar (e não gasta a cota diária).
       throw new UserError('Conta não encontrada com este e-mail. Se for seu primeiro acesso, clique em "Criar Meu Acesso com Conta Google" abaixo.');
     }
 
@@ -43,14 +44,14 @@ export const authHandlers = {
     const storedHash = cfgMap['ADMIN_PIN_HASH'] || defaultHash;
 
     if (inputHash !== storedHash) {
-      await recordFailure(env.RATE_LIMIT, key);
+      await recordFailure(env.RATE_LIMIT, key, failures);
       throw new UserError('Senha / PIN incorreto!');
     }
     if (storedHash === defaultHash) {
       throw new UserError('Defina um PIN: entre com Google e crie um novo PIN.');
     }
 
-    await clearFailures(env.RATE_LIMIT, key);
+    await clearFailures(env.RATE_LIMIT, key, failures);
     const token = await issueStudioSession(env, conta, ctx.now);
     return { token, spreadsheetId: conta.sid };
   },
