@@ -244,7 +244,7 @@
 - `worker/README.md` (passo a passo para a dona): criar conta Cloudflare; `npx wrangler login`; `npx wrangler kv namespace create RATE_LIMIT` e colar o id; no Google Cloud Console: conferir que a tela de consentimento está "Em produção" (se "Em teste", a Agenda expira em 7 dias), adicionar `https://<worker>/api/oauth/callback` aos URIs de redirecionamento, gerar novo client secret e novo refresh token da conta dona das planilhas; `npx wrangler secret put` para os 4 secrets (`SESSION_SECRET`: `openssl rand -base64 32`); `npx wrangler deploy`; testar; **revogar** o refresh token e o client secret antigos; atualizar a URL nos redirecionamentos e no `MainActivity.kt`; gerar APK novo e enviar o link novo à manicure.
 - `README.md`: links novos, arquitetura em 3 linhas, aviso de que as versões ≤ v2.2 devem ser substituídas.
 
-- [ ] **Step 1:** `grep -rln "clientSecret\|ZkFEcTZ6NENYczhCTG0x" --exclude-dir=.git --exclude-dir=node_modules .` → lista as 10 cópias (estado inicial).
+- [ ] **Step 1:** `grep -rln "clientSecret\|<prefixo-do-refresh-token>" --exclude-dir=.git --exclude-dir=node_modules .` → lista as 10 cópias (estado inicial).
 - [ ] **Step 2: Implement** redirecionamentos, remoções, Kotlin, manifest e READMEs.
 - [ ] **Step 3:** repetir o grep do Step 1 → nenhuma saída. `cd worker && npx vitest run && npm run e2e` → PASS. Se houver Android SDK no ambiente: `cd android-app && ./gradlew assembleDebug` → BUILD SUCCESSFUL; se não houver, registrar no relatório final que o APK não foi compilado aqui.
 - [ ] **Step 4: Commit** `chore: remove cópias com credencial, APK aponta para o Worker, guia de deploy`

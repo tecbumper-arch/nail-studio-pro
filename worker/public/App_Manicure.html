@@ -1895,6 +1895,12 @@
       return p + crc.toString(16).toUpperCase().padStart(4, '0');
     }
 
+    // Retorno do Google com a página já aberta (mudança só de fragmento): recarrega para o fluxo normal ler o resultado.
+    window.addEventListener('hashchange', () => {
+      const h = new URLSearchParams(window.location.hash.slice(1));
+      if (h.has('google_auth') || h.has('gcal')) window.location.reload();
+    });
+
     window.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('clientPageUrlInput').value = clientPageUrl();
       document.getElementById('manData').value = getLocalIsoDate();

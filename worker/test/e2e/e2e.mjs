@@ -439,6 +439,16 @@ test('retorno google_auth=error mostra a mensagem', async ({ browser, origin, ap
   await ctx.close();
 });
 
+test('retorno do Google com a página já aberta (hashchange) mostra a mensagem', async ({ browser, origin, apiLog, errors }) => {
+  const ctx = await newContext(browser, origin, apiLog);
+  const page = await newPage(ctx, errors);
+  await page.goto(`${origin}/App_Manicure.html?r=123`);
+  await page.waitForSelector('#lockScreen');
+  await page.evaluate((m) => { location.hash = `google_auth=error&msg=${encodeURIComponent(m)}`; }, 'Aviso aquecido.');
+  await waitToast(page, 'Aviso aquecido.');
+  await ctx.close();
+});
+
 test('nenhuma resposta de /api/* contém "GCAL_REFRESH_TOKEN" nem "ADMIN_PIN_HASH"', async ({ apiLog }) => {
   assert.ok(apiLog.responses.length > 10, 'respostas da API capturadas');
   const pinHash = await hashPin(PIN);

@@ -145,13 +145,14 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Trata o retorno do OAuth: nailstudiopro://auth?<query> vira
-     * BASE_URL/App_Manicure.html#<query> (a página lê o resultado só do fragmento).
+     * BASE_URL/App_Manicure.html?r=<agora>#<query> (a página lê o resultado só do fragmento).
      */
     private fun handleAuthIntent(intent: Intent?) {
         val data = intent?.data ?: return
         if (data.scheme == "nailstudiopro" && data.host == "auth") {
             val q = data.encodedQuery ?: ""
-            webView.loadUrl("$BASE_URL/App_Manicure.html#$q")
+            // ?r= força recarga (só o fragmento mudaria a navegação sem recarregar a página)
+            webView.loadUrl("$BASE_URL/App_Manicure.html?r=${System.currentTimeMillis()}#$q")
         }
     }
 
