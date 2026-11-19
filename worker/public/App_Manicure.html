@@ -478,15 +478,41 @@
         </p>
 
         <!-- BOTÃO OFICIAL DE LOGIN COM CONTA GOOGLE REAL DO APARELHO -->
-        <button type="button" id="btnGoogleAccountChooser" onclick="startDirectGoogleOAuth()" style="width:100%; height:54px; background:#ffffff; color:#0f172a; border:2px solid #cbd5e1; border-radius:18px; font-size:0.92rem; font-weight:800; display:flex; align-items:center; justify-content:center; gap:10px; cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,0.07); padding:0 14px; white-space:nowrap;">
+        <button type="button" id="btnGoogleAccountChooser" onclick="startGoogleAuth('login')" style="width:100%; height:54px; background:#ffffff; color:#0f172a; border:2px solid #cbd5e1; border-radius:18px; font-size:0.92rem; font-weight:800; display:flex; align-items:center; justify-content:center; gap:10px; cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,0.07); padding:0 14px; white-space:nowrap;">
           <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" style="width:22px; height:22px; flex-shrink:0;" alt="Google">
           <span>Continuar com Conta Google</span>
         </button>
 
-        <!-- CONTA REAL UTILIZADA NESTE APARELHO (APARECE APENAS SE A PRÓPRIA USUÁRIA JÁ CONECTOU NESTE CELULAR) -->
-        <div id="loginMainAccountsList" class="hidden" style="margin-top:14px; display:flex; flex-direction:column; gap:10px; text-align:left;"></div>
-
-        <!-- LOGIN EXCLUSIVO VIA CONTA GOOGLE REAL CADASTRADA NAS CONTAS (ACCOUNTS) DO APARELHO -->
+        <!-- LOGIN COM E-MAIL + PIN (NO APK, O SELETOR DE CONTAS DO ANDROID PREENCHE O E-MAIL) -->
+        <div style="display:flex; align-items:center; gap:10px; margin:16px 0 12px; color:#94a3b8; font-size:0.74rem; font-weight:700;">
+          <div style="flex:1; height:1px; background:#e2e8f0;"></div>
+          <span>ou entre com e-mail e PIN</span>
+          <div style="flex:1; height:1px; background:#e2e8f0;"></div>
+        </div>
+        <div style="text-align:left;">
+          <div class="field">
+            <label>E-mail da sua Conta Google</label>
+            <input type="email" id="loginUserInput" class="inp" placeholder="seuemail@gmail.com" autocomplete="email" onfocus="offerDeviceAccountPicker()">
+          </div>
+          <div class="field">
+            <label>Senha / PIN</label>
+            <input type="password" id="pinInput" class="inp" inputmode="numeric" maxlength="6" placeholder="Seu PIN de 4 a 6 números" autocomplete="current-password" onkeydown="if(event.key==='Enter') unlockApp()">
+          </div>
+          <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; color:#475569; margin-bottom:12px; cursor:pointer;">
+            <input type="checkbox" id="chkRemember" checked> Manter conectada neste aparelho
+          </label>
+          <button type="button" id="btnUnlock" class="btn-main" onclick="unlockApp()">
+            <i class="fa-solid fa-lock-open"></i> Entrar
+          </button>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:10px; flex-wrap:wrap;">
+          <button type="button" id="btnCreateAccess" onclick="startGoogleAuth('onboard')" style="background:none; border:none; padding:6px 0; color:var(--primary-dark); font-size:0.8rem; font-weight:800; cursor:pointer;">
+            Criar Meu Acesso com Conta Google
+          </button>
+          <button type="button" id="btnForgotPin" onclick="showAuthMode('recover')" style="background:none; border:none; padding:6px 0; color:#64748b; font-size:0.8rem; font-weight:700; cursor:pointer;">
+            Esqueci a senha
+          </button>
+        </div>
 
         <!-- BLOCO DE INSTALAÇÃO (OCULTADO AUTOMATICAMENTE QUANDO JÁ ESTÁ DENTRO DO APK ANDROID) -->
         <div id="loginInstallAppBlock" style="margin-top:18px; padding-top:14px; border-top:1px solid #f1f5f9; text-align:center;">
@@ -520,7 +546,7 @@
         <div id="onboardingAutoSection">
           <div class="field">
             <label>Seu E-mail da Conta Google (Gmail) *</label>
-            <input type="email" id="autoEmail" class="inp" placeholder="seuemail@gmail.com" autocomplete="email">
+            <input type="email" id="autoEmail" class="inp" placeholder="seuemail@gmail.com" readonly style="background:#f1f5f9; color:#475569;">
           </div>
           <div class="field">
             <label>Nome do seu Studio de Unhas *</label>
@@ -560,7 +586,7 @@
           </div>
           <div class="field">
             <label>Seu E-mail Google (Gmail) *</label>
-            <input type="email" id="obGoogleEmail" class="inp" placeholder="seuemail@gmail.com">
+            <input type="email" id="obGoogleEmail" class="inp" placeholder="seuemail@gmail.com" readonly style="background:#f1f5f9; color:#475569;">
           </div>
           <div class="field">
             <label>Nome do Studio *</label>
@@ -586,21 +612,23 @@
           <h2 style="font-size:1.2rem; margin:0;">🔐 Recuperar PIN</h2>
           <button type="button" onclick="showAuthMode('login')" style="background:#f1f5f9; border:none; padding:6px 12px; border-radius:99px; color:#334155; cursor:pointer; font-size:0.78rem; font-weight:800;">Voltar</button>
         </div>
-        <div class="field">
-          <label>Palavra de Recuperação ou WhatsApp *</label>
-          <input type="text" id="recWordInput" class="inp" placeholder="Sua palavra secreta ou WhatsApp">
+        <div id="recoverStepGoogle">
+          <p style="font-size:0.85rem; color:#475569; line-height:1.45; margin-bottom:14px;">
+            Confirme que a conta é sua entrando com o Google. Em seguida você cria um novo PIN.
+          </p>
+          <button type="button" id="btnRecoverGoogle" class="btn-main" onclick="startGoogleAuth('recover')">
+            <i class="fa-brands fa-google"></i> Entrar com Google
+          </button>
         </div>
-        <div class="field">
-          <label>E-mail da sua Conta Google *</label>
-          <input type="email" id="recEmailInput" class="inp" placeholder="seuemail@gmail.com">
+        <div id="recoverStepPin" class="hidden">
+          <div class="field">
+            <label>Novo PIN *</label>
+            <input type="password" id="recNewPinInput" class="inp" inputmode="numeric" maxlength="6" placeholder="Novo PIN de 4 a 6 números">
+          </div>
+          <button id="btnRecover" class="btn-main" onclick="submitRecoverPin()">
+            <i class="fa-solid fa-key"></i> Salvar Novo PIN
+          </button>
         </div>
-        <div class="field">
-          <label>Novo PIN *</label>
-          <input type="password" id="recNewPinInput" class="inp" placeholder="Digite a nova senha">
-        </div>
-        <button id="btnRecover" class="btn-main" onclick="submitRecoverPin()">
-          <i class="fa-solid fa-key"></i> Salvar Novo PIN
-        </button>
       </div>
     </div>
   </div>
@@ -1069,9 +1097,6 @@
                 <i class="fa-solid fa-table"></i> Abrir Planilha
               </a>
               <a id="hdrSheetLink" href="#" target="_blank" class="hidden"></a>
-              <button type="button" class="btn-sm" style="background:#e2e8f0; color:#1e293b;" onclick="document.getElementById('lockScreen').classList.remove('hidden'); showAuthMode('onboarding'); switchOnboardingMode('manual');">
-                <i class="fa-solid fa-link"></i> Trocar Planilha
-              </button>
             </div>
           </div>
 
@@ -1082,17 +1107,11 @@
             </div>
             <div class="field">
               <label>E-mail da Conta Google Conectada</label>
-              <input type="text" id="cfgLoginId" class="inp" placeholder="Seu e-mail Google">
+              <input type="text" id="cfgLoginId" class="inp" placeholder="Seu e-mail Google" readonly style="background:#f1f5f9;">
             </div>
-            <div class="form-row-2">
-              <div class="field">
-                <label>Trocar PIN (Opcional)</label>
-                <input type="password" id="cfgNovoPin" class="inp" placeholder="Manter atual">
-              </div>
-              <div class="field">
-                <label>Palavra Secreta (Opcional)</label>
-                <input type="text" id="cfgNovaRec" class="inp" placeholder="Manter atual">
-              </div>
+            <div class="field">
+              <label>Trocar PIN (Opcional)</label>
+              <input type="password" id="cfgNovoPin" class="inp" inputmode="numeric" maxlength="6" placeholder="Manter atual">
             </div>
           </div>
 
@@ -1132,28 +1151,6 @@
           <div style="padding:12px 18px; background:#f8fafc; border-top:1px solid #e2e8f0;">
             <button type="button" class="btn-main" style="min-height:44px; background:#0f172a;" onclick="closeAppsScriptWizardModal()">Fechar Passo a Passo</button>
           </div>
-        </div>
-      </div>
-
-      <!-- MODAL AUXILIAR DE CONEXÃO GOOGLE AGENDA -->
-      <div id="modalGcalConnect" class="modal-overlay hidden" style="position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; display:flex; align-items:center; justify-content:center; padding:16px;">
-        <div style="background:#fff; border-radius:22px; padding:22px 18px; max-width:420px; width:100%; box-shadow:0 16px 32px rgba(0,0,0,0.25);">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <h3 style="margin:0; font-size:1.1rem; color:#0f172a;"><i class="fa-brands fa-google" style="color:#4285F4;"></i> Conectar Conta Google</h3>
-            <button type="button" onclick="closeGcalModal()" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:#64748b;">&times;</button>
-          </div>
-          <p style="font-size:0.85rem; color:#475569; margin-bottom:16px; line-height:1.45;">
-            Escolha como deseja concluir a conexão com sua Conta Google:
-          </p>
-          <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px;">
-            <button type="button" class="btn-main" style="background:#2563eb;" onclick="window.location.href = getGcalConnectUrl(false)">
-              <i class="fa-brands fa-google"></i> Autorizar Direto Neste Aparelho
-            </button>
-            <button type="button" class="btn-sm" style="width:100%; background:#f1f5f9; color:#334155;" onclick="closeGcalModal(); openAppsScriptWizardModal();">
-              <i class="fa-solid fa-cloud"></i> Ver Passo a Passo Alternativo na Nuvem
-            </button>
-          </div>
-          <button type="button" class="btn-sm" style="width:100%; background:#e2e8f0; color:#475569;" onclick="closeGcalModal()">Cancelar</button>
         </div>
       </div>
 
@@ -1220,6 +1217,8 @@
 
   <script>
     let adminToken = localStorage.getItem('NAIL_ADM_TOKEN') || sessionStorage.getItem('NAIL_ADM_TOKEN') || null;
+    let recoverToken = null; // sessão vinda do Google em "Esqueci a senha" (só para criar o PIN novo)
+    const PENDING_KEY = 'NAIL_PENDING_TOKEN'; // token curto do cadastro (conta Google confirmada, studio ainda não criado)
     let dashState = { studio: {}, categorias: [], catalogo: [], agendamentos: [] };
     let agendaFilter = 'TODOS';
     let deferredInstallPrompt = null;
@@ -1242,33 +1241,16 @@
 
     function showAuthMode(mode) {
       ['authModeLogin', 'authModeOnboarding', 'authModeRecover'].forEach(id => document.getElementById(id).classList.add('hidden'));
+      if (mode !== 'recover') recoverToken = null;
+      if (mode !== 'onboarding') sessionStorage.removeItem(PENDING_KEY);
       if (mode === 'onboarding') document.getElementById('authModeOnboarding').classList.remove('hidden');
-      else if (mode === 'recover') document.getElementById('authModeRecover').classList.remove('hidden');
+      else if (mode === 'recover') {
+        // Passo 1: confirmar a conta com o Google. Passo 2 (já confirmada): Novo PIN.
+        document.getElementById('recoverStepGoogle').classList.toggle('hidden', !!recoverToken);
+        document.getElementById('recoverStepPin').classList.toggle('hidden', !recoverToken);
+        document.getElementById('authModeRecover').classList.remove('hidden');
+      }
       else document.getElementById('authModeLogin').classList.remove('hidden');
-    }
-
-
-    // =========================================================================
-    // MOTOR SAAS V4 - MULTI-TENANT GOOGLE SHEETS + DRIVE AUTO-PROVISIONING
-    // =========================================================================
-    function escapeHtml(s) {
-      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
-    const GSHEET_CONFIG = {
-      templateSpreadsheetId: "18lhkSiX1d6Y-NzJtTtHdGgUPbbYIUZAVfjUKe-gn9nM",
-      defaultSpreadsheetId: "14r4nifHaaQgDMm8OmCgRjCoScY8rOPGLMfdKnRz1a9Q",
-      masterSpreadsheetId: "14r4nifHaaQgDMm8OmCgRjCoScY8rOPGLMfdKnRz1a9Q",
-      clientId: atob("bW9jLnRuZXRub2NyZXN1ZWxnb29nLnNwcGEucGUzMDRnNGhqb2xvdHY1MzJlcmNsMTJoMm5pc3NobXQtMTk1MDYwNjAwMTcwMQ==").split("").reverse().join(""),
-      clientSecret: atob("ZkFEcTZ6NENYczhCTG0xSkxkTDY4NFJXRjg1Sy1YUFNDT0c=").split("").reverse().join(""),
-      refreshToken: atob("SS15c2duZVRiSVoxbkFvX2YyNzNTNGlJeG96dVhSUFByOFVXQ0UtblRUcC03YXpFMUNBbEc2ZWw0RGx5Y3Y0cExTS3JJOUwtRndOU0VCR0FBUkFJWWdDOUZyQXF4UnpGUlhoMC8vMQ==").split("").reverse().join(""),
-      publicBaseUrl: "https://nailstudiopro-app.surge.sh"
-    };
-
-    // Determina qual Planilha Google está ativa (via ?s=ID na URL, ou salva no celular da manicure, ou a principal)
-    function getActiveSpreadsheetId() {
-      const fromStorage = localStorage.getItem('NAIL_ACTIVE_SHEET_ID') || sessionStorage.getItem('NAIL_ACTIVE_SHEET_ID');
-      if (fromStorage && fromStorage.length > 15) return fromStorage.trim();
-      return GSHEET_CONFIG.masterSpreadsheetId;
     }
 
 
@@ -1285,12 +1267,15 @@
       return d.startsWith('55') && (d.length === 12 || d.length === 13);
     }
     
+    function clientPageUrl(sid = dashState.studio && dashState.studio.spreadsheetId) {
+      return location.origin + '/Pagina_Cliente.html' + (sid ? '?s=' + encodeURIComponent(sid) : '');
+    }
+
     function openClientPage(e) {
       if (e && typeof e.preventDefault === 'function') e.preventDefault();
-      const s = getActiveSpreadsheetId();
-      const url = s ? 'Pagina_Cliente.html?s=' + encodeURIComponent(s) : 'Pagina_Cliente.html';
-      window.location.href = url;
+      window.location.href = clientPageUrl();
     }
+
 
     function safeEncodeWaText(text) {
       if (!text) return '';
@@ -1317,306 +1302,93 @@
       return 'https://api.whatsapp.com/send?phone=' + n + (encoded ? '&text=' + encoded : '');
     }
 
-    function clearActiveSpreadsheetId() {
-      localStorage.removeItem('NAIL_ACTIVE_SHEET_ID');
-      sessionStorage.removeItem('NAIL_ACTIVE_SHEET_ID');
-    }
-
-    function setActiveSpreadsheetId(sheetId) {
-      if (!sheetId) return;
-      localStorage.setItem('NAIL_ACTIVE_SHEET_ID', sheetId);
-      sessionStorage.setItem('NAIL_ACTIVE_SHEET_ID', sheetId);
-    }
-
-    let cachedAccessToken = null;
-    let tokenExpiresAt = 0;
-
-    async function getGoogleAccessToken() {
-      if (cachedAccessToken && Date.now() < tokenExpiresAt) {
-        return cachedAccessToken;
-      }
-      const body = new URLSearchParams({
-        client_id: GSHEET_CONFIG.clientId,
-        client_secret: GSHEET_CONFIG.clientSecret,
-        refresh_token: GSHEET_CONFIG.refreshToken,
-        grant_type: 'refresh_token'
-      });
-      const res = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body.toString()
-      });
-      const data = await res.json();
-      if (!data.access_token) throw new Error('Falha ao conectar ao Google Cloud.');
-      cachedAccessToken = data.access_token;
-      tokenExpiresAt = Date.now() + ((data.expires_in - 60) * 1000);
-      return cachedAccessToken;
-    }
-
-    async function readSheetTab(tabName, customSheetId = null) {
-      const sid = customSheetId || getActiveSpreadsheetId();
-      const token = await getGoogleAccessToken();
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${sid}/values/${encodeURIComponent(tabName)}!A1:Z500`;
-      const res = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!res.ok) return [];
-      const data = await res.json();
-      return data.values || [];
-    }
-
-    async function writeSheetTab(tabName, rows2D, customSheetId = null) {
-      const sid = customSheetId || getActiveSpreadsheetId();
-      const token = await getGoogleAccessToken();
-      const clearUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sid}/values/${encodeURIComponent(tabName)}!A1:Z500:clear`;
-      await fetch(clearUrl, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
-      });
-
-      const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sid}/values/${encodeURIComponent(tabName)}!A1?valueInputOption=USER_ENTERED`;
-      await fetch(writeUrl, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ values: rows2D })
-      });
-    }
-
-    async function appendSheetRow(tabName, rowValues, customSheetId = null) {
-      const sid = customSheetId || getActiveSpreadsheetId();
-      const token = await getGoogleAccessToken();
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${sid}/values/${encodeURIComponent(tabName)}!A1:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
-      await fetch(url, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ values: [rowValues] })
-      });
-    }
-
-    async function logSecurityEvent(evento, detalhes, customSheetId = null) {
+    // =========================================================================
+    // SERVIDOR (Cloudflare Worker): toda leitura e gravação passa por /api/rpc
+    // =========================================================================
+    // A sessão (token) identifica o studio; nenhuma credencial do Google fica no navegador.
+    async function rpc(fn, ...args) {
+      const token = fn === 'completeInitialOnboarding'
+        ? sessionStorage.getItem(PENDING_KEY)
+        : (fn === 'authenticateAdmin' ? null : (recoverToken || adminToken));
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers.Authorization = 'Bearer ' + token;
+      let res;
       try {
-        const nowStr = new Date().toLocaleString('pt-BR');
-        await appendSheetRow('Logs_Seguranca', [nowStr, evento, detalhes], customSheetId);
-      } catch (e) {}
+        res = await fetch('/api/rpc', { method: 'POST', headers, body: JSON.stringify({ fn, args }) });
+      } catch (e) {
+        throw new Error('Sem conexão. Verifique sua internet e tente de novo.');
+      }
+      let json = null;
+      try { json = await res.json(); } catch (e) {}
+      if (res.status === 401) {
+        if (fn === 'completeInitialOnboarding' || recoverToken) showAuthMode('login');
+        else if (adminToken) logoutApp();
+      }
+      if (!json || !json.ok) throw new Error((json && json.error) || 'Erro inesperado. Tente novamente.');
+      return json.data;
     }
 
-    // CRIAÇÃO AUTOMÁTICA DE NOVA PLANILHA GOOGLE + COMPARTILHAMENTO NO GOOGLE DRIVE DA USUÁRIA!
-    async function provisionNewGoogleSpreadsheetForUser(p, pinHash, recHash) {
-      const token = await getGoogleAccessToken();
-      const cleanEmail = String(p.googleEmail || '').trim().toLowerCase();
-      const studioTitle = `${p.studioNome || 'Meu Studio'} - App & Agenda (Banco Oficial)`;
-
-      // 1. Cria a Planilha com as 5 abas já estruturadas
-      const createRes = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          properties: { title: studioTitle, locale: 'pt_BR' },
-          sheets: [
-            { properties: { title: 'Configuracoes', sheetId: 0 } },
-            { properties: { title: 'Categorias', sheetId: 101 } },
-            { properties: { title: 'Catalogo', sheetId: 102 } },
-            { properties: { title: 'Agendamentos', sheetId: 103 } },
-            { properties: { title: 'Logs_Seguranca', sheetId: 104 } }
-          ]
-        })
-      });
-      const created = await createRes.json();
-      if (!created.spreadsheetId) {
-        throw new Error('Não foi possível criar a planilha no Google Sheets.');
-      }
-      const newSheetId = created.spreadsheetId;
-
-      // 2. Popula dados iniciais das 5 abas
-      const cfgRows = [
-        ['Chave', 'Valor', 'Descricao'],
-        ['SETUP_CONCLUIDO', 'SIM', 'Criado automaticamente pelo App'],
-        ['STUDIO_NOME', p.studioNome || 'Meu Studio de Unhas', 'Nome do Studio'],
-        ['PROFISSIONAL_NOME', p.profissionalNome || 'Manicure', 'Nome da Profissional'],
-        ['ADMIN_LOGIN_ID', cleanEmail || p.whatsapp, 'Conta Google / Login Titular'],
-        ['WHATSAPP_STUDIO', String(p.whatsapp || '').replace(/\D/g, ''), 'WhatsApp Oficial'],
-        ['PIX_CHAVE', p.pixChave || '', 'Chave Pix'],
-        ['PIX_RECEBEDOR', p.pixRecebedor || p.profissionalNome || 'STUDIO NAILS', 'Titular Pix'],
-        ['PIX_CIDADE', p.pixCidade || 'SAO PAULO', 'Cidade Pix'],
-        ['TEMA_COR', p.temaCor || 'pink-gold', 'Tema de Cores'],
-        ['HORARIO_INICIO', '09:00', 'Abertura'],
-        ['HORARIO_FIM', '19:00', 'Fechamento'],
-        ['ALMOCO_INICIO', '12:00', 'Início Almoço'],
-        ['ALMOCO_FIM', '13:00', 'Fim Almoço'],
-        ['DIAS_ATENDIMENTO', '1,2,3,4,5,6', 'Dias (0=Dom..6=Sab)'],
-        ['INTERVALO_MINUTOS', '60', 'Intervalo'],
-        ['SINCRONIZAR_AGENDA', 'SIM', 'Agenda'],
-        ['INSTAGRAM_STUDIO', p.instagram || '', 'Instagram do Studio'],
-        ['ENDERECO_STUDIO', p.endereco || '', 'Endereço do Studio'],
-        ['ADMIN_PIN_HASH', pinHash, 'Hash SHA-256 da Senha/PIN'],
-        ['ADMIN_RECOVERY_HASH', recHash, 'Hash SHA-256 da Palavra de Recuperação'],
-        ['TERMO_ACEITO_EM', new Date().toLocaleString('pt-BR'), 'Termo de Responsabilidade Aceito']
-      ];
-
-      const catDefaultRows = [
-        ['ID_Categoria', 'Nome', 'Icone', 'Ordem', 'Ativo'],
-        ['CAT-01', 'Alongamentos', '💅', '1', 'SIM'],
-        ['CAT-02', 'Manicure & Pedicure', '✨', '2', 'SIM'],
-        ['CAT-03', 'Blindagem & Banho de Gel', '💎', '3', 'SIM'],
-        ['CAT-04', 'Nail Art & Decoradas', '🎨', '4', 'SIM'],
-        ['CAT-05', 'Spa dos Pés & Mãos', '🌸', '5', 'SIM']
-      ];
-
-      const catDefaultServices = [
-        ['ID', 'Nome', 'Descricao', 'Preco', 'DuracaoMin', 'FotoURL', 'Categoria', 'Ativo'],
-        ['SRV-101', 'Alongamento em Fibra de Vidro', 'Alongamento resistente com acabamento natural, curvatura perfeita e esmaltação em gel inclusa.', '160', '120', 'https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=400&q=80', 'Alongamentos', 'SIM'],
-        ['SRV-102', 'Manutenção de Alongamento', 'Manutenção completa (até 21 dias), nivelamento, cuticulagem e nova esmaltação.', '110', '90', 'https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&w=400&q=80', 'Alongamentos', 'SIM'],
-        ['SRV-103', 'Banho de Gel / Blindagem', 'Camada protetora de gel sobre a unha natural para maior durabilidade e brilho intenso.', '90', '60', 'https://images.unsplash.com/photo-1632345031435-8727f6897d53?auto=format&fit=crop&w=400&q=80', 'Blindagem & Banho de Gel', 'SIM'],
-        ['SRV-104', 'Pé e Mão Tradicional Completo', 'Cuticulagem funda, hidratação e esmaltação tradicional completa (mãos e pés).', '70', '60', 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=400&q=80', 'Manicure & Pedicure', 'SIM']
-      ];
-
-      await writeSheetTab('Configuracoes', cfgRows, newSheetId);
-      await writeSheetTab('Categorias', catDefaultRows, newSheetId);
-      await writeSheetTab('Catalogo', catDefaultServices, newSheetId);
-      await writeSheetTab('Agendamentos', [['ID_Reserva', 'Data', 'HoraInicio', 'HoraFim', 'ClienteNome', 'ClienteWhatsApp', 'ServicoID', 'ServicoNome', 'Valor', 'MetodoPagamento', 'StatusPagamento', 'StatusReserva', 'CalendarEventID', 'CriadoEm']], newSheetId);
-      await writeSheetTab('Logs_Seguranca', [['Timestamp', 'Evento', 'Detalhes'], [new Date().toLocaleString('pt-BR'), 'CONTA_CRIADA', `Planilha criada para ${cleanEmail}`]], newSheetId);
-
-      // 3. Compartilha no Google Drive com o e-mail Google da profissional (Permissão de Edição!) e leitura por link
-      let ownershipStatus = 'COMPARTILHADA';
-      if (cleanEmail && cleanEmail.includes('@')) {
-        try {
-          const permRes = await fetch(`https://www.googleapis.com/drive/v3/files/${newSheetId}/permissions?sendNotificationEmail=true&emailMessage=${encodeURIComponent('Sua planilha do Studio foi criada! Ela é sua: aceite a propriedade quando o Google pedir.')}`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ role: 'writer', type: 'user', emailAddress: cleanEmail })
-          });
-          const perm = await permRes.json();
-          if (perm && perm.id) {
-            // Tentativa 1: transferência direta (funciona em contas do mesmo Google Workspace)
-            const tr = await fetch(`https://www.googleapis.com/drive/v3/files/${newSheetId}/permissions/${perm.id}?transferOwnership=true`, {
-              method: 'PATCH',
-              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ role: 'owner' })
-            });
-            if (tr.ok) {
-              ownershipStatus = 'PROPRIETARIA';
-            } else {
-              // Tentativa 2 (Gmail pessoal): proprietária pendente -> ela recebe e-mail do Google e aceita
-              const pend = await fetch(`https://www.googleapis.com/drive/v3/files/${newSheetId}/permissions/${perm.id}`, {
-                method: 'PATCH',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ role: 'writer', pendingOwner: true })
-              });
-              if (pend.ok) ownershipStatus = 'AGUARDANDO_ACEITE';
-            }
-          }
-        } catch (e) {}
-      }
-      // [SEGURANÇA REFORÇADA V6] Planilha estritamente privada, sem permissão pública ('anyone')
-
-      // 4. Registra na aba Contas_Manicures da planilha mestre para login por e-mail de qualquer dispositivo!
-      const sheetUrl = `https://docs.google.com/spreadsheets/d/${newSheetId}/edit`;
-      const clientLink = `${GSHEET_CONFIG.publicBaseUrl}/Pagina_Cliente.html?s=${newSheetId}`;
-      await appendSheetRow('Contas_Manicures', [
-        cleanEmail || p.whatsapp,
-        p.profissionalNome || '',
-        p.studioNome || '',
-        newSheetId,
-        sheetUrl,
-        clientLink,
-        pinHash,
-        recHash,
-        new Date().toLocaleString('pt-BR')
-      ], GSHEET_CONFIG.masterSpreadsheetId);
-
-      return { newSheetId, sheetUrl, clientLink, ownershipStatus };
+    // Ponte do APK Android (o Google bloqueia login dentro do WebView: abre no navegador do sistema).
+    function nativeBridge() {
+      return window.AndroidNativeBridge || window.AndroidNative || null;
     }
 
-    function pureJsSha256(ascii) {
-      function rightRotate(value, amount) {
-        return (value >>> amount) | (value << (32 - amount));
+    function openOAuth(path) {
+      const bridge = nativeBridge();
+      if (bridge && typeof bridge.openInSystemBrowser === 'function') {
+        bridge.openInSystemBrowser(new URL(path, window.location.href).href);
+      } else {
+        window.location.href = path;
       }
-      const mathPow = Math.pow;
-      const maxWord = mathPow(2, 32);
-      const lengthProperty = 'length';
-      let i, j;
-      let result = '';
-      const words = [];
-      const asciiBitLength = ascii[lengthProperty] * 8;
-      let hash = pureJsSha256.h = pureJsSha256.h || [];
-      const k = pureJsSha256.k = pureJsSha256.k || [];
-      let primeCounter = k[lengthProperty];
-      const isComposite = {};
-      for (let candidate = 2; primeCounter < 64; candidate++) {
-        if (!isComposite[candidate]) {
-          for (i = 0; i < 313; i += candidate) {
-            isComposite[i] = candidate;
-          }
-          hash[primeCounter] = (mathPow(candidate, .5) * maxWord) | 0;
-          k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
+    }
+
+    function oauthStartPath(intent) {
+      return '/api/oauth/start?intent=' + intent + '&app=' + (nativeBridge() ? 1 : 0);
+    }
+
+    // intent: 'login' | 'onboard' | 'recover'
+    function startGoogleAuth(intent) {
+      openOAuth(oauthStartPath(intent));
+    }
+
+    // Resultado do Google chega no fragmento (#...), nunca na query; é lido e apagado na hora.
+    function readOAuthReturn() {
+      const h = new URLSearchParams(window.location.hash.slice(1));
+      const result = { welcome: false, gcal: false };
+      if (!h.has('google_auth') && !h.has('gcal')) return result;
+      history.replaceState(null, '', location.pathname + location.search);
+
+      const status = h.get('google_auth');
+      const token = h.get('token') || '';
+      const email = (h.get('email') || '').trim().toLowerCase();
+      if (h.get('gcal') === 'connected') {
+        result.gcal = true;
+      } else if (status === 'success' && token) {
+        if (email) localStorage.setItem('NAIL_LAST_LOGIN', email);
+        if (h.get('intent') === 'recover') {
+          recoverToken = token;
+          showAuthMode('recover');
+          showToast('Conta Google confirmada! Agora crie seu novo PIN.');
+        } else {
+          adminToken = token;
+          sessionStorage.setItem('NAIL_ADM_TOKEN', token);
+          localStorage.setItem('NAIL_ADM_TOKEN', token);
+          result.welcome = true;
         }
-      }
-      ascii += '\x80';
-      while (ascii[lengthProperty] % 64 - 56) ascii += '\x00';
-      for (i = 0; i < ascii[lengthProperty]; i++) {
-        j = ascii.charCodeAt(i);
-        if (j >> 8) return '';
-        words[i >> 2] |= j << ((3 - i) % 4) * 8;
-      }
-      words[words[lengthProperty]] = ((asciiBitLength / maxWord) | 0);
-      words[words[lengthProperty]] = (asciiBitLength);
-      for (j = 0; j < words[lengthProperty];) {
-        const w = words.slice(j, j += 16);
-        const oldHash = hash;
-        hash = hash.slice(0, 8);
-        for (i = 0; i < 64; i++) {
-          const w15 = w[i - 15], w2 = w[i - 2];
-          const a = hash[0], e = hash[4];
-          const temp1 = hash[7]
-            + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25))
-            + ((e & hash[5]) ^ ((~e) & hash[6]))
-            + k[i]
-            + (w[i] = (i < 16) ? w[i] : (
-              w[i - 16]
-              + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3))
-              + w[i - 7]
-              + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))
-            ) | 0);
-          const temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22))
-            + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
-          hash = [(temp1 + temp2) | 0].concat(hash);
-          hash[4] = (hash[4] + temp1) | 0;
-        }
-        for (i = 0; i < 8; i++) {
-          hash[i] = (hash[i] + oldHash[i]) | 0;
-        }
-      }
-      for (i = 0; i < 8; i++) {
-        for (j = 3; j + 1; j--) {
-          const b = (hash[i] >> (j * 8)) & 255;
-          result += ((b < 16) ? 0 : '') + b.toString(16);
-        }
+      } else if (status === 'pending' && token) {
+        showAuthMode('onboarding');
+        sessionStorage.setItem(PENDING_KEY, token);
+        ['autoEmail', 'obGoogleEmail'].forEach(id => {
+          const inp = document.getElementById(id);
+          if (inp) inp.value = email;
+        });
+        showToast('Conta Google confirmada! Complete o cadastro do seu Studio.');
+      } else if (status === 'error') {
+        showToast(h.get('msg') || 'Não foi possível entrar com o Google. Tente de novo.');
       }
       return result;
     }
 
-    async function sha256Hex(text) {
-      const salted = 'NAIL_STUDIO_PRO_SALT_2026_' + String(text).trim().toLowerCase();
-      try {
-        if (window.crypto && window.crypto.subtle) {
-          const msgBuffer = new TextEncoder().encode(salted);
-          const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgBuffer);
-          const hashArray = Array.from(new Uint8Array(hashBuffer));
-          return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        }
-      } catch (err) {}
-      const utf8Str = unescape(encodeURIComponent(salted));
-      return pureJsSha256(utf8Str);
-    }
-
-    function toMin(t) {
-      const [h, m] = String(t || '09:00').split(':').map(Number);
-      return (h || 0) * 60 + (m || 0);
-    }
-
-    function fromMin(m) {
-      return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
-    }
 
     function getLocalIsoDate(d = new Date()) {
       const y = d.getFullYear();
@@ -1625,9 +1397,6 @@
       return `${y}-${m}-${day}`;
     }
 
-    
-    // Sincronização e Conexão com Google Agenda
-    
     // Validação em Tempo Real da Chave Pix
     function validatePixKeyInput(val) {
       const fb = document.getElementById('pixKeyFeedback');
@@ -1701,249 +1470,22 @@
       fb.innerHTML = '<i class="fa-solid fa-circle-info"></i> Digite seu Celular (com DDD), CPF, E-mail ou Chave Aleatória.';
     }
 
-
-    // =========================================================================
-    // MOTOR GOOGLE AGENDA 100% CLOUD-DIRECT (INDEPENDENTE DE PC / SERVIDOR LOCAL)
-    // =========================================================================
-    async function getGcalConfigFromSheet(customSheetId = null) {
-      const sid = customSheetId || getActiveSpreadsheetId();
-      const rows = await readSheetTab('Configuracoes', sid);
-      const map = {};
-      for (let i = 1; i < rows.length; i++) {
-        if (rows[i] && rows[i][0]) {
-          map[String(rows[i][0]).trim()] = String(rows[i][1] || '').trim();
-        }
-      }
-      return {
-        sheetId: sid,
-        rows: rows,
-        refreshToken: map['GCAL_REFRESH_TOKEN'] || '',
-        connectedEmail: map['GCAL_CONNECTED_EMAIL'] || map['ADMIN_LOGIN_ID'] || '',
-        webhookUrl: map['GCAL_WEBHOOK_URL'] || ''
-      };
-    }
-
-    async function upsertSheetConfigKeys(updatesObj, customSheetId = null) {
-      const sid = customSheetId || getActiveSpreadsheetId();
-      const rows = await readSheetTab('Configuracoes', sid);
-      const updated = rows.length ? rows.map(r => [...r]) : [['Chave', 'Valor', 'Descricao']];
-      for (const [k, v] of Object.entries(updatesObj)) {
-        let found = false;
-        for (let i = 1; i < updated.length; i++) {
-          if (updated[i] && String(updated[i][0]).trim() === k) {
-            updated[i][1] = v;
-            found = true;
-            break;
-          }
-        }
-        if (!found) {
-          updated.push([k, v, 'Configuração Cloud Direct']);
-        }
-      }
-      await writeSheetTab('Configuracoes', updated, sid);
-    }
-
-    async function getCalendarAccessTokenFromRefresh(refreshToken) {
-      const body = new URLSearchParams({
-        client_id: GSHEET_CONFIG.clientId,
-        client_secret: GSHEET_CONFIG.clientSecret,
-        refresh_token: refreshToken,
-        grant_type: 'refresh_token'
-      });
-      const res = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body.toString()
-      });
-      const data = await res.json();
-      if (!data.access_token) throw new Error('Token da Google Agenda expirado ou inválido.');
-      return data.access_token;
-    }
-
-    async function syncGoogleCalendarCloudDirect(action, eventData = null, eventId = null, customSheetId = null) {
-      try {
-        const cfg = await getGcalConfigFromSheet(customSheetId);
-        // 1. Via OAuth Refresh Token salvo na Planilha (100% Cloud-Direct)
-        if (cfg.refreshToken) {
-          const calToken = await getCalendarAccessTokenFromRefresh(cfg.refreshToken);
-          if (action === 'CREATE' && eventData) {
-            const cleanDate = eventData.data.includes('/') ? eventData.data.split('/').reverse().join('-') : eventData.data;
-            const startIso = cleanDate + 'T' + (eventData.horaInicio || '09:00') + ':00-03:00';
-            const endIso = cleanDate + 'T' + (eventData.horaFim || '10:00') + ':00-03:00';
-            const gEvent = {
-              summary: '💅 ' + (eventData.servicoNome || 'Procedimento') + ' - ' + (eventData.clienteNome || 'Cliente'),
-              description: [
-                'Reserva confirmada via Nail Studio Pro',
-                'Cliente: ' + (eventData.clienteNome || ''),
-                'WhatsApp: ' + (eventData.clienteWhatsApp || ''),
-                'Procedimento: ' + (eventData.servicoNome || ''),
-                'Valor: R$ ' + Number(eventData.valor || 0).toFixed(2),
-                'Código: ' + (eventData.id || '')
-              ].join('\n'),
-              start: { dateTime: startIso, timeZone: 'America/Sao_Paulo' },
-              end: { dateTime: endIso, timeZone: 'America/Sao_Paulo' }
-            };
-            const cRes = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
-              method: 'POST',
-              headers: { 'Authorization': 'Bearer ' + calToken, 'Content-Type': 'application/json' },
-              body: JSON.stringify(gEvent)
-            });
-            const cData = await cRes.json();
-            if (cData && cData.id) return { success: true, eventId: cData.id };
-          }
-          if (action === 'DELETE' && eventId && !String(eventId).startsWith('GCAL-') && !String(eventId).startsWith('DELETED_')) {
-            await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events/' + encodeURIComponent(eventId), {
-              method: 'DELETE',
-              headers: { 'Authorization': 'Bearer ' + calToken }
-            });
-            return { success: true, deleted: true };
-          }
-        }
-        // 2. Fallback via Webhook Apps Script se configurado
-        if (cfg.webhookUrl && cfg.webhookUrl.startsWith('https://script.google.com/')) {
-          const wRes = await fetch(cfg.webhookUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action, eventData, eventId })
-          });
-          const wData = await wRes.json();
-          if (wData && wData.success) return wData;
-        }
-      } catch (e) {}
-      return { success: false };
-    }
-
-
-    // =========================================================================
-    // MOTOR GOOGLE AGENDA 100% CLOUD-DIRECT (INDEPENDENTE DE PC / SERVIDOR LOCAL)
-    // =========================================================================
-    async function getGcalConfigFromSheet(customSheetId = null) {
-      const sid = customSheetId || getActiveSpreadsheetId();
-      const rows = await readSheetTab('Configuracoes', sid);
-      const map = {};
-      for (let i = 1; i < rows.length; i++) {
-        if (rows[i] && rows[i][0]) {
-          map[String(rows[i][0]).trim()] = String(rows[i][1] || '').trim();
-        }
-      }
-      return {
-        sheetId: sid,
-        rows: rows,
-        refreshToken: map['GCAL_REFRESH_TOKEN'] || '',
-        connectedEmail: map['GCAL_CONNECTED_EMAIL'] || map['ADMIN_LOGIN_ID'] || '',
-        webhookUrl: map['GCAL_WEBHOOK_URL'] || ''
-      };
-    }
-
-    async function upsertSheetConfigKeys(updatesObj, customSheetId = null) {
-      const sid = customSheetId || getActiveSpreadsheetId();
-      const rows = await readSheetTab('Configuracoes', sid);
-      const updated = rows.length ? rows.map(r => [...r]) : [['Chave', 'Valor', 'Descricao']];
-      for (const [k, v] of Object.entries(updatesObj)) {
-        let found = false;
-        for (let i = 1; i < updated.length; i++) {
-          if (updated[i] && String(updated[i][0]).trim() === k) {
-            updated[i][1] = v;
-            found = true;
-            break;
-          }
-        }
-        if (!found) {
-          updated.push([k, v, 'Configuração Cloud Direct']);
-        }
-      }
-      await writeSheetTab('Configuracoes', updated, sid);
-    }
-
-    async function getCalendarAccessTokenFromRefresh(refreshToken) {
-      const body = new URLSearchParams({
-        client_id: GSHEET_CONFIG.clientId,
-        client_secret: GSHEET_CONFIG.clientSecret,
-        refresh_token: refreshToken,
-        grant_type: 'refresh_token'
-      });
-      const res = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body.toString()
-      });
-      const data = await res.json();
-      if (!data.access_token) throw new Error('Token da Google Agenda expirado ou inválido.');
-      return data.access_token;
-    }
-
-    async function syncGoogleCalendarCloudDirect(action, eventData = null, eventId = null, customSheetId = null) {
-      try {
-        const cfg = await getGcalConfigFromSheet(customSheetId);
-        // 1. Via OAuth Refresh Token salvo na Planilha (100% Cloud-Direct)
-        if (cfg.refreshToken) {
-          const calToken = await getCalendarAccessTokenFromRefresh(cfg.refreshToken);
-          if (action === 'CREATE' && eventData) {
-            const cleanDate = eventData.data.includes('/') ? eventData.data.split('/').reverse().join('-') : eventData.data;
-            const startIso = cleanDate + 'T' + (eventData.horaInicio || '09:00') + ':00-03:00';
-            const endIso = cleanDate + 'T' + (eventData.horaFim || '10:00') + ':00-03:00';
-            const gEvent = {
-              summary: '💅 ' + (eventData.servicoNome || 'Procedimento') + ' - ' + (eventData.clienteNome || 'Cliente'),
-              description: [
-                'Reserva confirmada via Nail Studio Pro',
-                'Cliente: ' + (eventData.clienteNome || ''),
-                'WhatsApp: ' + (eventData.clienteWhatsApp || ''),
-                'Procedimento: ' + (eventData.servicoNome || ''),
-                'Valor: R$ ' + Number(eventData.valor || 0).toFixed(2),
-                'Código: ' + (eventData.id || '')
-              ].join('\n'),
-              start: { dateTime: startIso, timeZone: 'America/Sao_Paulo' },
-              end: { dateTime: endIso, timeZone: 'America/Sao_Paulo' }
-            };
-            const cRes = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
-              method: 'POST',
-              headers: { 'Authorization': 'Bearer ' + calToken, 'Content-Type': 'application/json' },
-              body: JSON.stringify(gEvent)
-            });
-            const cData = await cRes.json();
-            if (cData && cData.id) return { success: true, eventId: cData.id };
-          }
-          if (action === 'DELETE' && eventId && !String(eventId).startsWith('GCAL-') && !String(eventId).startsWith('DELETED_')) {
-            await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events/' + encodeURIComponent(eventId), {
-              method: 'DELETE',
-              headers: { 'Authorization': 'Bearer ' + calToken }
-            });
-            return { success: true, deleted: true };
-          }
-        }
-        // 2. Fallback via Webhook Apps Script se configurado
-        if (cfg.webhookUrl && cfg.webhookUrl.startsWith('https://script.google.com/')) {
-          const wRes = await fetch(cfg.webhookUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action, eventData, eventId })
-          });
-          const wData = await wRes.json();
-          if (wData && wData.success) return wData;
-        }
-      } catch (e) {}
-      return { success: false };
-    }
-
     async function checkGcalStatus() {
       try {
-        const cfg = await getGcalConfigFromSheet();
+        const st = await rpc('adminGetGcalStatus');
         const badge = document.getElementById('gcalStatusBadge');
         const desc = document.getElementById('gcalStatusDesc');
         const connActions = document.getElementById('gcalConnectedActions');
         const optOAuth = document.getElementById('gcalOptionOAuth');
 
-        const isConnected = Boolean(cfg.refreshToken || (cfg.webhookUrl && cfg.webhookUrl.startsWith('https://script.google.com/')));
-        const modeType = cfg.refreshToken ? 'oauth' : (cfg.webhookUrl ? 'webhook' : '');
-
-        if (isConnected) {
+        if (st.connected) {
           if (badge) {
             badge.style.background = '#dcfce7';
             badge.style.color = '#15803d';
             badge.innerHTML = '🟢 Conectada & Ativa';
           }
           if (desc) {
-            desc.innerHTML = `Sua Google Agenda está conectada na nuvem via <strong>${modeType === 'webhook' ? 'Web App Apps Script' : 'OAuth Oficial 24h'}</strong> (${escapeHtml(cfg.connectedEmail)}). Reservas entram e cancelamentos saem automaticamente sem precisar de PC.`;
+            desc.innerHTML = `Sua Google Agenda está conectada na nuvem via <strong>${st.mode === 'webhook' ? 'Web App Apps Script' : 'OAuth Oficial 24h'}</strong> (${esc(st.connectedEmail)}). Reservas entram e cancelamentos saem automaticamente sem precisar de PC.`;
           }
           if (connActions) connActions.classList.remove('hidden');
           if (optOAuth) optOAuth.classList.add('hidden');
@@ -1962,30 +1504,7 @@
       } catch (e) {}
     }
 
-    function getGcalConnectUrl() {
-      const email = (dashState.studio && (dashState.studio.loginId || dashState.studio.email)) || localStorage.getItem('NAIL_LAST_LOGIN') || '';
-      const sheetId = getActiveSpreadsheetId();
-      const statePayload = btoa(JSON.stringify({ mode: 'GCAL_CONNECT', email, sheetId }));
-      const scopes = [
-        'https://www.googleapis.com/auth/userinfo.email',
-        'https://www.googleapis.com/auth/userinfo.profile',
-        'https://www.googleapis.com/auth/calendar',
-        'https://www.googleapis.com/auth/calendar.events'
-      ].join(' ');
-      const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-      authUrl.searchParams.set('client_id', GSHEET_CONFIG.clientId);
-      authUrl.searchParams.set('redirect_uri', 'http://localhost:8080/oauth2callback');
-      authUrl.searchParams.set('response_type', 'code');
-      authUrl.searchParams.set('scope', scopes);
-      authUrl.searchParams.set('access_type', 'offline');
-      authUrl.searchParams.set('prompt', 'consent select_account');
-      if (email && email.includes('@')) authUrl.searchParams.set('login_hint', email);
-      authUrl.searchParams.set('state', statePayload);
-      return authUrl.toString();
-    }
 
-    let gcalPollTimer = null;
-    
     // Assistente Passo a Passo do Apps Script
     const NAIL_STUDIO_MASTER_APPS_SCRIPT = "/**\n * =========================================================================\n * 💅 NAIL STUDIO PRO - SINCRONIZADOR NATIVO PARA GOOGLE SHEETS & AGENDA\n * =========================================================================\n * Este script roda diretamente dentro da sua Planilha no Google Drive.\n * Ele permite sincronização 100% automática e nativa com o Google Agenda\n * 24 horas por dia, 7 dias por semana, sem precisar de computador ligado!\n * =========================================================================\n */\n\nfunction onOpen() {\n  SpreadsheetApp.getUi()\n    .createMenu('💅 Nail Studio Pro')\n    .addItem('📅 Ativar Minha Google Agenda (1 Clique)', 'ativarMinhaGoogleAgenda')\n    .addItem('🧪 Testar Conexão com Agenda', 'testarGoogleAgenda')\n    .addSeparator()\n    .addItem('🔄 Sincronizar Todas as Reservas Pendentes', 'sincronizarTodasReservas')\n    .addItem('ℹ️ Status do Studio', 'exibirStatusStudio')\n    .addToUi();\n}\n\nfunction ativarMinhaGoogleAgenda() {\n  var ui = SpreadsheetApp.getUi();\n  try {\n    var ss = SpreadsheetApp.getActiveSpreadsheet();\n    var cal = CalendarApp.getDefaultCalendar();\n    var email = cal.getName();\n\n    var triggers = ScriptApp.getUserTriggers(ss);\n    for (var i = 0; i < triggers.length; i++) {\n      var h = triggers[i].getHandlerFunction();\n      if (h === 'onSpreadsheetChange' || h === 'autoSyncGoogleCalendarProcess' || h === 'sincronizarTodasReservasSilencioso') {\n        ScriptApp.deleteTrigger(triggers[i]);\n      }\n    }\n\n    ScriptApp.newTrigger('onSpreadsheetChange')\n      .forSpreadsheet(ss)\n      .onChange()\n      .create();\n\n    var cfgSheet = ss.getSheetByName('Configuracoes');\n    if (cfgSheet) {\n      var data = cfgSheet.getDataRange().getValues();\n      for (var j = 0; j < data.length; j++) {\n        if (data[j][0] === 'SINCRONIZAR_AGENDA') {\n          cfgSheet.getRange(j + 1, 2).setValue('SIM');\n          break;\n        }\n      }\n    }\n\n    var count = sincronizarTodasReservasSilencioso();\n\n    ui.alert(\n      '🟢 Google Agenda Conectada com Sucesso!',\n      'Sua agenda oficial (' + email + ') agora está conectada 24h na nuvem com o Nail Studio Pro!\\n\\n' +\n      '✅ Gatilho automático instalado com sucesso (' + count + ' reservas sincronizadas agora).\\n' +\n      '✅ Novos agendamentos entram direto no seu calendário.\\n' +\n      '✅ Cancelamentos liberam seu horário automaticamente.',\n      ui.ButtonSet.OK\n    );\n  } catch (err) {\n    ui.alert('Erro ao ativar agenda', 'Detalhes: ' + err.message, ui.ButtonSet.OK);\n  }\n}\n\nfunction testarGoogleAgenda() {\n  var ui = SpreadsheetApp.getUi();\n  try {\n    var cal = CalendarApp.getDefaultCalendar();\n    var now = new Date();\n    var end = new Date(now.getTime() + (30 * 60 * 1000));\n    var ev = cal.createEvent('💅 Teste Nail Studio Pro', now, end, {\n      description: 'Validação automática de integração com Google Agenda'\n    });\n    Utilities.sleep(1500);\n    ev.deleteEvent();\n\n    ui.alert('🎉 Teste Concluído!', 'O evento de teste foi criado e validado na sua Google Agenda (' + cal.getName() + ') com 100% de sucesso!', ui.ButtonSet.OK);\n  } catch (err) {\n    ui.alert('Falha no teste', err.message, ui.ButtonSet.OK);\n  }\n}\n\nfunction onSpreadsheetChange(e) {\n  sincronizarTodasReservasSilencioso();\n}\n\nfunction onEdit(e) {\n  try {\n    var sheet = e.range.getSheet();\n    if (sheet.getName() !== 'Agendamentos') return;\n    var row = e.range.getRow();\n    if (row <= 1) return;\n\n    // Coluna 12 (índice 11) = StatusReserva, Coluna 13 (índice 12) = CalendarEventID\n    var status = sheet.getRange(row, 12).getValue();\n    var gcalId = sheet.getRange(row, 13).getValue();\n\n    if (String(status).toUpperCase() === 'CANCELADO' && gcalId && !String(gcalId).startsWith('DELETED_')) {\n      try {\n        var cal = CalendarApp.getDefaultCalendar();\n        var ev = cal.getEventById(gcalId);\n        if (ev) ev.deleteEvent();\n        sheet.getRange(row, 13).setValue('DELETED_MANUAL');\n      } catch (errDel) {}\n    }\n  } catch (eGeral) {}\n}\n\n/**\n * Estrutura de colunas da aba Agendamentos (14 colunas):\n * 0: ID_Reserva | 1: Data | 2: HoraInicio | 3: HoraFim | 4: ClienteNome | 5: ClienteWhatsApp\n * 6: ServicoID  | 7: ServicoNome | 8: Valor | 9: MetodoPagamento | 10: StatusPagamento\n * 11: StatusReserva | 12: CalendarEventID | 13: CriadoEm\n */\nfunction sincronizarTodasReservasSilencioso() {\n  try {\n    var ss = SpreadsheetApp.getActiveSpreadsheet();\n    var agSheet = ss.getSheetByName('Agendamentos');\n    if (!agSheet) return 0;\n\n    var rows = agSheet.getDataRange().getValues();\n    if (rows.length <= 1) return 0;\n\n    var cal = CalendarApp.getDefaultCalendar();\n    if (!cal) return 0;\n\n    var syncCount = 0;\n\n    for (var i = 1; i < rows.length; i++) {\n      var r = rows[i];\n      var rowNum = i + 1;\n      var statusReserva = String(r[11] || '').toUpperCase();\n      var gcalId = String(r[12] || '');\n\n      if ((statusReserva === 'RESERVADO' || statusReserva === 'CONFIRMADO') && (!gcalId || gcalId.indexOf('GCAL-') === 0 || gcalId === '')) {\n        try {\n          var dataStr = String(r[1]);\n          var horaIni = String(r[2]);\n          var horaFim = String(r[3]);\n          var cliente = String(r[4]);\n          var whats = String(r[5]);\n          var servico = String(r[7] || r[6]);\n          var valor = r[8];\n\n          var dParts = dataStr.indexOf('/') !== -1 ? dataStr.split('/') : dataStr.split('-');\n          var y = dParts.length === 3 ? (String(dParts[0]).length === 4 ? dParts[0] : dParts[2]) : new Date().getFullYear();\n          var m = dParts.length === 3 ? dParts[1] : 1;\n          var d = dParts.length === 3 ? (String(dParts[0]).length === 4 ? dParts[2] : dParts[0]) : 1;\n\n          var start = new Date(Number(y), Number(m) - 1, Number(d), Number(horaIni.split(':')[0] || 9), Number(horaIni.split(':')[1] || 0));\n          var end = new Date(Number(y), Number(m) - 1, Number(d), Number(horaFim.split(':')[0] || 10), Number(horaFim.split(':')[1] || 0));\n\n          var title = '💅 ' + servico + ' - ' + cliente;\n          var desc = 'Cliente: ' + cliente + '\\nWhatsApp: ' + whats + '\\nProcedimento: ' + servico + '\\nValor: R$ ' + Number(valor || 0).toFixed(2);\n\n          var ev = cal.createEvent(title, start, end, { description: desc });\n          agSheet.getRange(rowNum, 13).setValue(ev.getId());\n          syncCount++;\n        } catch (errSync) {}\n      }\n\n      if (statusReserva === 'CANCELADO' && gcalId && gcalId.indexOf('DELETED_') !== 0 && gcalId.indexOf('GCAL-') !== 0) {\n        try {\n          var evOld = cal.getEventById(gcalId);\n          if (evOld) evOld.deleteEvent();\n          agSheet.getRange(rowNum, 13).setValue('DELETED_AUTO');\n        } catch (errDel) {}\n      }\n    }\n    return syncCount;\n  } catch (eGeral) {\n    return 0;\n  }\n}\n\nfunction sincronizarTodasReservas() {\n  var ui = SpreadsheetApp.getUi();\n  var count = sincronizarTodasReservasSilencioso();\n  ui.alert('Sincronização Concluída', count + ' reserva(s) adicionada(s)/atualizada(s) na sua Google Agenda!', ui.ButtonSet.OK);\n}\n\nfunction exibirStatusStudio() {\n  var ui = SpreadsheetApp.getUi();\n  var ss = SpreadsheetApp.getActiveSpreadsheet();\n  var cfgSheet = ss.getSheetByName('Configuracoes');\n  var studioNome = 'Meu Studio';\n  var calStatus = 'SIM';\n\n  if (cfgSheet) {\n    var data = cfgSheet.getDataRange().getValues();\n    for (var i = 0; i < data.length; i++) {\n      if (data[i][0] === 'STUDIO_NOME') studioNome = data[i][1];\n      if (data[i][0] === 'SINCRONIZAR_AGENDA') calStatus = data[i][1];\n    }\n  }\n\n  var cal = CalendarApp.getDefaultCalendar();\n  ui.alert(\n    '💅 Studio: ' + studioNome,\n    'Conta Google Agenda: ' + cal.getName() + '\\n' +\n    'Sincronização Ativa: ' + calStatus + '\\n' +\n    'Total de Abas: ' + ss.getSheets().length,\n    ui.ButtonSet.OK\n  );\n}\n\nfunction doPost(e) {\n  try {\n    var data = JSON.parse(e.postData.contents);\n    var action = data.action;\n    var eventData = data.eventData;\n    var eventId = data.eventId;\n    var cal = CalendarApp.getDefaultCalendar();\n\n    if (action === 'CREATE' && eventData) {\n      var title = '💅 ' + eventData.servicoNome + ' - ' + eventData.clienteNome;\n      var cleanD = eventData.data.indexOf('/') !== -1 ? eventData.data.split('/').reverse().join('-') : eventData.data;\n      var start = new Date(cleanD + 'T' + eventData.horaInicio + ':00');\n      var end = new Date(cleanD + 'T' + eventData.horaFim + ':00');\n      var desc = 'Cliente: ' + eventData.clienteNome + '\\nWhatsApp: ' + eventData.clienteWhatsApp + '\\nValor: R$ ' + eventData.valor;\n      var ev = cal.createEvent(title, start, end, { description: desc });\n      return ContentService.createTextOutput(JSON.stringify({ success: true, eventId: ev.getId() })).setMimeType(ContentService.MimeType.JSON);\n    }\n\n    if (action === 'DELETE' && eventId) {\n      try {\n        var ev = cal.getEventById(eventId);\n        if (ev) ev.deleteEvent();\n      } catch (errDel) {}\n      return ContentService.createTextOutput(JSON.stringify({ success: true, deleted: true })).setMimeType(ContentService.MimeType.JSON);\n    }\n\n    return ContentService.createTextOutput(JSON.stringify({ success: true, message: 'Operação concluída' })).setMimeType(ContentService.MimeType.JSON);\n  } catch (err) {\n    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.message })).setMimeType(ContentService.MimeType.JSON);\n  }\n}\n";
 
@@ -2029,42 +1548,20 @@
     }
 
     function openActiveSpreadsheetInNewTab() {
-      const sheetId = getActiveSpreadsheetId();
-      if (sheetId && sheetId !== '1rfDFh6lQOhq6MOvbqFcEALWOciWoxKxW51J45IYTZ0Q') {
-        window.open(`https://docs.google.com/spreadsheets/d/${sheetId}/edit`, '_blank');
-      } else {
-        window.open('https://docs.google.com/spreadsheets/u/0/', '_blank');
+      const url = dashState.studio && dashState.studio.spreadsheetUrl;
+      window.open(url || 'https://docs.google.com/spreadsheets/u/0/', '_blank');
+    }
+
+    // O token de sessão nunca vai na URL: o servidor dá um token curto (60 s) só para esta conexão.
+    async function connectGoogleCalendarOAuth() {
+      try {
+        const { token } = await rpc('adminGetCalendarConnectToken');
+        openOAuth(oauthStartPath('calendar') + '&t=' + encodeURIComponent(token));
+      } catch (err) {
+        showToast(err.message);
       }
     }
 
-    function connectGoogleCalendarOAuth() {
-      window.location.href = getGcalConnectUrl();
-    }
-
-    function sendGcalWhatsAppLink() {
-      const url = getGcalConnectUrl();
-      const text = encodeURIComponent('Olá! Aqui está o link de 1 clique para conectar o Google Agenda no Nail Studio Pro:\n\n' + url);
-      window.open('https://api.whatsapp.com/send?text=' + text, '_blank');
-    }
-
-    function openGcalModal() {
-      const m = document.getElementById('modalGcalConnect');
-      if (m) m.classList.remove('hidden');
-    }
-
-    function closeGcalModal() {
-      const m = document.getElementById('modalGcalConnect');
-      if (m) m.classList.add('hidden');
-    }
-
-    function openGcalLocalLink() {
-      window.location.href = getGcalConnectUrl();
-    }
-
-    function copyGcalLocalLink() {
-      const url = getGcalConnectUrl();
-      copyToClipboardUniversal(url, 'Link de autorização da Agenda');
-    }
 
     function toggleAppsScriptGuide(forceOpen = false) {
       const box = document.getElementById('boxAppsScriptGuide');
@@ -2081,26 +1578,8 @@
     async function testGcalSync() {
       showToast('⏳ Testando conexão direta com sua Google Agenda...');
       try {
-        const now = new Date();
-        const pad = n => String(n).padStart(2, '0');
-        const dataIso = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
-        const hIni = pad(now.getHours()) + ':' + pad(now.getMinutes());
-        const endD = new Date(now.getTime() + 30 * 60000);
-        const hFim = pad(endD.getHours()) + ':' + pad(endD.getMinutes());
-
-        const res = await syncGoogleCalendarCloudDirect('CREATE', {
-          id: 'TESTE-' + Math.floor(1000 + Math.random() * 9000),
-          data: dataIso,
-          horaInicio: hIni,
-          horaFim: hFim,
-          clienteNome: 'Teste de Conexão (Nail Studio Pro)',
-          clienteWhatsApp: '5511999999999',
-          servicoNome: 'Validação Automática de Agenda',
-          valor: 0
-        });
-
-        if (res && res.success && res.eventId) {
-          await syncGoogleCalendarCloudDirect('DELETE', null, res.eventId);
+        const res = await rpc('adminTestGcal');
+        if (res && res.success) {
           showToast('🎉 Conexão 100% validada na nuvem! Evento de teste criado e verificado.');
         } else {
           showToast('❌ Agenda ainda não conectada ou sem permissão. Clique em Conectar Google Agenda.');
@@ -2113,11 +1592,7 @@
     async function disconnectGcal() {
       if (!confirm('Deseja realmente desconectar sua Google Agenda? Novos agendamentos não serão mais enviados até reconectar.')) return;
       try {
-        await upsertSheetConfigKeys({
-          'GCAL_REFRESH_TOKEN': '',
-          'GCAL_CONNECTED_EMAIL': '',
-          'GCAL_WEBHOOK_URL': ''
-        });
+        await rpc('adminDisconnectGcal');
         showToast('Agenda desconectada com sucesso.');
         await checkGcalStatus();
       } catch (err) {
@@ -2132,13 +1607,14 @@
         return showToast('Informe uma URL válida do Web App do Google Apps Script (iniciando com https://script.google.com/)');
       }
       try {
-        await upsertSheetConfigKeys({ 'GCAL_WEBHOOK_URL': webhookUrl });
+        await rpc('adminSaveGcalWebhook', { webhookUrl });
         showToast('✅ Google Agenda conectada com sucesso na nuvem via Web App!');
         await checkGcalStatus();
       } catch (err) {
         showToast('Erro ao salvar webhook: ' + err.message);
       }
     }
+
 
     // Alternância entre Modo Automático e Modo Manual no Onboarding
     function switchOnboardingMode(mode) {
@@ -2175,6 +1651,20 @@
       }
     }
 
+    // Cadastro com a conta Google já confirmada (token "pending" guardado em sessionStorage).
+    async function finishOnboarding(res, email) {
+      sessionStorage.removeItem(PENDING_KEY);
+      adminToken = res.token;
+      sessionStorage.setItem('NAIL_ADM_TOKEN', adminToken);
+      localStorage.setItem('NAIL_ADM_TOKEN', adminToken);
+      if (email) localStorage.setItem('NAIL_LAST_LOGIN', email);
+      document.getElementById('lockScreen').classList.add('hidden');
+      await refreshAdminData();
+      if (res.ownershipStatus === 'AGUARDANDO_ACEITE') {
+        alert('✅ Sua Planilha Google foi criada!\n\n📧 O Google enviou um e-mail para ' + email + ' pedindo para você ACEITAR A PROPRIEDADE da planilha. Aceite para que ela fique 100% sua.');
+      }
+    }
+
     // Modo 1: Criação Instantânea da Planilha na Nuvem (1 Toque)
     async function handleAutoProvisionStudio() {
       const email = String(document.getElementById('autoEmail').value || '').trim().toLowerCase();
@@ -2182,7 +1672,7 @@
       const whatsapp = String(document.getElementById('autoWhatsapp').value || '').trim();
       const pin = String(document.getElementById('autoPin').value || '').trim();
 
-      if (!email || !email.includes('@')) return showToast('Informe seu E-mail Google (Gmail) válido!');
+      if (!sessionStorage.getItem(PENDING_KEY)) return showToast('Entre com sua Conta Google para criar o seu acesso.');
       if (!studioNome) return showToast('Informe o Nome do seu Studio!');
       if (!whatsapp) return showToast('Informe seu WhatsApp com DDD!');
       if (pin.length < 4) return showToast('Crie uma senha/PIN de 4 a 6 números!');
@@ -2193,30 +1683,15 @@
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Criando sua Planilha & Studio...';
 
       try {
-        const pinHash = await sha256Hex(pin);
-        const recHash = await sha256Hex(studioNome);
-
-        const created = await provisionNewGoogleSpreadsheetForUser({
-          googleEmail: email,
-          studioNome: studioNome,
+        const res = await rpc('completeInitialOnboarding', {
+          studioNome,
           profissionalNome: studioNome,
-          whatsapp: whatsapp,
-          pixChave: whatsapp
-        }, pinHash, recHash);
-        setActiveSpreadsheetId(created.newSheetId);
-        showToast('🎉 Studio criado e planilha gerada com sucesso!');
-
-        // Login e abertura imediata do painel
-        const authRes = await rpc('authenticateAdmin', { loginId: email, pin: pin });
-        if (authRes.success) {
-          adminToken = authRes.token;
-          sessionStorage.setItem('NAIL_ADM_TOKEN', authRes.token);
-          localStorage.setItem('NAIL_ADM_TOKEN', authRes.token);
-          localStorage.setItem('NAIL_LAST_LOGIN', email);
-          document.getElementById('lockScreen').classList.add('hidden');
-          await refreshAdminData();
-          showToast('💅 Bem-vinda ao seu Painel Studio Pro!');
-        }
+          whatsapp,
+          pixChave: whatsapp,
+          pin
+        });
+        await finishOnboarding(res, email);
+        showToast('💅 Bem-vinda ao seu Painel Studio Pro!');
       } catch (err) {
         alert('Erro ao criar studio: ' + err.message);
         btn.disabled = false;
@@ -2226,21 +1701,17 @@
 
     // Modo 2: Conectar Planilha Própria do Google Drive
     async function handleFinishCustomSheetOnboarding() {
-      const customSheetInput = document.getElementById('obCustomSheetUrl') ? document.getElementById('obCustomSheetUrl').value.trim() : '';
+      const customSheetId = document.getElementById('obCustomSheetUrl') ? document.getElementById('obCustomSheetUrl').value.trim() : '';
       const googleEmail = document.getElementById('obGoogleEmail').value.trim().toLowerCase();
       const studioNome = document.getElementById('obStudioNome').value.trim();
       const whatsapp = document.getElementById('obWhatsapp').value.trim();
       const pin = document.getElementById('obPin').value.trim();
 
-      if (!customSheetInput) return showToast('Cole o link ou ID da sua planilha criada no seu Google Drive!');
-      if (!googleEmail || !googleEmail.includes('@')) return showToast('Informe seu E-mail da Conta Google válido!');
+      if (!sessionStorage.getItem(PENDING_KEY)) return showToast('Entre com sua Conta Google para criar o seu acesso.');
+      if (!customSheetId) return showToast('Cole o link ou ID da sua planilha criada no seu Google Drive!');
       if (!studioNome) return showToast('Informe o Nome do seu Studio!');
       if (!whatsapp) return showToast('Informe seu WhatsApp com DDD!');
       if (pin.length < 4) return showToast('Crie uma senha/PIN de 4 a 6 números!');
-
-      let customSheetId = customSheetInput;
-      const match = customSheetInput.match(/[-\w]{25,}/);
-      if (match) customSheetId = match[0];
 
       const btn = document.getElementById('btnCompleteOnboarding');
       const oldHtml = btn.innerHTML;
@@ -2250,23 +1721,13 @@
       try {
         const res = await rpc('completeInitialOnboarding', {
           customSheetId,
-          googleEmail,
           studioNome,
           profissionalNome: studioNome,
-          loginId: googleEmail,
           whatsapp,
           pixChave: whatsapp,
-          pin,
-          palavraRecuperacao: studioNome
+          pin
         });
-
-        adminToken = res.token;
-        localStorage.setItem('NAIL_ADM_TOKEN', adminToken);
-        sessionStorage.setItem('NAIL_ADM_TOKEN', adminToken);
-        localStorage.setItem('NAIL_LAST_LOGIN', googleEmail);
-        if (res.spreadsheetId) setActiveSpreadsheetId(res.spreadsheetId);
-        document.getElementById('lockScreen').classList.add('hidden');
-        await refreshAdminData();
+        await finishOnboarding(res, googleEmail);
         showToast('🎉 Planilha própria vinculada com sucesso!');
       } catch (err) {
         alert('Erro ao vincular planilha: ' + err.message);
@@ -2275,238 +1736,39 @@
       }
     }
 
-    
-    // -------------------------------------------------------------------------
     // =========================================================================
-    // AUTENTICAÇÃO PROFISSIONAL COM GOOGLE (MULTI-CONTAS + OAUTH + AUTO-PLANILHA)
+    // APARELHO: APK ANDROID E INSTALAÇÃO
     // =========================================================================
-
-    // Limpa quaisquer contas não verificadas pelo AccountManager / OAuth Oficial
-    (function purgeFakeTestAccounts() {
-      try {
-        const fakeEmails = [
-          'mariana.studio@gmail.com',
-          'camila.nailstudio@gmail.com',
-          'aline.nails.auto@gmail.com',
-          'manicure_teste_e2e@gmail.com',
-          'jorgerian514@gmail.com'
-        ];
-        const isVerifiedV2 = localStorage.getItem('NAIL_DEVICE_ACCOUNT_VERIFIED_V2') === 'TRUE';
-        const last = (localStorage.getItem('NAIL_LAST_LOGIN') || '').toLowerCase();
-
-        if (!isVerifiedV2 || fakeEmails.includes(last)) {
-          localStorage.removeItem('NAIL_SAVED_GOOGLE_ACCOUNTS');
-          localStorage.removeItem('NAIL_LAST_LOGIN');
-          localStorage.removeItem('NAIL_ADM_TOKEN');
-          localStorage.removeItem('NAIL_ACTIVE_SHEET_ID');
-          sessionStorage.removeItem('NAIL_ADM_TOKEN');
-          sessionStorage.removeItem('NAIL_ACTIVE_SHEET_ID');
-        } else {
-          const raw = localStorage.getItem('NAIL_SAVED_GOOGLE_ACCOUNTS');
-          if (raw) {
-            const list = JSON.parse(raw).filter(a => a && a.email && a.deviceProof && !fakeEmails.includes(String(a.email).toLowerCase()));
-            localStorage.setItem('NAIL_SAVED_GOOGLE_ACCOUNTS', JSON.stringify(list));
-          }
-        }
-      } catch (e) {}
+    (function prepareDevice() {
+      // Limpa dados da versão antiga (contas "verificadas" no aparelho, planilha ativa).
+      ['NAIL_SAVED_GOOGLE_ACCOUNTS', 'NAIL_DEVICE_ACCOUNT_VERIFIED_V2', 'NAIL_ACTIVE_SHEET_ID'].forEach(k => {
+        localStorage.removeItem(k);
+        sessionStorage.removeItem(k);
+      });
       if (navigator.userAgent.includes('NailStudioProAndroidApp')) {
         const instBlock = document.getElementById('loginInstallAppBlock');
         if (instBlock) instBlock.classList.add('hidden');
       }
     })();
 
-    function getSavedGoogleAccounts() {
-      try {
-        return JSON.parse(localStorage.getItem('NAIL_SAVED_GOOGLE_ACCOUNTS') || '[]').filter(a => a && a.email && a.deviceProof);
-      } catch(e) {
-        return [];
-      }
+    // No APK, o seletor de contas do Android só preenche o e-mail; a manicure digita o PIN.
+    let deviceAccountOffered = false;
+    function offerDeviceAccountPicker() {
+      const bridge = nativeBridge();
+      const inp = document.getElementById('loginUserInput');
+      if (deviceAccountOffered || !inp || inp.value || !bridge || typeof bridge.pickDeviceGoogleAccount !== 'function') return;
+      deviceAccountOffered = true;
+      bridge.pickDeviceGoogleAccount();
     }
 
-    function saveGoogleAccount(email, name, deviceProof) {
-      if (!email || !email.includes('@') || !deviceProof) return;
-      try {
-        const cleanEmail = email.trim().toLowerCase();
-        let list = getSavedGoogleAccounts().filter(a => a.email.toLowerCase() !== cleanEmail);
-        list.unshift({
-          email: cleanEmail,
-          name: name || cleanEmail.split('@')[0],
-          deviceProof: deviceProof,
-          lastUsed: Date.now()
-        });
-        localStorage.setItem('NAIL_SAVED_GOOGLE_ACCOUNTS', JSON.stringify(list.slice(0, 3)));
-        localStorage.setItem('NAIL_LAST_LOGIN', cleanEmail);
-        localStorage.setItem('NAIL_DEVICE_ACCOUNT_VERIFIED_V2', 'TRUE');
-      } catch(e) {}
-    }
-
-    function removeGoogleAccount(email, ev) {
-      if (ev) ev.stopPropagation();
-      try {
-        let list = getSavedGoogleAccounts().filter(a => a.email.toLowerCase() !== email.toLowerCase());
-        localStorage.setItem('NAIL_SAVED_GOOGLE_ACCOUNTS', JSON.stringify(list));
-        if (localStorage.getItem('NAIL_LAST_LOGIN') === email.toLowerCase()) {
-          localStorage.removeItem('NAIL_LAST_LOGIN');
-        }
-        renderGoogleAccountsList();
-      } catch(e) {}
-    }
-
-    function renderGoogleAccountsList() {
-      const mainContainer = document.getElementById('loginMainAccountsList');
-      const accounts = getSavedGoogleAccounts();
-      if (!mainContainer) return;
-      if (!accounts.length) {
-        mainContainer.innerHTML = '';
-        mainContainer.classList.add('hidden');
-        return;
-      }
-      mainContainer.classList.remove('hidden');
-      mainContainer.innerHTML = '<div style="font-size:0.74rem; font-weight:700; color:#64748b; margin-bottom:2px;">Conta verificada neste aparelho:</div>' + accounts.map((acc) => {
-        const initial = (acc.name || acc.email || 'G').charAt(0).toUpperCase();
-        return `
-          <div onclick="loginWithGoogleAccount('${escapeHtml(acc.email)}', '${escapeHtml(acc.name || '')}', '${escapeHtml(acc.deviceProof || '')}')" style="background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:16px; padding:12px 14px; display:flex; align-items:center; gap:12px; cursor:pointer; text-align:left;">
-            <div style="width:40px; height:40px; border-radius:50%; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1rem; flex-shrink:0;">
-              ${initial}
-            </div>
-            <div style="overflow:hidden; flex:1;">
-              <div style="font-weight:800; font-size:0.9rem; color:#0f172a; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">
-                Continuar como ${escapeHtml(acc.name || acc.email.split('@')[0])}
-              </div>
-              <div style="font-size:0.78rem; color:#64748b; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">
-                ${escapeHtml(acc.email)}
-              </div>
-            </div>
-            <button type="button" onclick="removeGoogleAccount('${escapeHtml(acc.email)}', event)" title="Esquecer conta" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-size:1.2rem; padding:4px 8px;">&times;</button>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function openGoogleLoginModal() {
-      const modal = document.getElementById('modalGoogleLogin');
-      if (modal) modal.classList.remove('hidden');
-    }
-    function closeGoogleLoginModal() {
-      const modal = document.getElementById('modalGoogleLogin');
-      if (modal) modal.classList.add('hidden');
-    }
-
-    // Callback chamado EXCLUSIVAMENTE pelo AccountManager nativo do Sistema Android ("com.google")
-    window.onAndroidDeviceGoogleAccountSelected = async function(realEmail, deviceProof) {
-      if (!realEmail || !realEmail.includes('@')) return;
-      const cleanEmail = realEmail.trim().toLowerCase();
-      // Se o APK for a versão 2.1 (sem 2º argumento), gera o token de prova compatível para não travar até atualizar para 2.2
-      const proof = deviceProof || ('ANDROID_OS_VERIFIED_' + btoa('NAIL_ACCOUNTS_V2:' + cleanEmail));
-      await loginWithGoogleAccount(cleanEmail, cleanEmail.split('@')[0], proof);
+    window.onAndroidDeviceGoogleAccountSelected = function(email) {
+      const inp = document.getElementById('loginUserInput');
+      if (!inp || !email || !String(email).includes('@')) return;
+      inp.value = String(email).trim().toLowerCase();
+      const pin = document.getElementById('pinInput');
+      if (pin) pin.focus();
     };
 
-    // Inicia Login Real com a Conta Google do Celular (EXCLUSIVAMENTE via AccountManager Nativo do Android ou OAuth Oficial)
-    async function startDirectGoogleOAuth() {
-      // 1. No APK Android atualizado, abre a janela nativa do Sistema Android (AccountManager -> Contas Google reais do aparelho)
-      if (window.AndroidNative && typeof window.AndroidNative.pickDeviceGoogleAccount === 'function') {
-        try {
-          window.AndroidNative.pickDeviceGoogleAccount();
-          return;
-        } catch (e) {}
-      }
-      // 2. Em localhost, abre direto o OAuth 2.0 Oficial do Google (accounts.google.com)
-      // 2. Fallback OAuth 2.0 Oficial Direto com Google Cloud (sem depender de servidor no PC)
-      const scopes = [
-        'https://www.googleapis.com/auth/userinfo.email',
-        'https://www.googleapis.com/auth/userinfo.profile',
-        'https://www.googleapis.com/auth/calendar',
-        'https://www.googleapis.com/auth/calendar.events'
-      ].join(' ');
-      const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-      authUrl.searchParams.set('client_id', GSHEET_CONFIG.clientId);
-      authUrl.searchParams.set('redirect_uri', 'http://localhost:8080/oauth2callback');
-      authUrl.searchParams.set('response_type', 'code');
-      authUrl.searchParams.set('scope', scopes);
-      authUrl.searchParams.set('access_type', 'offline');
-      authUrl.searchParams.set('prompt', 'consent select_account');
-      authUrl.searchParams.set('state', btoa(JSON.stringify({ mode: 'OAUTH_LOGIN' })));
-      window.location.href = authUrl.toString();
-      // 3. Se estiver em um APK antigo (sem pickDeviceGoogleAccount) ou no navegador externo, avisa que deve usar o App Android atualizado com AccountManager
-      openGoogleLoginModal();
-    }
-
-    async function startGoogleOneClickLogin() {
-      startDirectGoogleOAuth();
-    }
-
-    // Login 100% Cloud-Direct com Conta Google verificada pelo Sistema Android (AccountManager)
-    async function loginWithGoogleAccount(email, name, deviceProof) {
-      if (!email || !deviceProof) {
-        return startDirectGoogleOAuth();
-      }
-      const cleanEmail = String(email).trim().toLowerCase();
-      const expectedProofV2 = 'ANDROID_OS_VERIFIED_' + btoa('NAIL_ACCOUNTS_V2:' + cleanEmail);
-      const isValidProof = (deviceProof === expectedProofV2) || String(deviceProof).startsWith('OAUTH_GOOGLE_VERIFIED_');
-      if (!isValidProof) {
-        alert('Acesso Bloqueado: Selecione uma Conta Google real cadastrada no menu Contas (Accounts) do seu celular.');
-        return;
-      }
-
-      showToast('Conectando direto à nuvem Google: ' + cleanEmail + '...');
-      try {
-        // 1. Procura a conta no diretório em nuvem (Contas_Manicures na planilha mestre)
-        const tenantRows = await readSheetTab('Contas_Manicures', GSHEET_CONFIG.masterSpreadsheetId);
-        let foundSheetId = '';
-        for (let i = 1; i < tenantRows.length; i++) {
-          const r = tenantRows[i];
-          if (r && r[0] && String(r[0]).trim().toLowerCase() === cleanEmail && r[3]) {
-            foundSheetId = String(r[3]).trim();
-            break;
-          }
-        }
-
-        let isNew = false;
-        const defaultPinHash = await sha256Hex('123456');
-
-        // 2. Se for o primeiro acesso dessa Conta Google real, cria a planilha automaticamente na nuvem!
-        if (!foundSheetId) {
-          isNew = true;
-          const display = name || cleanEmail.split('@')[0].replace(/[._0-9]/g, ' ').trim() || 'Manicure';
-          const profName = display.charAt(0).toUpperCase() + display.slice(1);
-          const sName = 'Studio ' + profName;
-          const recHash = await sha256Hex(sName);
-
-          const created = await provisionNewGoogleSpreadsheetForUser({
-            googleEmail: cleanEmail,
-            studioNome: sName,
-            profissionalNome: profName,
-            whatsapp: '',
-            pixChave: cleanEmail
-          }, defaultPinHash, recHash);
-          foundSheetId = created.newSheetId;
-        }
-
-        adminToken = 'AUTH_TOKEN_' + defaultPinHash.slice(0, 16);
-        sessionStorage.setItem('NAIL_ADM_TOKEN', adminToken);
-        localStorage.setItem('NAIL_ADM_TOKEN', adminToken);
-        setActiveSpreadsheetId(foundSheetId);
-        saveGoogleAccount(cleanEmail, name || cleanEmail.split('@')[0], deviceProof);
-
-        closeGoogleLoginModal();
-        const lockScreen = document.getElementById('lockScreen');
-        if (lockScreen) lockScreen.classList.add('hidden');
-
-        await refreshAdminData();
-        showToast(isNew ? '🎉 Studio criado na nuvem com a conta real do seu aparelho!' : '💅 Conectada direto na nuvem Google!');
-      } catch (err) {
-        alert('Erro ao conectar à nuvem Google: ' + err.message);
-      }
-    }
-
-    function downloadAndUpdateAndroidApk() {
-      const apkUrl = ((window.location.protocol === 'file:') ? GSHEET_CONFIG.publicBaseUrl : window.location.origin) + '/NailStudioPro.apk';
-      if (window.AndroidNative && typeof window.AndroidNative.openExternalUrl === 'function') {
-        window.AndroidNative.openExternalUrl(apkUrl);
-      } else {
-        window.location.href = apkUrl;
-      }
-    }
 
     // Modal de Instalação no iPhone (iOS)
     function openIosInstallModal() {
@@ -2518,79 +1780,6 @@
       const modal = document.getElementById('modalIosInstall');
       if (modal) modal.classList.add('hidden');
     }
-
-    // Listener para retorno automático do Google OAuth (quando redirecionado do accounts.google.com)
-    window.addEventListener('DOMContentLoaded', () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const oauthCode = urlParams.get('google_oauth_code') || urlParams.get('code');
-      if (oauthCode) {
-        window.history.replaceState({}, document.title, window.location.pathname);
-        (async () => {
-          try {
-            showToast('⏳ Vinculando Google Agenda direto na nuvem...');
-            const body = new URLSearchParams({
-              code: oauthCode,
-              client_id: GSHEET_CONFIG.clientId,
-              client_secret: GSHEET_CONFIG.clientSecret,
-              redirect_uri: 'http://localhost:8080/oauth2callback',
-              grant_type: 'authorization_code'
-            });
-            const tRes = await fetch('https://oauth2.googleapis.com/token', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-              body: body.toString()
-            });
-            const tokens = await tRes.json();
-            if (tokens && (tokens.refresh_token || tokens.access_token)) {
-              let gEmail = localStorage.getItem('NAIL_LAST_LOGIN') || '';
-              if (tokens.access_token) {
-                try {
-                  const uRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-                    headers: { 'Authorization': 'Bearer ' + tokens.access_token }
-                  });
-                  const uInfo = await uRes.json();
-                  if (uInfo && uInfo.email) gEmail = uInfo.email.toLowerCase();
-                } catch (eU) {}
-              }
-              const updates = { 'SINCRONIZAR_AGENDA': 'SIM' };
-              if (tokens.refresh_token) updates['GCAL_REFRESH_TOKEN'] = tokens.refresh_token;
-              if (gEmail) updates['GCAL_CONNECTED_EMAIL'] = gEmail;
-              await upsertSheetConfigKeys(updates);
-              await checkGcalStatus();
-              showToast('🎉 Google Agenda conectada 24h na nuvem com sucesso!');
-            }
-          } catch (eOauth) {
-            showToast('Erro ao finalizar vínculo da agenda: ' + eOauth.message);
-          }
-        })();
-      }
-      if (urlParams.get('google_auth') === 'success') {
-        const token = urlParams.get('token');
-        const email = urlParams.get('email');
-        const sheetId = urlParams.get('sheetId');
-        const isNew = urlParams.get('isNew') === '1';
-
-        if (token) {
-          adminToken = token;
-          sessionStorage.setItem('NAIL_ADM_TOKEN', token);
-          localStorage.setItem('NAIL_ADM_TOKEN', token);
-        }
-        if (email) {
-          localStorage.setItem('NAIL_LAST_LOGIN', email);
-          localStorage.setItem('NAIL_DEVICE_ACCOUNT_VERIFIED_V2', 'TRUE');
-        }
-        if (sheetId) setActiveSpreadsheetId(sheetId);
-
-        // Limpa os parâmetros da barra de navegação de forma transparente
-        window.history.replaceState({}, document.title, window.location.pathname);
-
-        const lockScreen = document.getElementById('lockScreen');
-        if (lockScreen) lockScreen.classList.add('hidden');
-
-        showToast(isNew ? '🎉 Studio criado e Google Agenda conectada!' : '💅 Bem-vinda de volta! Conectada com Google e Agenda.');
-        if (typeof refreshAdminData === 'function') refreshAdminData();
-      }
-    });
 
     function buildGoogleCalendarUrl(ag, studioName) {
       const cleanDate = String(ag.data || '').replace(/-/g, '');
@@ -2688,8 +1877,6 @@
       document.body.removeChild(ta);
     }
 
-// showToast unificado no topo
-
     function buildPixBrCode(key, holder, city, amount, txid) {
       const cleanKey = cleanPixKey(key);
       if (!cleanKey) return '';
@@ -2708,704 +1895,27 @@
       return p + crc.toString(16).toUpperCase().padStart(4, '0');
     }
 
-    async function readCategoriasList() {
-      const rows = await readSheetTab('Categorias');
-      const list = [];
-      for (let i = 1; i < rows.length; i++) {
-        const r = rows[i];
-        if (r && r[0]) {
-          list.push({
-            id: r[0],
-            nome: r[1] || 'Geral',
-            icone: r[2] || '💅',
-            ordem: Number(r[3] || i),
-            ativo: String(r[4] || 'SIM').toUpperCase() === 'SIM'
-          });
-        }
-      }
-      if (list.length === 0) {
-        return [
-          { id: 'CAT-01', nome: 'Alongamentos', icone: '💅', ordem: 1, ativo: true },
-          { id: 'CAT-02', nome: 'Manicure & Pedicure', icone: '✨', ordem: 2, ativo: true },
-          { id: 'CAT-03', nome: 'Blindagem & Banho de Gel', icone: '💎', ordem: 3, ativo: true },
-          { id: 'CAT-04', nome: 'Nail Art & Decoradas', icone: '🎨', ordem: 4, ativo: true },
-          { id: 'CAT-05', nome: 'Spa dos Pés & Mãos', icone: '🌸', ordem: 5, ativo: true }
-        ];
-      }
-      return list.sort((a, b) => a.ordem - b.ordem);
-    }
-
-    async function rpc(fn, ...args) {
-      // Se for criação de nova conta com Google, cria ou configura a planilha antes de ler Configuracoes!
-      if (fn === 'completeInitialOnboarding') {
-        const p = args[0];
-        const pinHash = await sha256Hex(p.pin);
-        const recHash = await sha256Hex(p.palavraRecuperacao);
-
-        const emailNovo = String(p.googleEmail || '').trim().toLowerCase();
-        if (!emailNovo.includes('@')) throw new Error('Informe o e-mail da sua conta Google.');
-        const existentes = await readSheetTab('Contas_Manicures', GSHEET_CONFIG.masterSpreadsheetId);
-        for (let i = 1; i < existentes.length; i++) {
-          if (existentes[i] && String(existentes[i][0] || '').trim().toLowerCase() === emailNovo) {
-            throw new Error('Já existe um Studio com este e-mail. Use "Entrar" ou "Esqueci a senha".');
-          }
-        }
-        p.whatsapp = normalizeBrPhone(p.whatsapp);
-        clearActiveSpreadsheetId();
-
-        let finalSheetId = '';
-        let finalSheetUrl = '';
-        let finalClientLink = '';
-        let finalOwnership = 'PROPRIETARIA';
-
-        // Se a usuária criou sua própria planilha no Google Drive dela:
-        if (p.customSheetId) {
-          finalSheetId = p.customSheetId;
-          finalSheetUrl = `https://docs.google.com/spreadsheets/d/${finalSheetId}/edit`;
-          finalClientLink = `${GSHEET_CONFIG.publicBaseUrl}/Pagina_Cliente.html?s=${finalSheetId}`;
-
-          // 1. Testa se o motor tem acesso de Editor na planilha dela
-          try {
-            await readSheetTab('Configuracoes', finalSheetId);
-          } catch (errAcc) {
-            throw new Error('Não foi possível acessar sua planilha. Verifique se clicou no botão Compartilhar na sua planilha e definiu o Acesso Geral para: Qualquer pessoa com o link (Editor)!');
-          }
-
-          // 2. Grava as configurações da usuária na planilha DELA
-          const cfgInit = [
-            ['Chave', 'Valor', 'Descricao'],
-            ['SETUP_CONCLUIDO', 'SIM', 'Configurado pelo App'],
-            ['STUDIO_NOME', p.studioNome || 'Meu Studio de Unhas', 'Nome do Studio'],
-            ['PROFISSIONAL_NOME', p.profissionalNome || 'Manicure', 'Nome da Profissional'],
-            ['ADMIN_LOGIN_ID', emailNovo, 'Conta Google do Titular'],
-            ['WHATSAPP_STUDIO', p.whatsapp, 'WhatsApp Oficial'],
-            ['PIX_CHAVE', p.pixChave || '', 'Chave Pix'],
-            ['PIX_RECEBEDOR', p.profissionalNome || p.studioNome, 'Nome do Titular Pix'],
-            ['PIX_CIDADE', 'SAO PAULO', 'Cidade'],
-            ['TEMA_COR', 'pink-gold', 'Tema de Cores'],
-            ['HORARIO_INICIO', '09:00', 'Abertura'],
-            ['HORARIO_FIM', '19:00', 'Fechamento'],
-            ['ALMOCO_INICIO', '12:00', 'Inicio Almoco'],
-            ['ALMOCO_FIM', '13:00', 'Fim Almoco'],
-            ['DIAS_ATENDIMENTO', '1,2,3,4,5,6', 'Dias de Funcionamento'],
-            ['INTERVALO_MINUTOS', '60', 'Intervalo em Minutos'],
-            ['SINCRONIZAR_AGENDA', 'SIM', 'Sincronizar Google Agenda'],
-            ['ADMIN_PIN_HASH', pinHash, 'Hash do PIN'],
-            ['ADMIN_RECOVERY_HASH', recHash, 'Hash de Recuperacao'],
-            ['TERMO_ACEITO_EM', new Date().toLocaleDateString('pt-BR'), 'Termo Aceito']
-          ];
-          await writeSheetTab('Configuracoes', cfgInit, finalSheetId);
-
-          // 3. Registra no diretório SaaS (Contas_Manicures)
-          const tenantRows = await readSheetTab('Contas_Manicures', GSHEET_CONFIG.masterSpreadsheetId);
-          const updatedTenants = [tenantRows[0]];
-          for (let i = 1; i < tenantRows.length; i++) {
-            if (tenantRows[i] && tenantRows[i][0] && String(tenantRows[i][0]).trim().toLowerCase() !== emailNovo) {
-              updatedTenants.push(tenantRows[i]);
-            }
-          }
-          updatedTenants.push([
-            emailNovo,
-            p.profissionalNome,
-            p.studioNome,
-            finalSheetId,
-            finalSheetUrl,
-            finalClientLink,
-            pinHash,
-            recHash,
-            new Date().toLocaleString('pt-BR')
-          ]);
-          await writeSheetTab('Contas_Manicures', updatedTenants, GSHEET_CONFIG.masterSpreadsheetId);
-        } else {
-          // Fallback para criação automática se não colou link
-          const created = await provisionNewGoogleSpreadsheetForUser(p, pinHash, recHash);
-          finalSheetId = created.newSheetId;
-          finalSheetUrl = created.sheetUrl;
-          finalClientLink = created.clientLink;
-          finalOwnership = created.ownershipStatus;
-        }
-
-        // Registra o Studio no banco permanente para login de qualquer dispositivo
-      // Registro salvo diretamente na aba Contas_Manicures na nuvem Google
-
-      setActiveSpreadsheetId(finalSheetId);
-        return {
-          success: true,
-          token: 'AUTH_TOKEN_' + pinHash.slice(0, 16),
-          spreadsheetId: finalSheetId,
-          spreadsheetUrl: finalSheetUrl,
-          clientLink: finalClientLink,
-          ownershipStatus: finalOwnership
-        };
-      }
-
-      // Recuperação de senha: localiza a planilha da conta pelo e-mail antes de validar
-      if (fn === 'recoverAdminPin') {
-        const emailRec = String((args[0] || {}).loginId || '').trim().toLowerCase();
-        if (!emailRec) throw new Error('Informe o e-mail da sua conta.');
-        const rowsRec = await readSheetTab('Contas_Manicures', GSHEET_CONFIG.masterSpreadsheetId);
-        const achou = rowsRec.slice(1).find(r => r && String(r[0] || '').trim().toLowerCase() === emailRec);
-        if (!achou || !achou[3]) throw new Error('Nenhum Studio encontrado com este e-mail.');
-        setActiveSpreadsheetId(achou[3]);
-      }
-
-      // Se for login por E-mail Google, verifica primeiro no Diretório SaaS (Contas_Manicures) qual é a Planilha daquela conta!
-      if (fn === 'authenticateAdmin') {
-        const { loginId, pin } = typeof args[0] === 'object' ? args[0] : { loginId: '', pin: args[0] };
-        const cleanPin = String(pin || '').trim();
-        const cleanLogin = String(loginId || '').trim().toLowerCase();
-        const inputHash = await sha256Hex(cleanPin);
-
-        if (!cleanLogin) throw new Error('Informe o e-mail da sua conta Google.');
-        
-        let foundSheetId = null;
-
-        // Consulta direta no diretório em nuvem (Contas_Manicures)
-        if (!foundSheetId) {
-          try {
-            const tenantRows = await readSheetTab('Contas_Manicures', GSHEET_CONFIG.masterSpreadsheetId || '1rfDFh6lQOhq6MOvbqFcEALWOciWoxKxW51J45IYTZ0Q');
-            const conta = tenantRows.slice(1).find(tr => tr && String(tr[0] || '').trim().toLowerCase() === cleanLogin);
-            if (conta && conta[3]) foundSheetId = conta[3];
-          } catch (eDir) {}
-        }
-
-        if (!foundSheetId) {
-          clearActiveSpreadsheetId();
-          throw new Error('Conta não encontrada com este e-mail. Se for seu primeiro acesso, clique em "Criar Meu Acesso com Conta Google" abaixo.');
-        }
-
-        setActiveSpreadsheetId(foundSheetId);
-        void inputHash;
-      }
-
-      const activeSid = getActiveSpreadsheetId();
-      const cfgRows = await readSheetTab('Configuracoes', activeSid);
-      const cfgMap = {};
-      for (let i = 1; i < cfgRows.length; i++) {
-        if (cfgRows[i] && cfgRows[i][0]) cfgMap[String(cfgRows[i][0]).trim()] = cfgRows[i][1] || '';
-      }
-
-      const studioObj = {
-        spreadsheetId: activeSid,
-        spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${activeSid}/edit`,
-        clientLink: `${GSHEET_CONFIG.publicBaseUrl}/Pagina_Cliente.html?s=${activeSid}`,
-        setupConcluido: String(cfgMap['SETUP_CONCLUIDO'] || 'NAO').toUpperCase() === 'SIM',
-        nome: cfgMap['STUDIO_NOME'] || 'Meu Studio de Unhas',
-        profissional: cfgMap['PROFISSIONAL_NOME'] || 'Manicure & Nail Designer',
-        loginId: cfgMap['ADMIN_LOGIN_ID'] || '',
-        whatsapp: cfgMap['WHATSAPP_STUDIO'] || '',
-        pixChave: cfgMap['PIX_CHAVE'] || '',
-        pixRecebedor: cfgMap['PIX_RECEBEDOR'] || 'STUDIO NAILS',
-        pixCidade: cfgMap['PIX_CIDADE'] || 'SAO PAULO',
-        temaCor: cfgMap['TEMA_COR'] || 'pink-gold',
-        horarioInicio: cfgMap['HORARIO_INICIO'] || '09:00',
-        horarioFim: cfgMap['HORARIO_FIM'] || '19:00',
-        almocoInicio: cfgMap['ALMOCO_INICIO'] || '12:00',
-        almocoFim: cfgMap['ALMOCO_FIM'] || '13:00',
-        diasAtendimento: cfgMap['DIAS_ATENDIMENTO'] || '1,2,3,4,5,6',
-        intervaloMinutos: Number(cfgMap['INTERVALO_MINUTOS'] || 60),
-        sincronizarAgenda: cfgMap['SINCRONIZAR_AGENDA'] || 'SIM',
-        instagram: cfgMap['INSTAGRAM_STUDIO'] || '',
-        endereco: cfgMap['ENDERECO_STUDIO'] || ''
-      };
-
-      if (fn === 'checkAuthStatus') {
-        return {
-          setupConcluido: studioObj.setupConcluido,
-          studioNome: studioObj.nome,
-          profissional: studioObj.profissional,
-          loginIdHint: studioObj.loginId,
-          spreadsheetId: activeSid
-        };
-      }
-
-      if (fn === 'completeInitialOnboarding') {
-        const p = args[0];
-        const pinHash = await sha256Hex(p.pin);
-        const recHash = await sha256Hex(p.palavraRecuperacao);
-        const newCfgRows = [
-          ['Chave', 'Valor', 'Descricao'],
-          ['SETUP_CONCLUIDO', 'SIM', 'Ativado com responsabilidade pela profissional'],
-          ['STUDIO_NOME', p.studioNome || 'Meu Studio de Unhas', 'Nome do Studio'],
-          ['PROFISSIONAL_NOME', p.profissionalNome || 'Manicure', 'Nome da Profissional'],
-          ['ADMIN_LOGIN_ID', String(p.googleEmail || p.whatsapp || '').trim(), 'Conta Google / Login Titular'],
-          ['WHATSAPP_STUDIO', String(p.whatsapp || '').replace(/\D/g, ''), 'WhatsApp Oficial'],
-          ['PIX_CHAVE', p.pixChave || '', 'Chave Pix'],
-          ['PIX_RECEBEDOR', p.pixRecebedor || p.profissionalNome || 'STUDIO NAILS', 'Titular Pix'],
-          ['PIX_CIDADE', p.pixCidade || 'SAO PAULO', 'Cidade Pix'],
-          ['TEMA_COR', p.temaCor || 'pink-gold', 'Tema de Cores'],
-          ['HORARIO_INICIO', cfgMap['HORARIO_INICIO'] || '09:00', 'Abertura'],
-          ['HORARIO_FIM', cfgMap['HORARIO_FIM'] || '19:00', 'Fechamento'],
-          ['ALMOCO_INICIO', cfgMap['ALMOCO_INICIO'] || '12:00', 'Início Almoço'],
-          ['ALMOCO_FIM', cfgMap['ALMOCO_FIM'] || '13:00', 'Fim Almoço'],
-          ['DIAS_ATENDIMENTO', cfgMap['DIAS_ATENDIMENTO'] || '1,2,3,4,5,6', 'Dias (0=Dom..6=Sab)'],
-          ['INTERVALO_MINUTOS', cfgMap['INTERVALO_MINUTOS'] || '60', 'Intervalo'],
-          ['SINCRONIZAR_AGENDA', 'SIM', 'Agenda'],
-          ['ADMIN_PIN_HASH', pinHash, 'Hash SHA-256 da Senha/PIN'],
-          ['ADMIN_RECOVERY_HASH', recHash, 'Hash SHA-256 da Palavra de Recuperação'],
-          ['TERMO_ACEITO_EM', new Date().toLocaleString('pt-BR'), 'Termo de Responsabilidade Aceito']
-        ];
-        await writeSheetTab('Configuracoes', newCfgRows, activeSid);
-        return {
-          success: true,
-          token: 'AUTH_TOKEN_' + pinHash.slice(0, 16),
-          spreadsheetId: activeSid,
-          spreadsheetUrl: studioObj.spreadsheetUrl,
-          clientLink: studioObj.clientLink
-        };
-      }
-
-      if (fn === 'authenticateAdmin') {
-        const { loginId, pin } = typeof args[0] === 'object' ? args[0] : { loginId: '', pin: args[0] };
-        const cleanPin = String(pin || '').trim();
-        const inputHash = await sha256Hex(cleanPin);
-        const defaultHash = await sha256Hex('123456');
-        const storedHash = cfgMap['ADMIN_PIN_HASH'] || defaultHash;
-
-        if (inputHash !== storedHash) {
-          await logSecurityEvent('LOGIN_FALHOU', 'Tentativa com senha incorreta');
-          throw new Error('Senha / PIN incorreto!');
-        }
-        await logSecurityEvent('LOGIN_SUCESSO', 'Acesso autorizado ao painel');
-        return { success: true, token: 'AUTH_TOKEN_' + storedHash.slice(0, 16), spreadsheetId: activeSid };
-      }
-
-      if (fn === 'recoverAdminPin') {
-        const { palavraRecuperacao, novoPin } = args[0];
-        if (!novoPin || String(novoPin).trim().length < 4) {
-          throw new Error('A nova senha precisa ter pelo menos 4 caracteres.');
-        }
-        const recInputHash = await sha256Hex(palavraRecuperacao);
-        const storedRecHash = cfgMap['ADMIN_RECOVERY_HASH'] || '';
-        const cleanWhats = String(palavraRecuperacao || '').replace(/\D/g, '');
-        const storedWhats = String(studioObj.whatsapp || '').replace(/\D/g, '');
-
-        const validByWord = storedRecHash && recInputHash === storedRecHash;
-        const validByWhats = storedWhats && cleanWhats === storedWhats;
-        if (!validByWord && !validByWhats) {
-          throw new Error('Palavra de segurança ou WhatsApp titular incorreto!');
-        }
-
-        const newPinHash = await sha256Hex(novoPin);
-        let found = false;
-        for (let i = 1; i < cfgRows.length; i++) {
-          if (cfgRows[i] && cfgRows[i][0] === 'ADMIN_PIN_HASH') {
-            cfgRows[i][1] = newPinHash;
-            found = true;
-          }
-        }
-        if (!found) cfgRows.push(['ADMIN_PIN_HASH', newPinHash, 'Hash SHA-256 da Senha']);
-        await writeSheetTab('Configuracoes', cfgRows, activeSid);
-        return { success: true, token: 'AUTH_TOKEN_' + newPinHash.slice(0, 16) };
-      }
-
-      if (fn === 'getPublicBootstrapData') {
-        const categorias = (await readCategoriasList()).filter(c => c.ativo);
-        const catRows = await readSheetTab('Catalogo', activeSid);
-        const catalogo = [];
-        for (let i = 1; i < catRows.length; i++) {
-          const r = catRows[i];
-          if (r && r[0] && String(r[7] || 'SIM').toUpperCase() === 'SIM') {
-            catalogo.push({
-              id: r[0], nome: r[1] || '', descricao: r[2] || '',
-              preco: Number(r[3] || 0), duracaoMin: Number(r[4] || 60),
-              fotoUrl: r[5] || '', categoria: r[6] || 'Alongamentos', ativo: true
-            });
-          }
-        }
-        return { studio: studioObj, categorias, catalogo };
-      }
-
-      if (fn === 'getAvailableSlotsForDate') {
-        const [dateStr, srvId] = args;
-        const [y, m, d] = String(dateStr).split('-').map(Number);
-        const dayOfWeek = new Date(y, m - 1, d).getDay();
-        const allowedDays = String(studioObj.diasAtendimento || '1,2,3,4,5,6').split(',').map(x => Number(x.trim()));
-        if (!allowedDays.includes(dayOfWeek)) return [];
-
-        const catRows = await readSheetTab('Catalogo', activeSid);
-        let duracao = studioObj.intervaloMinutos;
-        for (let i = 1; i < catRows.length; i++) {
-          if (catRows[i] && catRows[i][0] === srvId) {
-            duracao = Number(catRows[i][4] || duracao);
-            break;
-          }
-        }
-
-        const agRows = await readSheetTab('Agendamentos', activeSid);
-        const busy = [];
-        for (let i = 1; i < agRows.length; i++) {
-          const r = agRows[i];
-          if (r && r[1] === dateStr && String(r[11] || '').toUpperCase() !== 'CANCELADO') {
-            busy.push({ s: toMin(r[2]), e: toMin(r[3]), motivo: r[11] });
-          }
-        }
-
-        if (studioObj.almocoInicio && studioObj.almocoFim) {
-          const almS = toMin(studioObj.almocoInicio);
-          const almE = toMin(studioObj.almocoFim);
-          if (almE > almS) busy.push({ s: almS, e: almE, motivo: 'ALMOCO' });
-        }
-
-        const todayIso = getLocalIsoDate();
-        const now = new Date();
-        const nowMinutes = now.getHours() * 60 + now.getMinutes() + 15;
-
-        const startM = toMin(studioObj.horarioInicio);
-        const endM = toMin(studioObj.horarioFim);
-        const step = studioObj.intervaloMinutos || 60;
-        const slots = [];
-        for (let t = startM; t + duracao <= endM; t += step) {
-          const isPastToday = (dateStr === todayIso && t < nowMinutes);
-          const col = isPastToday || busy.some(b => t < b.e && (t + duracao) > b.s);
-          slots.push({
-            horaInicio: fromMin(t),
-            horaFim: fromMin(t + duracao),
-            disponivel: !col,
-            motivo: isPastToday ? 'PASSOU' : (col ? 'OCUPADO' : 'LIVRE')
-          });
-        }
-        return slots;
-      }
-
-      if (fn === 'createCustomerBooking') {
-        const p = args[0];
-        const slots = await rpc('getAvailableSlotsForDate', p.data, p.servicoId);
-        const slot = slots.find(s => s.horaInicio === p.horaInicio);
-        if (!slot || !slot.disponivel) throw new Error('Este horário acabou de ser preenchido! Escolha outro horário.');
-
-        const catRows = await readSheetTab('Catalogo', activeSid);
-        let srv = null;
-        for (let i = 1; i < catRows.length; i++) {
-          if (catRows[i] && catRows[i][0] === p.servicoId) {
-            srv = { id: catRows[i][0], nome: catRows[i][1], preco: Number(catRows[i][3] || 0), duracaoMin: Number(catRows[i][4] || 60) };
-            break;
-          }
-        }
-        if (!srv) throw new Error('Procedimento não encontrado.');
-
-        const id = 'AG-' + Math.floor(100000 + Math.random() * 900000);
-        const isPix = p.metodoPagamento.includes('PIX');
-        const statusPag = isPix ? 'AGUARDANDO_VALIDACAO_PIX' : 'PAGAR_NO_STUDIO';
-        const nowStr = new Date().toLocaleString('pt-BR');
-
-        await appendSheetRow('Agendamentos', [
-          id, p.data, p.horaInicio, slot.horaFim,
-          p.clienteNome, normalizeBrPhone(p.clienteWhatsApp),
-          srv.id, srv.nome, srv.preco, p.metodoPagamento,
-          statusPag, 'RESERVADO', 'GCAL-' + id, nowStr
-        ], activeSid);
-
-        const valorCobradoAgora = p.metodoPagamento === 'PIX_SINAL_50' ? (srv.preco / 2) : srv.preco;
-        const pixCopiaECola = buildPixBrCode(studioObj.pixChave || '00000000000', studioObj.pixRecebedor, studioObj.pixCidade, valorCobradoAgora, id);
-
-        return {
-          success: true,
-          reserva: {
-            id, data: p.data, horaInicio: p.horaInicio, horaFim: slot.horaFim,
-            clienteNome: p.clienteNome, servicoNome: srv.nome,
-            valorTotal: srv.preco, valorCobradoAgora,
-            metodoPagamento: p.metodoPagamento, statusPagamento: statusPag,
-            pixCopiaECola, whatsappStudio: studioObj.whatsapp
-          }
-        };
-      }
-
-      if (fn === 'notifyPixPaidByCustomer') {
-        const reservaId = args[0];
-        const agRows = await readSheetTab('Agendamentos', activeSid);
-        for (let i = 1; i < agRows.length; i++) {
-          if (agRows[i] && agRows[i][0] === reservaId) {
-            agRows[i][10] = 'CLIENTE_INFORMOU_PIX';
-            await writeSheetTab('Agendamentos', agRows, activeSid);
-            break;
-          }
-        }
-        return { success: true };
-      }
-
-      if (fn === 'getAdminDashboardData') {
-        const categorias = await readCategoriasList();
-        const catRows = await readSheetTab('Catalogo', activeSid);
-        const catalogo = [];
-        for (let i = 1; i < catRows.length; i++) {
-          const r = catRows[i];
-          if (r && r[0]) {
-            catalogo.push({
-              id: r[0], nome: r[1] || '', descricao: r[2] || '',
-              preco: Number(r[3] || 0), duracaoMin: Number(r[4] || 60),
-              fotoUrl: r[5] || '', categoria: r[6] || 'Alongamentos',
-              ativo: String(r[7] || 'SIM').toUpperCase() === 'SIM'
-            });
-          }
-        }
-        const agRows = await readSheetTab('Agendamentos', activeSid);
-        const agendamentos = [];
-        for (let i = 1; i < agRows.length; i++) {
-          const r = agRows[i];
-          if (r && r[0]) {
-            agendamentos.push({
-              id: r[0], data: r[1] || '', horaInicio: r[2] || '', horaFim: r[3] || '',
-              clienteNome: r[4] || '', clienteWhatsApp: r[5] || '',
-              servicoId: r[6] || '', servicoNome: r[7] || '', valor: Number(r[8] || 0),
-              metodoPagamento: r[9] || '', statusPagamento: r[10] || '', statusReserva: r[11] || '',
-              criadoEm: r[13] || ''
-            });
-          }
-        }
-        agendamentos.sort((a, b) => (b.data + b.horaInicio).localeCompare(a.data + a.horaInicio));
-        return { studio: studioObj, categorias, catalogo, agendamentos };
-      }
-
-      if (fn === 'adminSaveCategory') {
-        const [, catObj] = args;
-        const current = await readCategoriasList();
-        const rows = [['ID_Categoria', 'Nome', 'Icone', 'Ordem', 'Ativo']];
-        let updated = false;
-        let oldName = null;
-
-        for (const c of current) {
-          if (catObj.id && c.id === catObj.id) {
-            oldName = c.nome;
-            rows.push([
-              c.id,
-              catObj.nome.trim(),
-              catObj.icone || '💅',
-              String(catObj.ordem || c.ordem || rows.length),
-              catObj.ativo === false ? 'NAO' : 'SIM'
-            ]);
-            updated = true;
-          } else {
-            rows.push([c.id, c.nome, c.icone, String(c.ordem), c.ativo ? 'SIM' : 'NAO']);
-          }
-        }
-
-        if (!updated) {
-          const newId = 'CAT-' + Math.floor(100 + Math.random() * 900);
-          rows.push([
-            newId,
-            catObj.nome.trim(),
-            catObj.icone || '💅',
-            String(catObj.ordem || rows.length),
-            'SIM'
-          ]);
-        }
-
-        await writeSheetTab('Categorias', rows, activeSid);
-
-        if (oldName && oldName !== catObj.nome.trim()) {
-          const sRows = await readSheetTab('Catalogo', activeSid);
-          let changed = false;
-          for (let i = 1; i < sRows.length; i++) {
-            if (sRows[i] && sRows[i][6] === oldName) {
-              sRows[i][6] = catObj.nome.trim();
-              changed = true;
-            }
-          }
-          if (changed) await writeSheetTab('Catalogo', sRows, activeSid);
-        }
-
-        return await rpc('getAdminDashboardData');
-      }
-
-      if (fn === 'adminDeleteCategory') {
-        const [, catId] = args;
-        const current = await readCategoriasList();
-        const rows = [['ID_Categoria', 'Nome', 'Icone', 'Ordem', 'Ativo']];
-        for (const c of current) {
-          if (c.id !== catId) {
-            rows.push([c.id, c.nome, c.icone, String(c.ordem), c.ativo ? 'SIM' : 'NAO']);
-          }
-        }
-        await writeSheetTab('Categorias', rows, activeSid);
-        return await rpc('getAdminDashboardData');
-      }
-
-      if (fn === 'adminSeedDefaultCatalog') {
-        const sampleRows = [
-          ['ID', 'Nome', 'Descricao', 'Preco', 'DuracaoMin', 'FotoURL', 'Categoria', 'Ativo'],
-          ['SRV-101', 'Alongamento em Fibra de Vidro', 'Alongamento resistente com acabamento natural, curvatura perfeita e esmaltação em gel inclusa.', '160', '120', 'https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=400&q=80', 'Alongamentos', 'SIM'],
-          ['SRV-102', 'Manutenção de Alongamento', 'Manutenção completa (até 21 dias), nivelamento, cuticulagem e nova esmaltação.', '110', '90', 'https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&w=400&q=80', 'Alongamentos', 'SIM'],
-          ['SRV-103', 'Banho de Gel / Blindagem', 'Camada protetora de gel sobre a unha natural para maior durabilidade e brilho intenso.', '90', '60', 'https://images.unsplash.com/photo-1632345031435-8727f6897d53?auto=format&fit=crop&w=400&q=80', 'Blindagem & Banho de Gel', 'SIM'],
-          ['SRV-104', 'Pé e Mão Tradicional Completo', 'Cuticulagem funda, hidratação e esmaltação tradicional completa (mãos e pés).', '70', '60', 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=400&q=80', 'Manicure & Pedicure', 'SIM']
-        ];
-        await writeSheetTab('Catalogo', sampleRows, activeSid);
-        return await rpc('getAdminDashboardData');
-      }
-
-      if (fn === 'adminSaveService') {
-        const [, obj] = args;
-        const catRows = await readSheetTab('Catalogo', activeSid);
-        const cleanRows = [['ID', 'Nome', 'Descricao', 'Preco', 'DuracaoMin', 'FotoURL', 'Categoria', 'Ativo']];
-        let updated = false;
-        const statusAtivo = obj.ativo === false ? 'NAO' : 'SIM';
-        for (let i = 1; i < catRows.length; i++) {
-          const r = catRows[i];
-          if (r && r[0]) {
-            if (obj.id && r[0] === obj.id) {
-              cleanRows.push([obj.id, obj.nome, obj.descricao, obj.preco, obj.duracaoMin, obj.fotoUrl, obj.categoria, statusAtivo]);
-              updated = true;
-            } else {
-              cleanRows.push(r);
-            }
-          }
-        }
-        if (!updated) {
-          const newId = 'SRV-' + Math.floor(1000 + Math.random() * 9000);
-          cleanRows.push([newId, obj.nome, obj.descricao, obj.preco, obj.duracaoMin, obj.fotoUrl, obj.categoria, statusAtivo]);
-        }
-        await writeSheetTab('Catalogo', cleanRows, activeSid);
-        return await rpc('getAdminDashboardData');
-      }
-
-      if (fn === 'adminToggleServiceActive') {
-        const [, srvId] = args;
-        const catRows = await readSheetTab('Catalogo', activeSid);
-        for (let i = 1; i < catRows.length; i++) {
-          if (catRows[i] && catRows[i][0] === srvId) {
-            const cur = String(catRows[i][7] || 'SIM').toUpperCase();
-            catRows[i][7] = cur === 'SIM' ? 'NAO' : 'SIM';
-            break;
-          }
-        }
-        await writeSheetTab('Catalogo', catRows, activeSid);
-        return await rpc('getAdminDashboardData');
-      }
-
-      if (fn === 'adminDeleteService') {
-        const [, id] = args;
-        const catRows = await readSheetTab('Catalogo', activeSid);
-        const filtered = [['ID', 'Nome', 'Descricao', 'Preco', 'DuracaoMin', 'FotoURL', 'Categoria', 'Ativo']];
-        for (let i = 1; i < catRows.length; i++) {
-          const r = catRows[i];
-          if (r && r[0] && r[0] !== id) filtered.push(r);
-        }
-        await writeSheetTab('Catalogo', filtered, activeSid);
-        return await rpc('getAdminDashboardData');
-      }
-
-      if (fn === 'adminUpdateBookingStatus') {
-        const [, id, action] = args;
-        const agRows = await readSheetTab('Agendamentos', activeSid);
-        for (let i = 1; i < agRows.length; i++) {
-          if (agRows[i] && agRows[i][0] === id) {
-            if (action === 'VALIDAR_PIX') {
-              agRows[i][10] = 'PIX_CONFIRMADO';
-              agRows[i][11] = 'CONFIRMADO';
-            } else if (action === 'CONCLUIR_ATENDIMENTO') {
-              agRows[i][10] = agRows[i][10] === 'AGUARDANDO_VALIDACAO_PIX' ? 'PIX_CONFIRMADO' : 'PAGO_NO_STUDIO';
-              agRows[i][11] = 'CONCLUIDO';
-            } else if (action === 'CANCELAR_RESERVA') {
-              agRows[i][11] = 'CANCELADO';
-              const targetCalEventId = agRows[i][12];
-              if (targetCalEventId && !String(targetCalEventId).startsWith('DELETED_')) {
-                try {
-                  await syncGoogleCalendarCloudDirect('DELETE', null, targetCalEventId, activeSid);
-                  agRows[i][12] = 'DELETED_' + targetCalEventId;
-                } catch (eDelGcal) {}
-              }
-            }
-            await writeSheetTab('Agendamentos', agRows, activeSid);
-            break;
-          }
-        }
-        return await rpc('getAdminDashboardData');
-      }
-
-      if (fn === 'adminCreateManualBookingOrBlock') {
-        const [, p] = args;
-        const id = (p.tipo === 'BLOQUEIO' ? 'BLQ-' : 'AG-') + Math.floor(100000 + Math.random() * 900000);
-        const nowStr = new Date().toLocaleString('pt-BR');
-        if (p.tipo === 'BLOQUEIO') {
-          await appendSheetRow('Agendamentos', [
-            id, p.data, p.horaInicio, p.horaFim,
-            '🔒 BLOQUEIO DE AGENDA / FOLGA', '',
-            'BLOQUEIO', p.motivo || 'Horário Bloqueado pela Profissional', 0, 'BLOQUEIO',
-            'BLOQUEADO', 'BLOQUEADO', 'GCAL-' + id, nowStr
-          ], activeSid);
-        } else {
-          const fimMin = toMin(p.horaInicio) + Number(p.duracaoMin || 60);
-          await appendSheetRow('Agendamentos', [
-            id, p.data, p.horaInicio, fromMin(fimMin),
-            p.clienteNome, normalizeBrPhone(p.clienteWhatsApp),
-            p.servicoId || 'MANUAL', p.servicoNome, Number(p.valor || 0), p.metodoPagamento || 'NO_LOCAL',
-            p.statusPagamento || 'PAGAR_NO_STUDIO', 'CONFIRMADO', 'GCAL-' + id, nowStr
-          ], activeSid);
-        }
-        return await rpc('getAdminDashboardData');
-      }
-
-      if (fn === 'adminSaveSettings') {
-        const [, cfg] = args;
-        const newPinHash = (cfg.novoPin && cfg.novoPin.length >= 4)
-          ? await sha256Hex(cfg.novoPin)
-          : (cfgMap['ADMIN_PIN_HASH'] || await sha256Hex('123456'));
-
-        const newRecHash = (cfg.novaPalavraRecuperacao && cfg.novaPalavraRecuperacao.length >= 3)
-          ? await sha256Hex(cfg.novaPalavraRecuperacao)
-          : (cfgMap['ADMIN_RECOVERY_HASH'] || '');
-
-        const newCfgRows = [
-          ['Chave', 'Valor', 'Descricao'],
-          ['SETUP_CONCLUIDO', 'SIM', 'Configurado pelo App'],
-          ['STUDIO_NOME', cfg.nome || 'Meu Studio', 'Nome do Studio'],
-          ['PROFISSIONAL_NOME', cfg.profissional || 'Manicure', 'Profissional'],
-          ['ADMIN_LOGIN_ID', cfg.loginId || studioObj.loginId || '', 'E-mail ou WhatsApp de Login'],
-          ['WHATSAPP_STUDIO', normalizeBrPhone(cfg.whatsapp), 'WhatsApp'],
-          ['PIX_CHAVE', cfg.pixChave || '', 'Chave Pix'],
-          ['PIX_RECEBEDOR', cfg.pixRecebedor || '', 'Titular Pix'],
-          ['PIX_CIDADE', cfg.pixCidade || 'SAO PAULO', 'Cidade Pix'],
-          ['TEMA_COR', cfg.temaCor || 'pink-gold', 'Tema de Cores'],
-          ['HORARIO_INICIO', cfg.horarioInicio || '09:00', 'Abertura'],
-          ['HORARIO_FIM', cfg.horarioFim || '19:00', 'Fechamento'],
-          ['ALMOCO_INICIO', cfg.almocoInicio || '', 'Início Almoço'],
-          ['ALMOCO_FIM', cfg.almocoFim || '', 'Fim Almoço'],
-          ['DIAS_ATENDIMENTO', cfg.diasAtendimento || '1,2,3,4,5,6', 'Dias de Funcionamento'],
-          ['INTERVALO_MINUTOS', String(cfg.intervaloMinutos || 60), 'Intervalo'],
-          ['SINCRONIZAR_AGENDA', 'SIM', 'Agenda'],
-          ['ADMIN_PIN_HASH', newPinHash, 'Hash SHA-256 do PIN'],
-          ['ADMIN_RECOVERY_HASH', newRecHash, 'Hash SHA-256 de Recuperação'],
-          ['INSTAGRAM_STUDIO', cfg.instagram !== undefined ? cfg.instagram : (cfgMap['INSTAGRAM_STUDIO'] || ''), 'Instagram do Studio'],
-          ['ENDERECO_STUDIO', cfg.endereco !== undefined ? cfg.endereco : (cfgMap['ENDERECO_STUDIO'] || ''), 'Endereço do Studio'],
-          ['GCAL_REFRESH_TOKEN', cfgMap['GCAL_REFRESH_TOKEN'] || '', 'Token OAuth Google Calendar Cloud Direct'],
-          ['GCAL_CONNECTED_EMAIL', cfgMap['GCAL_CONNECTED_EMAIL'] || '', 'E-mail conectado ao Google Calendar'],
-          ['GCAL_WEBHOOK_URL', cfgMap['GCAL_WEBHOOK_URL'] || '', 'Webhook Apps Script Google Calendar'],
-          ['INSTAGRAM_STUDIO', cfg.instagram !== undefined ? cfg.instagram : (cfgMap['INSTAGRAM_STUDIO'] || ''), 'Instagram do Studio'],
-          ['ENDERECO_STUDIO', cfg.endereco !== undefined ? cfg.endereco : (cfgMap['ENDERECO_STUDIO'] || ''), 'Endereço do Studio'],
-          ['GCAL_REFRESH_TOKEN', cfgMap['GCAL_REFRESH_TOKEN'] || '', 'Token OAuth Google Calendar Cloud Direct'],
-          ['GCAL_CONNECTED_EMAIL', cfgMap['GCAL_CONNECTED_EMAIL'] || '', 'E-mail conectado ao Google Calendar'],
-          ['GCAL_WEBHOOK_URL', cfgMap['GCAL_WEBHOOK_URL'] || '', 'Webhook Apps Script Google Calendar'],
-          ['TERMO_ACEITO_EM', cfgMap['TERMO_ACEITO_EM'] || new Date().toLocaleString('pt-BR'), 'Termo Aceito']
-        ];
-        await writeSheetTab('Configuracoes', newCfgRows, activeSid);
-        return await rpc('getAdminDashboardData');
-      }
-    }
-
-
     window.addEventListener('DOMContentLoaded', async () => {
-      const pubTunnel = 'https://nailstudiopro-app.surge.sh';
-      const clientUrl = (window.location.hostname === 'localhost' || window.location.protocol === 'file:')
-        ? (pubTunnel + '/Pagina_Cliente.html')
-        : new URL('Pagina_Cliente.html', window.location.href).href;
-      document.getElementById('clientPageUrlInput').value = clientUrl;
+      document.getElementById('clientPageUrlInput').value = clientPageUrl();
       document.getElementById('manData').value = getLocalIsoDate();
 
-      if (adminToken && !localStorage.getItem('NAIL_ACTIVE_SHEET_ID') && !sessionStorage.getItem('NAIL_ACTIVE_SHEET_ID')) {
-        adminToken = null;
-        localStorage.removeItem('NAIL_ADM_TOKEN');
-        sessionStorage.removeItem('NAIL_ADM_TOKEN');
-      }
-      if (adminToken) {
+      const oauth = readOAuthReturn();
+      if (adminToken && !recoverToken) {
         document.getElementById('lockScreen').classList.add('hidden');
         await refreshAdminData();
+        if (oauth.welcome) showToast('💅 Bem-vinda de volta! Conectada com Google.');
+        if (oauth.gcal) {
+          showToast('🎉 Google Agenda conectada 24h na nuvem com sucesso!');
+          checkGcalStatus();
+        }
       } else {
-        if (typeof renderGoogleAccountsList === 'function') renderGoogleAccountsList();
+        if (oauth.gcal) showToast('🎉 Google Agenda conectada 24h na nuvem com sucesso!');
         const lastEmail = localStorage.getItem('NAIL_LAST_LOGIN');
-        const dirInput = document.getElementById('loginDirectEmail');
-        if (lastEmail && dirInput && !dirInput.value) dirInput.value = lastEmail;
+        const inp = document.getElementById('loginUserInput');
+        if (lastEmail && inp && !inp.value) inp.value = lastEmail;
       }
     });
+
 
     async function unlockApp() {
       const loginId = document.getElementById('loginUserInput').value.trim();
@@ -3413,7 +1923,6 @@
       const remember = document.getElementById('chkRemember').checked;
       if (!loginId || !loginId.includes('@')) return showToast('Digite o e-mail da sua conta Google.');
       if (!pin) return showToast('Digite sua Senha / PIN.');
-      clearActiveSpreadsheetId();
       const btn = document.getElementById('btnUnlock');
       const oldHtml = btn.innerHTML;
       btn.disabled = true;
@@ -3435,71 +1944,22 @@
       }
     }
 
-    async function submitOnboarding() {
-      const customSheetInput = document.getElementById('obCustomSheetUrl') ? document.getElementById('obCustomSheetUrl').value.trim() : '';
-      const googleEmail = document.getElementById('obGoogleEmail').value.trim().toLowerCase();
-      const studioNome = document.getElementById('obStudioNome').value.trim();
-      const profissionalNome = document.getElementById('obProNome').value.trim();
-      const whatsapp = document.getElementById('obWhatsapp').value.trim();
-      const pixChave = cleanPixKey(document.getElementById('obPixChave').value.trim());
-      const pin = document.getElementById('obNewPin').value.trim();
-      const palavraRecuperacao = document.getElementById('obRecoveryWord').value.trim();
-
-      if (!customSheetInput) return showToast('Cole o link ou ID da sua planilha criada no seu Google Drive!');
-      if (!googleEmail || !googleEmail.includes('@')) return showToast('Informe seu E-mail da Conta Google válido!');
-      if (!studioNome || !profissionalNome || !whatsapp) return showToast('Preencha Nome do Studio, Seu Nome e WhatsApp!');
-      if (!isValidBrPhone(whatsapp)) return showToast('WhatsApp inválido: use DDD + número (11 dígitos).');
-      if (pin.length < 4) return showToast('Crie uma senha ou PIN com pelo menos 4 caracteres.');
-      if (palavraRecuperacao.length < 3) return showToast('Defina uma palavra de recuperação.');
-
-      let customSheetId = customSheetInput;
-      const match = customSheetInput.match(/\/d\/([a-zA-Z0-9-_]+)/);
-      if (match) customSheetId = match[1];
-
-      const btn = document.getElementById('btnOnboarding');
-      const old = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Criando sua Planilha Google e Links...';
-      try {
-        const res = await rpc('completeInitialOnboarding', {
-          customSheetId, googleEmail, studioNome, profissionalNome, loginId: googleEmail, whatsapp, pixChave, pin, palavraRecuperacao
-        });
-        adminToken = res.token;
-        localStorage.setItem('NAIL_ADM_TOKEN', adminToken);
-        sessionStorage.setItem('NAIL_ADM_TOKEN', adminToken);
-        if (res.spreadsheetId) setActiveSpreadsheetId(res.spreadsheetId);
-        document.getElementById('lockScreen').classList.add('hidden');
-        await refreshAdminData();
-        // Leva direto para a aba Link & App para ela já ver o Link da Planilha Criada e o Link das Clientes!
-        const navBtns = document.querySelectorAll('.nav-btn');
-        if (navBtns[4]) switchTab('tabShare', navBtns[4]);
-        localStorage.setItem('NAIL_LAST_LOGIN', googleEmail);
-        if (res.ownershipStatus === 'AGUARDANDO_ACEITE') {
-          alert('✅ Sua Planilha Google foi criada!\n\n📧 O Google enviou um e-mail para ' + googleEmail + ' pedindo para você ACEITAR A PROPRIEDADE da planilha. Aceite para que ela fique 100% sua.');
-        }
-        showToast('Planilha Google e Links criados com sucesso!');
-      } catch (e) {
-        showToast(e.message);
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = old;
-      }
-    }
-
+    // Recuperar PIN: só depois de confirmar a conta com o Google (intent=recover).
     async function submitRecoverPin() {
-      const palavraRecuperacao = document.getElementById('recWordInput').value.trim();
       const novoPin = document.getElementById('recNewPinInput').value.trim();
-      const loginId = document.getElementById('recEmailInput').value.trim().toLowerCase();
-      if (!palavraRecuperacao || !novoPin || !loginId) return showToast('Preencha todos os campos!');
+      if (!recoverToken) return showAuthMode('recover');
+      if (!novoPin) return showToast('Digite o novo PIN!');
       const btn = document.getElementById('btnRecover');
       const old = btn.innerHTML;
       btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verificando...';
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
       try {
-        const res = await rpc('recoverAdminPin', { palavraRecuperacao, novoPin, loginId });
-        adminToken = res.token;
+        await rpc('adminSetPin', { novoPin });
+        adminToken = recoverToken;
+        recoverToken = null;
         localStorage.setItem('NAIL_ADM_TOKEN', adminToken);
         sessionStorage.setItem('NAIL_ADM_TOKEN', adminToken);
+        document.getElementById('recNewPinInput').value = '';
         document.getElementById('lockScreen').classList.add('hidden');
         await refreshAdminData();
         showToast('Senha redefinida com sucesso!');
@@ -3515,11 +1975,9 @@
       adminToken = null;
       localStorage.removeItem('NAIL_ADM_TOKEN');
       sessionStorage.removeItem('NAIL_ADM_TOKEN');
-      clearActiveSpreadsheetId();
       const pin = document.getElementById('pinInput');
       if (pin) pin.value = '';
       showAuthMode('login');
-      if (typeof renderGoogleAccountsList === 'function') renderGoogleAccountsList();
       const lockScreen = document.getElementById('lockScreen');
       if (lockScreen) lockScreen.classList.remove('hidden');
       showToast('Sessão encerrada. Escolha outra conta Google.');
@@ -3527,7 +1985,7 @@
 
     async function refreshAdminData() {
       try {
-        const data = await rpc('getAdminDashboardData', adminToken);
+        const data = await rpc('getAdminDashboardData');
         dashState = data;
         renderDashboard(data);
       } catch (e) {
@@ -3611,8 +2069,7 @@
         const shBtn = document.getElementById('mySheetOpenBtn');
         if (shBtn) shBtn.href = data.studio.spreadsheetUrl;
       }
-      const activeOrigin = GSHEET_CONFIG.publicBaseUrl || 'https://nailstudiopro-app.surge.sh';
-      const accurateClientLink = `${activeOrigin}/Pagina_Cliente.html?s=${data.studio.spreadsheetId || ''}`;
+      const accurateClientLink = clientPageUrl(data.studio.spreadsheetId);
       document.getElementById('clientPageUrlInput').value = accurateClientLink;
       const cliBtns = document.querySelectorAll('a[href*="Pagina_Cliente.html"]');
       cliBtns.forEach(a => a.href = accurateClientLink);
@@ -3757,7 +2214,7 @@
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
       try {
-        const res = await rpc('adminSaveCategory', adminToken, { id, nome, icone, ordem, ativo: true });
+        const res = await rpc('adminSaveCategory', { id, nome, icone, ordem, ativo: true });
         dashState = res;
         clearCatCrud();
         renderDashboard(res);
@@ -3774,7 +2231,7 @@
     async function deleteCategoryCrud(catId) {
       try {
         showToast('Removendo categoria...');
-        const res = await rpc('adminDeleteCategory', adminToken, catId);
+        const res = await rpc('adminDeleteCategory', catId);
         dashState = res;
         renderDashboard(res);
         showToast('Categoria removida!');
@@ -3956,7 +2413,7 @@
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gravando na Planilha...';
       try {
-        const res = await rpc('adminCreateManualBookingOrBlock', adminToken, payload);
+        const res = await rpc('adminCreateManualBookingOrBlock', payload);
         dashState = res;
         renderDashboard(res);
         document.getElementById('boxManualBooking').classList.add('hidden');
@@ -3972,7 +2429,7 @@
     async function bookingAction(id, action) {
       try {
         showToast('Atualizando na Planilha Google...');
-        const res = await rpc('adminUpdateBookingStatus', adminToken, id, action);
+        const res = await rpc('adminUpdateBookingStatus', id, action);
         dashState = res;
         renderDashboard(res);
         showToast('Status atualizado com sucesso!');
@@ -4045,7 +2502,7 @@
     async function toggleSrvActive(id) {
       try {
         showToast('Alterando visibilidade...');
-        const res = await rpc('adminToggleServiceActive', adminToken, id);
+        const res = await rpc('adminToggleServiceActive', id);
         dashState = res;
         renderDashboard(res);
         showToast('Visibilidade do serviço atualizada!');
@@ -4073,7 +2530,7 @@
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gravando na Planilha...';
       try {
-        const res = await rpc('adminSaveService', adminToken, obj);
+        const res = await rpc('adminSaveService', obj);
         dashState = res;
         clearSrvForm();
         const bForm = document.getElementById('boxSrvForm');
@@ -4091,7 +2548,7 @@
     async function delSrv(id) {
       try {
         showToast('Removendo da Planilha...');
-        const res = await rpc('adminDeleteService', adminToken, id);
+        const res = await rpc('adminDeleteService', id);
         dashState = res;
         renderDashboard(res);
         showToast('Removido da Planilha!');
@@ -4113,7 +2570,6 @@
         nome: document.getElementById('cfgNome').value.trim(),
         profissional: document.getElementById('cfgProfissional').value.trim(),
         whatsapp: document.getElementById('cfgWhatsapp').value.trim(),
-        loginId: document.getElementById('cfgLoginId').value.trim(),
         horarioInicio: document.getElementById('cfgInicio').value,
         horarioFim: document.getElementById('cfgFim').value,
         almocoInicio: document.getElementById('cfgAlmocoInicio').value,
@@ -4121,20 +2577,21 @@
         diasAtendimento: checkedDays || '1,2,3,4,5,6',
         temaCor: document.getElementById('cfgTema').value,
         instagram: document.getElementById('cfgInstagram') ? document.getElementById('cfgInstagram').value.trim() : '',
-        endereco: document.getElementById('cfgEndereco') ? document.getElementById('cfgEndereco').value.trim() : '',
-        novoPin: document.getElementById('cfgNovoPin').value.trim(),
-        novaPalavraRecuperacao: document.getElementById('cfgNovaRec').value.trim()
+        endereco: document.getElementById('cfgEndereco') ? document.getElementById('cfgEndereco').value.trim() : ''
       };
+      const novoPin = document.getElementById('cfgNovoPin').value.trim();
       if (cfg.whatsapp && !isValidBrPhone(cfg.whatsapp)) return showToast('WhatsApp inválido: use DDD + número, ex: (11) 99999-9999');
       const btn = document.getElementById('btnSaveCfg');
       const oldHtml = btn.innerHTML;
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gravando na Planilha Google...';
       try {
-        const res = await rpc('adminSaveSettings', adminToken, cfg);
+        if (novoPin) {
+          await rpc('adminSetPin', { novoPin });
+          document.getElementById('cfgNovoPin').value = '';
+        }
+        const res = await rpc('adminSaveSettings', cfg);
         dashState = res;
-        document.getElementById('cfgNovoPin').value = '';
-        document.getElementById('cfgNovaRec').value = '';
         renderDashboard(res);
         showToast('Configurações gravadas na Planilha Google!');
       } catch (e) {
@@ -4181,7 +2638,7 @@
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Criando procedimentos...';
       }
       try {
-        const res = await rpc('adminSeedDefaultCatalog', adminToken);
+        const res = await rpc('adminSeedDefaultCatalog');
         dashState = res;
         renderDashboard(res);
         showToast('🎉 4 procedimentos clássicos adicionados com sucesso!');
@@ -4197,7 +2654,7 @@
       const fimH = (dashState.studio && dashState.studio.horarioFim) || '19:00';
       try {
         showToast('🔒 Bloqueando agenda do restante de hoje...');
-        const res = await rpc('adminCreateManualBookingOrBlock', adminToken, {
+        const res = await rpc('adminCreateManualBookingOrBlock', {
           tipo: 'BLOQUEIO',
           data: todayIso,
           horaInicio: curH,
@@ -4231,15 +2688,13 @@
       alert('✅ Seu Código Pix Copia e Cola (Padronizado Banco Central) foi gerado e copiado!\n\nChave Normalizada: ' + cleanPixKey(key) + '\nTitular: ' + holder + '\n\nCódigo BRCode:\n' + brCode);
     }
 
-    // Domínio permanente 24/7 em nuvem configurado em GSHEET_CONFIG.publicBaseUrl
-
     
     // =========================================================================
     // INTERAÇÕES COM O SISTEMA MOBILE (BOTÃO VOLTAR ANDROID + TECLADO VIRTUAL)
     // =========================================================================
     window.handleAndroidBackButton = function() {
       // 1. Fecha modais abertos primeiro
-      const modals = ['modalGoogleLogin', 'modalIosInstall', 'modalAppsScriptWizard', 'modalGcalConnect'];
+      const modals = ['modalIosInstall', 'modalAppsScriptWizard'];
       for (const mId of modals) {
         const el = document.getElementById(mId);
         if (el && !el.classList.contains('hidden')) {
@@ -4302,35 +2757,6 @@
       return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
   </script>
-
-  <!-- MODAL DE SEGURANÇA: EXIGE SELETOR NATIVO ANDROID (ACCOUNTS) OU OAUTH OFICIAL -->
-  <div id="modalGoogleLogin" class="modal-overlay hidden" style="position:fixed; inset:0; background:rgba(15,23,42,0.72); backdrop-filter:blur(8px); z-index:99999; display:flex; align-items:center; justify-content:center; padding:16px;">
-    <div style="background:#fff; width:100%; max-width:400px; border-radius:24px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.3); overflow:hidden; border:1px solid #e2e8f0; text-align:center;">
-      <div style="padding:22px 20px 14px; border-bottom:1px solid #f1f5f9; position:relative;">
-        <button type="button" onclick="closeGoogleLoginModal()" style="position:absolute; right:14px; top:14px; background:none; border:none; font-size:1.5rem; color:#64748b; cursor:pointer; line-height:1; width:32px; height:32px;">&times;</button>
-        <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" style="width:40px; height:40px; margin-bottom:8px;" alt="Google">
-        <h3 style="font-size:1.12rem; font-weight:800; color:#0f172a; margin:0 0 4px;">Conta Real do Aparelho</h3>
-        <p style="font-size:0.8rem; color:#64748b; margin:0; line-height:1.4;">
-          Por segurança, <strong>não é permitido digitar e-mails avulsos</strong>. O acesso exige uma Conta Google real cadastrada nas <strong>Contas (Accounts)</strong> do seu celular.
-        </p>
-      </div>
-
-      <div style="padding:18px 20px 22px; display:flex; flex-direction:column; gap:12px;">
-        <div style="background:#eff6ff; border:1.5px solid #bfdbfe; border-radius:16px; padding:14px; text-align:left; font-size:0.82rem; color:#1e3a8a; line-height:1.45;">
-          <strong>📲 Como entrar com a Conta Google do seu celular:</strong><br>
-          Instale ou atualize o <strong>App Android Oficial</strong> abaixo. Ao tocar em <em>"Continuar com Conta Google"</em> dentro do App, o próprio sistema Android abrirá a janela oficial listando apenas as contas reais do seu aparelho!
-        </div>
-
-        <button type="button" onclick="downloadAndUpdateAndroidApk()" class="btn-main" style="background:#16a34a; height:50px; font-size:0.9rem;">
-          <i class="fa-brands fa-android" style="font-size:1.15rem;"></i> Baixar / Atualizar App Android
-        </button>
-
-        <button type="button" onclick="closeGoogleLoginModal()" class="btn-sm" style="width:100%; background:#f1f5f9; color:#475569;">
-          Voltar
-        </button>
-      </div>
-    </div>
-  </div>
 
   <!-- MODAL: GUIA PASSO A PASSO PARA IPHONE / IPAD (IOS) -->
   <div id="modalIosInstall" class="modal-overlay hidden" style="position:fixed; inset:0; background:rgba(15,23,42,0.7); backdrop-filter:blur(8px); z-index:99999; display:flex; align-items:center; justify-content:center; padding:16px;">
