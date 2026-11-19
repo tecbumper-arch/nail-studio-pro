@@ -1,5 +1,6 @@
 // Cliente Google injetável (Sheets, Drive, Calendar, OAuth). Todo acesso ao Google passa por aqui.
 import { GoogleError, AuthError, UserError } from './errors.js';
+import { sanitizeCell } from './util.js';
 
 const REAL = {
   sheets: 'https://sheets.googleapis.com',
@@ -82,6 +83,14 @@ export function createGoogle(env, fetchImpl = fetch) {
 
   const valuesUrl = (sid, tab, suffix) =>
     `${sheetsHost}/v4/spreadsheets/${encodeURIComponent(sid)}/values/${encodeURIComponent(tab)}${suffix}`;
+  // 'Aba!K5:L5' -> aba codificada + intervalo (o Sheets aceita o '!' e o ':' literais).
+  const rangeUrl = (sid, rangeA1, suffix = '') => {
+    const i = rangeA1.lastIndexOf('!');
+    return valuesUrl(sid, rangeA1.slice(0, i), rangeA1.slice(i) + suffix);
+  };
+  // Toda gravação é USER_ENTERED e o Sheets tira o ' do início ao gravar: um texto que já passou
+  // pela planilha volta "cru" na leitura. Por isso cada gravação neutraliza fórmulas de novo.
+  const clean = (rows) => rows.map((r) => r.map(sanitizeCell));
 
   return {
     async readTab(sid, tab) {
@@ -93,11 +102,29 @@ export function createGoogle(env, fetchImpl = fetch) {
       return data.values || [];
     },
 
+    // Só o intervalo pedido (ex.: 'Agendamentos!A5'); [] quando vazio.
+    async readRange(sid, rangeA1) {
+      const res = await authed(rangeUrl(sid, rangeA1), 'GET');
+      if (res.status === 400) return [];
+      await ok(res, 'Ler intervalo');
+      const data = await res.json();
+      return data.values || [];
+    },
+
+    // Regrava a aba inteira (apaga e escreve). Não usar em Agendamentos: lá só updateRange/appendRow.
     async writeTab(sid, tab, rows) {
       await ok(await authed(valuesUrl(sid, tab, '!A1:Z500:clear'), 'POST'), 'Limpar aba');
       await ok(
-        await authed(valuesUrl(sid, tab, '!A1?valueInputOption=USER_ENTERED'), 'PUT', { values: rows }),
+        await authed(valuesUrl(sid, tab, '!A1?valueInputOption=USER_ENTERED'), 'PUT', { values: clean(rows) }),
         'Gravar aba'
+      );
+    },
+
+    // Grava só as células do intervalo (ex.: 'Agendamentos!K5:L5'); o resto da aba fica intacto.
+    async updateRange(sid, rangeA1, rows) {
+      await ok(
+        await authed(rangeUrl(sid, rangeA1, '?valueInputOption=USER_ENTERED'), 'PUT', { values: clean(rows) }),
+        'Gravar células'
       );
     },
 
@@ -106,7 +133,7 @@ export function createGoogle(env, fetchImpl = fetch) {
         await authed(
           valuesUrl(sid, tab, '!A1:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS'),
           'POST',
-          { values: [row] }
+          { values: clean([row]) }
         ),
         'Acrescentar linha'
       );

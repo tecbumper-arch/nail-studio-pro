@@ -94,3 +94,24 @@ export async function readCatalogo(g, sid) {
 export async function readAgendamentos(g, sid) {
   return g.readTab(sid, 'Agendamentos');
 }
+
+const COL = (i) => String.fromCharCode(65 + i); // 0 -> 'A' (Agendamentos tem 14 colunas)
+
+// Muda só algumas colunas de UMA reserva, sem regravar a aba (reservas novas gravadas no meio
+// do caminho continuam lá). rows/i vêm da leitura; changes = { coluna: valor }.
+// Antes de gravar confere de novo o ID naquela linha; se a linha mudou de lugar, recusa.
+export async function updateBookingRow(g, sid, rows, i, changes) {
+  const row = rows[i];
+  const cols = Object.keys(changes).map(Number);
+  const from = Math.min(...cols);
+  const to = Math.max(...cols);
+  const values = [];
+  for (let c = from; c <= to; c++) values.push(c in changes ? changes[c] : (row[c] ?? ''));
+  const line = i + 1;
+  const now = await g.readRange(sid, `Agendamentos!A${line}`);
+  if (!now[0] || now[0][0] !== row[0]) {
+    throw new UserError('A agenda mudou enquanto salvava. Atualize a página e tente de novo.');
+  }
+  await g.updateRange(sid, `Agendamentos!${COL(from)}${line}:${COL(to)}${line}`, [values]);
+  for (const c of cols) row[c] = changes[c];
+}

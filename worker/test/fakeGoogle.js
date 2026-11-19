@@ -5,12 +5,55 @@
 // { serviceEmail } é o e-mail da conta do servidor (Drive about).
 // calls[i].query guarda a query string (ex.: '?fields=...').
 // fake.fail(status, pathRegex?) faz as próximas chamadas (que casem) devolverem esse status; fail(null) limpa.
+// Gravações USER_ENTERED se comportam como no Sheets: um ' no início é removido (a célula fica como texto);
+// sem o ', texto começando com = + - @ é interpretado (fórmula). fake.isLive(sid, tab, linha, coluna)
+// diz se a célula foi interpretada (índices a partir de 0, como no array de db).
+// Leituras e gravações respeitam o intervalo A1 pedido (ex.: 'Agendamentos!K5:L5').
 export function createFakeGoogle(seed = {}, opts = {}) {
   const db = JSON.parse(JSON.stringify(seed));
   const calls = [];
   let failure = null;
   let counter = 0;
   const filePerms = JSON.parse(JSON.stringify(opts.permissions || {}));
+  const live = new Set();
+  const cellKey = (sid, tab, r, c) => [sid, tab, r, c].join('\u0000');
+
+  // 'A1' / 'K5' -> { r, c } (0-based); 'A1:Z500' -> { start, end }.
+  function parseCell(a1) {
+    const m = /^([A-Z]+)(\d+)$/.exec(a1);
+    if (!m) return null;
+    let c = 0;
+    for (const ch of m[1]) c = c * 26 + (ch.charCodeAt(0) - 64);
+    return { r: Number(m[2]) - 1, c: c - 1 };
+  }
+  function parseRange(rng) {
+    const part = rng.includes('!') ? rng.split('!')[1] : 'A1:Z1000';
+    const [a, b] = part.split(':');
+    const start = parseCell(a);
+    const end = b ? parseCell(b) : start;
+    return { start, end };
+  }
+  function storeCell(sid, tab, r, c, raw, userEntered) {
+    const rows = db[sid][tab];
+    while (rows.length <= r) rows.push([]);
+    while (rows[r].length < c) rows[r].push('');
+    let v = raw === null || raw === undefined ? '' : String(raw);
+    let isLive = false;
+    if (userEntered) {
+      if (v.startsWith("'")) v = v.slice(1);
+      else if (/^[=+\-@]/.test(v)) isLive = true;
+    }
+    rows[r][c] = v;
+    if (isLive) live.add(cellKey(sid, tab, r, c)); else live.delete(cellKey(sid, tab, r, c));
+  }
+  function writeAt(sid, tab, r0, c0, values, userEntered) {
+    values.forEach((row, i) => row.forEach((v, j) => storeCell(sid, tab, r0 + i, c0 + j, v, userEntered)));
+  }
+  function clearTab(sid, tab) {
+    db[sid][tab] = [];
+    const prefix = cellKey(sid, tab, '', '').slice(0, -1); // 'sid\0tab\0'
+    for (const k of [...live]) if (k.startsWith(prefix)) live.delete(k);
+  }
 
   const json = (obj, status = 200) =>
     new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
@@ -55,10 +98,21 @@ export function createFakeGoogle(seed = {}, opts = {}) {
       if (sm) { action = sm[1]; rng = rng.slice(0, -sm[0].length); }
       const tab = rng.split('!')[0];
       if (!db[sid] || !db[sid][tab]) return json({ error: { message: 'Unable to parse range: ' + rng } }, 400);
-      if (method === 'GET') return json({ range: rng, values: db[sid][tab] });
-      if (action === 'clear') { db[sid][tab] = []; return json({}); }
-      if (action === 'append') { db[sid][tab].push(...body.values.map((r) => r.map(String))); return json({}); }
-      if (method === 'PUT') { db[sid][tab] = body.values.map((r) => r.map(String)); return json({}); }
+      const userEntered = url.searchParams.get('valueInputOption') === 'USER_ENTERED';
+      const { start, end } = parseRange(rng);
+      if (!start) return json({ error: { message: 'Unable to parse range: ' + rng } }, 400);
+      if (method === 'GET') {
+        const values = db[sid][tab].slice(start.r, end.r + 1).map((r) => r.slice(start.c, end.c + 1));
+        while (values.length && values[values.length - 1].every((v) => v === '')) values.pop();
+        return json({ range: rng, values });
+      }
+      if (action === 'clear') { clearTab(sid, tab); return json({}); }
+      if (action === 'append') {
+        const at = db[sid][tab].length;
+        writeAt(sid, tab, at, 0, body.values, userEntered);
+        return json({});
+      }
+      if (method === 'PUT') { writeAt(sid, tab, start.r, start.c, body.values, userEntered); return json({}); }
     }
 
     m = path.match(/^\/drive\/v3\/files\/([^/]+)\/permissions(?:\/([^/]+))?$/);
@@ -98,6 +152,7 @@ export function createFakeGoogle(seed = {}, opts = {}) {
     fetch,
     db,
     calls,
+    isLive: (sid, tab, r, c) => live.has(cellKey(sid, tab, r, c)),
     fail(status, pathRegex = /.*/) { failure = status ? { status, re: pathRegex } : null; },
   };
 }

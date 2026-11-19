@@ -3,7 +3,7 @@
 import { UserError } from '../errors.js';
 import { normalizeBrPhone, toMin, fromMin, newId, sanitizeCell } from '../util.js';
 import {
-  loadStudio, publicStudio, readCategorias, readCatalogo, readAgendamentos, DEFAULT_CATEGORIAS,
+  loadStudio, publicStudio, readCategorias, readCatalogo, readAgendamentos, updateBookingRow, DEFAULT_CATEGORIAS,
 } from '../studio.js';
 import { syncCalendar, isRealEventId } from '../calendar.js';
 
@@ -153,19 +153,18 @@ export const adminHandlers = {
     const rows = await readAgendamentos(ctx.g, sid);
     for (let i = 1; i < rows.length; i++) {
       if (rows[i] && rows[i][0] === id) {
+        let changes = null;
         if (action === 'VALIDAR_PIX') {
-          rows[i][10] = 'PIX_CONFIRMADO';
-          rows[i][11] = 'CONFIRMADO';
+          changes = { 10: 'PIX_CONFIRMADO', 11: 'CONFIRMADO' };
         } else if (action === 'CONCLUIR_ATENDIMENTO') {
-          rows[i][10] = rows[i][10] === 'AGUARDANDO_VALIDACAO_PIX' ? 'PIX_CONFIRMADO' : 'PAGO_NO_STUDIO';
-          rows[i][11] = 'CONCLUIDO';
+          changes = { 10: rows[i][10] === 'AGUARDANDO_VALIDACAO_PIX' ? 'PIX_CONFIRMADO' : 'PAGO_NO_STUDIO', 11: 'CONCLUIDO' };
         } else if (action === 'CANCELAR_RESERVA') {
-          rows[i][11] = 'CANCELADO';
+          changes = { 11: 'CANCELADO' };
           const calId = rows[i][12];
           // Só marca depois de a Agenda confirmar; se falhar, o id fica para nova tentativa.
-          if (isRealEventId(calId) && (await syncCalendar(ctx, 'DELETE', null, calId))) rows[i][12] = 'DELETED_' + calId;
+          if (isRealEventId(calId) && (await syncCalendar(ctx, 'DELETE', null, calId))) changes[12] = 'DELETED_' + calId;
         }
-        await ctx.g.writeTab(sid, 'Agendamentos', rows);
+        if (changes) await updateBookingRow(ctx.g, sid, rows, i, changes);
         break;
       }
     }

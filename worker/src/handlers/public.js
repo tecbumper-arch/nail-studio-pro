@@ -3,7 +3,7 @@ import { UserError } from '../errors.js';
 import { normalizeBrPhone, toMin, fromMin, newId, saoPauloNow, sanitizeCell } from '../util.js';
 import { buildPixBrCode } from '../pix.js';
 import {
-  loadStudio, publicStudio, assertKnownStudio, readCategorias, readCatalogo, readAgendamentos,
+  loadStudio, publicStudio, assertKnownStudio, readCategorias, readCatalogo, readAgendamentos, updateBookingRow,
 } from '../studio.js';
 import { syncCalendar, isRealEventId } from '../calendar.js';
 
@@ -68,6 +68,20 @@ async function known(ctx) {
   return (await loadStudio(ctx.g, ctx.sid, ctx.origin)).studio;
 }
 
+// Reserva `reservaId` cujo WhatsApp bate com `phone` (últimos 8 dígitos). Telefone obrigatório:
+// sem ele qualquer um mexeria em qualquer reserva.
+async function findOwnBooking(ctx, reservaId, phone) {
+  const clean = normalizeBrPhone(phone);
+  if (clean.length < 10) throw new UserError('Informe o WhatsApp usado na reserva.');
+  const last8 = clean.slice(-8);
+  const rows = await readAgendamentos(ctx.g, ctx.sid);
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (row && row[0] === reservaId && normalizeBrPhone(row[5] || '').slice(-8) === last8) return { rows, i };
+  }
+  throw new UserError('Reserva não localizada.');
+}
+
 const pixFor = (studio, valor, id) =>
   buildPixBrCode(studio.pixChave || '00000000000', studio.pixRecebedor, studio.pixCidade, valor, id);
 
@@ -128,7 +142,7 @@ export const publicHandlers = {
       success: true,
       reserva: {
         id, data: p.data, horaInicio: p.horaInicio, horaFim: slot.horaFim,
-        clienteNome: nome, servicoNome: srv.nome,
+        clienteNome: nome, clienteWhatsApp: phone, servicoNome: srv.nome,
         valorTotal: srv.preco, valorCobradoAgora,
         metodoPagamento: metodo, statusPagamento: statusPag,
         pixCopiaECola: pixFor(studio, valorCobradoAgora, id), whatsappStudio: studio.whatsapp,
@@ -166,34 +180,24 @@ export const publicHandlers = {
 
   async cancelCustomerBooking(ctx, reservaId, phone) {
     await known(ctx);
-    const clean = normalizeBrPhone(phone);
-    // Telefone obrigatório: sem ele qualquer um cancelaria qualquer reserva.
-    if (clean.length < 10) throw new UserError('Informe o WhatsApp usado na reserva.');
-    const last8 = clean.slice(-8);
-    const agRows = await readAgendamentos(ctx.g, ctx.sid);
-    for (let i = 1; i < agRows.length; i++) {
-      const row = agRows[i];
-      if (row && row[0] === reservaId && normalizeBrPhone(row[5] || '').slice(-8) === last8) {
-        row[11] = 'CANCELADO';
-        const calId = row[12];
-        // Só marca depois de a Agenda confirmar; se falhar, o id fica para nova tentativa.
-        if (isRealEventId(calId) && (await syncCalendar(ctx, 'DELETE', null, calId))) row[12] = 'DELETED_' + calId;
-        await ctx.g.writeTab(ctx.sid, 'Agendamentos', agRows);
-        return { success: true };
-      }
-    }
-    throw new UserError('Reserva não localizada.');
+    const { rows, i } = await findOwnBooking(ctx, reservaId, phone);
+    const row = rows[i];
+    const changes = { 11: 'CANCELADO' };
+    const calId = row[12];
+    // Só marca depois de a Agenda confirmar; se falhar, o id fica para nova tentativa.
+    if (isRealEventId(calId) && (await syncCalendar(ctx, 'DELETE', null, calId))) changes[12] = 'DELETED_' + calId;
+    await updateBookingRow(ctx.g, ctx.sid, rows, i, changes);
+    return { success: true };
   },
 
-  async notifyPixPaidByCustomer(ctx, reservaId) {
+  async notifyPixPaidByCustomer(ctx, reservaId, phone) {
     await known(ctx);
-    const agRows = await readAgendamentos(ctx.g, ctx.sid);
-    for (let i = 1; i < agRows.length; i++) {
-      if (agRows[i] && agRows[i][0] === reservaId) {
-        agRows[i][10] = 'CLIENTE_INFORMOU_PIX';
-        await ctx.g.writeTab(ctx.sid, 'Agendamentos', agRows);
-        break;
-      }
+    const { rows, i } = await findOwnBooking(ctx, reservaId, phone);
+    const row = rows[i];
+    if (String(row[11] || '').toUpperCase() === 'CANCELADO') throw new UserError('Esta reserva foi cancelada.');
+    // Só uma reserva esperando validação muda (Pix já confirmado ou já avisado: nada a gravar).
+    if (row[10] === 'AGUARDANDO_VALIDACAO_PIX') {
+      await updateBookingRow(ctx.g, ctx.sid, rows, i, { 10: 'CLIENTE_INFORMOU_PIX' });
     }
     return { success: true };
   },

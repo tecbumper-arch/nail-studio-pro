@@ -107,11 +107,18 @@ describe('completeInitialOnboarding', () => {
   it('user text is stored without formula injection', async () => {
     const r = await run({ ...P(), studioNome: '=HYPERLINK("http://x")', profissionalNome: '+Nova', pixChave: '-1' });
     const cfg = cfgMap(r.spreadsheetId);
-    expect(cfg.STUDIO_NOME).toBe('\'=HYPERLINK("http://x")');
-    expect(cfg.PROFISSIONAL_NOME).toBe("'+Nova");
-    expect(cfg.PIX_CHAVE).toBe("'-1");
-    expect(contas()[2][1]).toBe("'+Nova");
-    expect(contas()[2][2]).toBe('\'=HYPERLINK("http://x")');
+    // Como no Sheets: o ' some na gravação USER_ENTERED e a célula fica como texto (não fórmula).
+    expect(cfg.STUDIO_NOME).toBe('=HYPERLINK("http://x")');
+    expect(cfg.PROFISSIONAL_NOME).toBe('+Nova');
+    expect(cfg.PIX_CHAVE).toBe('-1');
+    expect(contas()[2][1]).toBe('+Nova');
+    expect(contas()[2][2]).toBe('=HYPERLINK("http://x")');
+    const cfgRows = fake.db[r.spreadsheetId].Configuracoes;
+    for (const k of ['STUDIO_NOME', 'PROFISSIONAL_NOME', 'PIX_CHAVE']) {
+      expect(fake.isLive(r.spreadsheetId, 'Configuracoes', cfgRows.findIndex((x) => x[0] === k), 1)).toBe(false);
+    }
+    expect(fake.isLive(MASTER, 'Contas_Manicures', 2, 1)).toBe(false);
+    expect(fake.isLive(MASTER, 'Contas_Manicures', 2, 2)).toBe(false);
   });
 
   it('connects a custom sheet given as a full URL or a bare id', async () => {

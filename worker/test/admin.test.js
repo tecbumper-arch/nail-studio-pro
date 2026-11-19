@@ -88,6 +88,26 @@ describe('admin handlers', () => {
     expect(fake.db[A].Agendamentos[1].slice(10, 12)).toEqual(['PAGO_NO_STUDIO', 'CONCLUIDO']);
   });
 
+  it('adminUpdateBookingStatus changes only that row: a booking saved meanwhile survives, the tab is never cleared', async () => {
+    const EVA = ['AG-9', '2030-01-09', '09:00', '10:00', '=HYPERLINK("http://x")', '5511900000000', 'S1', 'Gel', '100', 'NO_LOCAL', 'PAGAR_NO_STUDIO', 'RESERVADO', 'e9', ''];
+    const real = ctx.g.readTab;
+    let done = false;
+    ctx.g = { ...ctx.g, async readTab(sid, tab) {
+      const out = await real(sid, tab);
+      if (tab === 'Agendamentos' && !done) { done = true; fake.db[A].Agendamentos.push(EVA); }
+      return out;
+    } };
+    await h.adminUpdateBookingStatus(ctx, 'AG-2', 'VALIDAR_PIX');
+    await h.adminUpdateBookingStatus(ctx, 'AG-1', 'CONCLUIR_ATENDIMENTO');
+    await h.adminUpdateBookingStatus(ctx, 'AG-2', 'CANCELAR_RESERVA');
+    const rows = fake.db[A].Agendamentos;
+    expect(rows.find((r) => r[0] === 'AG-9')).toEqual(EVA);
+    expect(fake.isLive(A, 'Agendamentos', 3, 4)).toBe(false);
+    expect(rows[1].slice(10, 13)).toEqual(['PAGO_NO_STUDIO', 'CONCLUIDO', 'ev1']);
+    expect(rows[2].slice(10, 13)).toEqual(['PIX_CONFIRMADO', 'CANCELADO', 'DELETED_ev2']);
+    expect(fake.calls.some((c) => c.path.endsWith(':clear') && c.path.includes('Agendamentos'))).toBe(false);
+  });
+
   it('category save renames services, delete removes', async () => {
     await h.adminSaveCategory(ctx, { id: 'CAT-1', nome: 'Unhas', icone: '💅', ordem: 1 });
     expect(fake.db[A].Catalogo[1][6]).toBe('Unhas');

