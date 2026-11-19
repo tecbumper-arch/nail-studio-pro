@@ -2,7 +2,7 @@
 // Porta de App_Manicure.html rpc('completeInitialOnboarding') e provisionNewGoogleSpreadsheetForUser
 // (1404-1528), sem palavra de recuperação: RecHash fica vazio.
 import { AuthError, UserError, GoogleError } from '../errors.js';
-import { normalizeBrPhone, sanitizeCell, sha256Hex } from '../util.js';
+import { normalizeBrPhone, sanitizeCell, hashPin } from '../util.js';
 import { findAccountByEmail, issueStudioSession, validateNewPin } from './auth.js';
 import { defaultCatalogTabs } from './admin.js';
 
@@ -133,7 +133,7 @@ export const onboardingHandlers = {
       profissionalNome: s(profissionalNome),
       whatsapp,
       pixChave: s(String(p.pixChave || '').trim()),
-      pinHash: await sha256Hex(pin),
+      pinHash: await hashPin(pin),
       criadoEm: nowBr(),
     };
 

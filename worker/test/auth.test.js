@@ -3,7 +3,7 @@ import { createFakeGoogle } from './fakeGoogle.js';
 import { createGoogle, resetGoogleTokenCache } from '../src/google.js';
 import { authHandlers, adminAuthHandlers } from '../src/handlers/auth.js';
 import { verifyToken } from '../src/session.js';
-import { sha256Hex } from '../src/util.js';
+import { hashPin } from '../src/util.js';
 
 const SID = 'studio-1';
 const MASTER = 'master-1';
@@ -32,7 +32,7 @@ async function setup(pinHash) {
 }
 
 describe('authenticateAdmin', () => {
-  beforeEach(async () => setup(await sha256Hex('4321')));
+  beforeEach(async () => setup(await hashPin('4321')));
 
   it('correct email and PIN returns a verifiable studio token with the studio sid', async () => {
     const r = await authHandlers.authenticateAdmin(ctx, { loginId: ' ANA@x.com ', pin: '4321' });
@@ -83,10 +83,24 @@ describe('authenticateAdmin', () => {
   });
 
   it('legacy default PIN 123456 is refused', async () => {
-    await setup(await sha256Hex('123456'));
+    await setup(await hashPin('123456'));
     await expect(authHandlers.authenticateAdmin(ctx, { loginId: 'ana@x.com', pin: '123456' })).rejects.toThrow('Defina um PIN: entre com Google e crie um novo PIN.');
     await setup(null);
     await expect(authHandlers.authenticateAdmin(ctx, { loginId: 'ana@x.com', pin: '123456' })).rejects.toThrow('Defina um PIN');
+  });
+
+  it('a sheet holding the original app salted hash of 123456 counts as the legacy default', async () => {
+    const { createHash } = await import('node:crypto');
+    await setup(createHash('sha256').update('NAIL_STUDIO_PRO_SALT_2026_123456').digest('hex'));
+    await expect(authHandlers.authenticateAdmin(ctx, { loginId: 'ana@x.com', pin: '123456' })).rejects.toThrow('Defina um PIN: entre com Google e crie um novo PIN.');
+    expect((await adminAuthHandlers.checkAuthStatus(ctx)).hasPin).toBe(false);
+  });
+
+  it('an existing PIN saved by the original app (salted hash) still logs in', async () => {
+    const { createHash } = await import('node:crypto');
+    await setup(createHash('sha256').update('NAIL_STUDIO_PRO_SALT_2026_2580').digest('hex'));
+    const r = await authHandlers.authenticateAdmin(ctx, { loginId: 'ana@x.com', pin: '2580' });
+    expect(r.spreadsheetId).toBe(SID);
   });
 });
 
@@ -110,7 +124,7 @@ describe('adminSetPin / checkAuthStatus', () => {
     expect((await adminAuthHandlers.checkAuthStatus(ctx)).hasPin).toBe(false);
     expect(await adminAuthHandlers.adminSetPin(ctx, { novoPin: '9876' })).toEqual({ success: true });
     const row = fake.db[SID].Configuracoes.find((r) => r[0] === 'ADMIN_PIN_HASH');
-    expect(row[1]).toBe(await sha256Hex('9876'));
+    expect(row[1]).toBe(await hashPin('9876'));
     // atualiza a linha existente, sem duplicar
     await adminAuthHandlers.adminSetPin(ctx, { novoPin: '5555' });
     expect(fake.db[SID].Configuracoes.filter((r) => r[0] === 'ADMIN_PIN_HASH')).toHaveLength(1);

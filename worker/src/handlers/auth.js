@@ -1,7 +1,7 @@
 // Login por PIN (e-mail + PIN), troca de PIN e status de autenticação.
 import { signToken } from '../session.js';
 import { UserError } from '../errors.js';
-import { sha256Hex } from '../util.js';
+import { hashPin } from '../util.js';
 import { loadStudio } from '../studio.js';
 import { isLocked, recordFailure, clearFailures } from '../rateLimit.js';
 
@@ -38,8 +38,8 @@ export const authHandlers = {
     }
 
     const { cfgMap } = await loadStudio(g, conta.sid);
-    const inputHash = await sha256Hex(String(pin || '').trim());
-    const defaultHash = await sha256Hex('123456');
+    const inputHash = await hashPin(pin);
+    const defaultHash = await hashPin('123456');
     const storedHash = cfgMap['ADMIN_PIN_HASH'] || defaultHash;
 
     if (inputHash !== storedHash) {
@@ -68,7 +68,7 @@ export const adminAuthHandlers = {
   async adminSetPin(ctx, { novoPin } = {}) {
     const pin = validateNewPin(novoPin);
     const sid = ctx.session.sid;
-    const hash = await sha256Hex(pin);
+    const hash = await hashPin(pin);
     const rows = await ctx.g.readTab(sid, 'Configuracoes');
     let found = false;
     for (let i = 1; i < rows.length; i++) {
@@ -85,7 +85,7 @@ export const adminAuthHandlers = {
   async checkAuthStatus(ctx) {
     const sid = ctx.session.sid;
     const { studio, cfgMap } = await loadStudio(ctx.g, sid, ctx.origin);
-    const defaultHash = await sha256Hex('123456');
+    const defaultHash = await hashPin('123456');
     const stored = cfgMap['ADMIN_PIN_HASH'];
     return {
       setupConcluido: studio.setupConcluido,

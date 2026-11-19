@@ -1,7 +1,7 @@
 // Teste de ponta a ponta: páginas servidas pelo Worker (`wrangler dev`) falando com um Google falso.
 // Uso: npm run e2e   (E2E_SHOTS=<pasta> também salva screenshots 390x844 @2x)
+// Primeira vez numa máquina nova: `npm run e2e:install-browser` (baixa o Chromium do Playwright). Ver README.md.
 import { spawn } from 'node:child_process';
-import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import net from 'node:net';
 import os from 'node:os';
@@ -10,10 +10,8 @@ import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { startFakeGoogleServer } from './fakeGoogleServer.js';
 import { signToken } from '../../src/session.js';
-import { sha256Hex } from '../../src/util.js';
-
-const require = createRequire(import.meta.url);
-const { chromium } = require('playwright');
+import { hashPin } from '../../src/util.js';
+import { chromium } from 'playwright';
 
 const WORKER_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const SHOTS = process.env.E2E_SHOTS || '';
@@ -31,7 +29,7 @@ const CLIENTE_WHATS = '11977776666';
 // Dados iniciais (planilha mestre + studio)
 // ---------------------------------------------------------------------------
 async function seed() {
-  const pinHash = await sha256Hex(PIN);
+  const pinHash = await hashPin(PIN);
   const cfg = (extra) => [
     ['Chave', 'Valor', 'Descricao'],
     ['SETUP_CONCLUIDO', 'SIM', ''],
@@ -74,7 +72,7 @@ async function seed() {
       ['GCAL_CONNECTED_EMAIL', EMAIL, ''],
     ]),
     // Studio antigo sem PIN próprio (só o 123456 legado).
-    [LEGACY_SID]: studioTabs([['ADMIN_PIN_HASH', await sha256Hex('123456'), '']]),
+    [LEGACY_SID]: studioTabs([['ADMIN_PIN_HASH', await hashPin('123456'), '']]),
   };
 }
 
@@ -122,12 +120,19 @@ async function startWrangler(googleBase) {
   const origin = `http://127.0.0.1:${port}`;
   const deadline = Date.now() + 90_000;
   for (;;) {
-    if (child.exitCode !== null) throw new Error('wrangler dev saiu:\n' + log);
+    if (child.exitCode !== null) {
+      fs.rmSync(tmp, { recursive: true, force: true });
+      throw new Error('wrangler dev saiu:\n' + log);
+    }
     try {
       const r = await fetch(origin + '/App_Manicure.html');
       if (r.ok) break;
     } catch (e) {}
-    if (Date.now() > deadline) throw new Error('wrangler dev não respondeu a tempo:\n' + log);
+    if (Date.now() > deadline) {
+      try { process.kill(-child.pid, 'SIGTERM'); } catch (e) {}
+      fs.rmSync(tmp, { recursive: true, force: true });
+      throw new Error('wrangler dev não respondeu a tempo:\n' + log);
+    }
     await new Promise((r) => setTimeout(r, 500));
   }
   return {
@@ -140,6 +145,8 @@ async function startWrangler(googleBase) {
   };
 }
 
+// @fortawesome/fontawesome-free e qrcodejs são devDependencies só para o e2e: substituem as CDNs
+// (bloqueadas em sandbox/CI) que as páginas carregam em produção.
 const FA_DIR = path.join(WORKER_DIR, 'node_modules/@fortawesome/fontawesome-free');
 const QR_JS = path.join(WORKER_DIR, 'node_modules/qrcodejs/qrcode.min.js');
 const PLACEHOLDER_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300"><rect width="400" height="300" fill="#fbcfe8"/></svg>';
@@ -434,7 +441,7 @@ test('retorno google_auth=error mostra a mensagem', async ({ browser, origin, ap
 
 test('nenhuma resposta de /api/* contém "GCAL_REFRESH_TOKEN" nem "ADMIN_PIN_HASH"', async ({ apiLog }) => {
   assert.ok(apiLog.responses.length > 10, 'respostas da API capturadas');
-  const pinHash = await sha256Hex(PIN);
+  const pinHash = await hashPin(PIN);
   for (const r of apiLog.responses) {
     for (const bad of ['GCAL_REFRESH_TOKEN', 'ADMIN_PIN_HASH', GCAL_SECRET, pinHash]) {
       assert.ok(!r.body.includes(bad), `${r.url} contém ${bad}`);

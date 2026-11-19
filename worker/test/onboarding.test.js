@@ -3,7 +3,7 @@ import { createFakeGoogle } from './fakeGoogle.js';
 import { createGoogle, resetGoogleTokenCache } from '../src/google.js';
 import { onboardingHandlers } from '../src/handlers/onboarding.js';
 import { verifyToken } from '../src/session.js';
-import { sha256Hex } from '../src/util.js';
+import { hashPin } from '../src/util.js';
 import { AuthError, UserError, GoogleError } from '../src/errors.js';
 
 const SID = 'studio-1';
@@ -61,7 +61,7 @@ describe('completeInitialOnboarding', () => {
     expect(cfg).toMatchObject({
       SETUP_CONCLUIDO: 'SIM', STUDIO_NOME: 'Studio Nova', PROFISSIONAL_NOME: 'Nova Silva',
       ADMIN_LOGIN_ID: 'nova@x.com', WHATSAPP_STUDIO: '11997778888', PIX_CHAVE: 'nova@x.com',
-      PIX_RECEBEDOR: 'Nova Silva', SINCRONIZAR_AGENDA: 'SIM', ADMIN_PIN_HASH: await sha256Hex('4321'),
+      PIX_RECEBEDOR: 'Nova Silva', SINCRONIZAR_AGENDA: 'SIM', ADMIN_PIN_HASH: await hashPin('4321'),
       ADMIN_RECOVERY_HASH: '', HORARIO_INICIO: '09:00', DIAS_ATENDIMENTO: '1,2,3,4,5,6',
     });
     expect(fake.db[sid].Configuracoes[0]).toEqual(['Chave', 'Valor', 'Descricao']);
@@ -84,7 +84,7 @@ describe('completeInitialOnboarding', () => {
     expect(row.slice(0, 8)).toEqual([
       'nova@x.com', 'Nova Silva', 'Studio Nova', sid,
       `https://docs.google.com/spreadsheets/d/${sid}/edit`, `${ORIGIN}/Pagina_Cliente.html?s=${sid}`,
-      await sha256Hex('4321'), '',
+      await hashPin('4321'), '',
     ]);
     expect(row[8]).toBeTruthy();
 
@@ -121,7 +121,7 @@ describe('completeInitialOnboarding', () => {
       expect(r.spreadsheetId).toBe(CUSTOM);
       expect(r.ownershipStatus).toBe('PROPRIETARIA');
       expect(fake.calls.some((c) => c.method === 'POST' && c.path === '/v4/spreadsheets')).toBe(false);
-      expect(cfgMap(CUSTOM)).toMatchObject({ STUDIO_NOME: 'Studio Nova', ADMIN_LOGIN_ID: 'nova@x.com', ADMIN_PIN_HASH: await sha256Hex('4321') });
+      expect(cfgMap(CUSTOM)).toMatchObject({ STUDIO_NOME: 'Studio Nova', ADMIN_LOGIN_ID: 'nova@x.com', ADMIN_PIN_HASH: await hashPin('4321') });
       expect(contas()[2].slice(0, 6)).toEqual([
         'nova@x.com', 'Nova Silva', 'Studio Nova', CUSTOM,
         `https://docs.google.com/spreadsheets/d/${CUSTOM}/edit`, `${ORIGIN}/Pagina_Cliente.html?s=${CUSTOM}`,

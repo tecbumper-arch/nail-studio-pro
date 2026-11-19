@@ -22,6 +22,12 @@ export async function sha256Hex(s) {
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+// Hash de PIN no mesmo formato do app original (App_Manicure.html@e701efd): os PINs já salvos
+// nas planilhas e o padrão legado 123456 continuam batendo.
+export function hashPin(pin) {
+  return sha256Hex('NAIL_STUDIO_PRO_SALT_2026_' + String(pin ?? '').trim().toLowerCase());
+}
+
 // Ex.: newId('AG') -> 'AG-483920'
 export function newId(prefix) {
   const n = 100000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 900000);
